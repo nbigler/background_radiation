@@ -36,8 +36,11 @@ using namespace pcappp;
 //
 typedef HashKeyIPv4_6T FlowHashKey6;
 typedef hash_map<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > FlowHashMap6;
+
 void print_flow(std::pair<HashKeyIPv4_6T, cflow> hash);
+void print_cvs(std::pair<HashKeyIPv4_6T, cflow> hash);
 u_int16_t endian_swap(u_int16_t _x);
+uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
 
 int main(int argc, char **argv) {
 
@@ -61,33 +64,33 @@ int main(int argc, char **argv) {
 
 		// Get some general infos from file
 		string filename = pco.get_filename();
-		cout << "File name is: " << filename << endl;
+		//cout << "File name is: " << filename << endl;
 
 		int major = pco.get_major_version();
 		int minor = pco.get_minor_version();
-		cout << "File format used is: " << major << "." << minor << endl;
+		//cout << "File format used is: " << major << "." << minor << endl;
 
 		if (pco.is_swapped()) {
-			cout << "Capture data byte order differs from byte order used on this system.\n";
+			//cout << "Capture data byte order differs from byte order used on this system.\n";
 		} else {
-			cout << "Capture data byte order complies with byte order used on this system.\n";
+			//cout << "Capture data byte order complies with byte order used on this system.\n";
 		}
 
 		DataLink dl = pco.get_datalink();
-		cout << "Data link code: " << dl.get_description() << endl;
+		//cout << "Data link code: " << dl.get_description() << endl;
 
 		if (dl.get_type() == DataLink::EN10MB) {
-			cout << "INFO: data link type is standard Ethernet (10 MB up).\n";
+			//cout << "INFO: data link type is standard Ethernet (10 MB up).\n";
 		} else {
-			cout << "INFO: data link type is NOT Ethernet. Type code is: " << dl.get_type() << ".\n";
-			cout << "\nAll done.\n\n";
+			//cout << "INFO: data link type is NOT Ethernet. Type code is: " << dl.get_type() << ".\n";
+			//cout << "\nAll done.\n\n";
 			return 0;
 		}
 
 		unsigned int slen = pco.get_snaplen();
-		cout << "Snap length: " << slen << endl << endl;
+		//cout << "Snap length: " << slen << endl << endl;
 
-		cout << "Packet header details (for IPv4 packets):\n";
+		//cout << "Packet header details (for IPv4 packets):\n";
 
 		// Process saved packets
 		// *********************
@@ -136,7 +139,6 @@ int main(int argc, char **argv) {
 
 				uint32_t netmask;
 				inet_pton(AF_INET, "172.20.0.0", &netmask);
-
 				// Show transport layer protocol
 				switch (ip_hdr->protocol) {
 				case IPPROTO_TCP:
@@ -146,6 +148,7 @@ int main(int argc, char **argv) {
 					}else{
 						flow.init(ip_hdr->daddr, endian_swap(tcp_hdr->dest), ip_hdr->saddr, endian_swap(tcp_hdr->source), ip_hdr->protocol, inflow);
 					}
+					flow.tos_flags = *(((uint8_t *)&(tcp_hdr->ack_seq))+5);
 					break;
 				case IPPROTO_UDP:
 					udp_hdr = (struct udphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
@@ -163,7 +166,6 @@ int main(int argc, char **argv) {
 					}
 					break;
 				}
-				flow.tos_flags = ip_hdr->tos;
 
 				// Check if current flow is already contained in hash map
 				FlowHashKey6 mykey(&(flow.localIP), &(flow.remoteIP), &(flow.localPort),
@@ -242,7 +244,9 @@ int main(int argc, char **argv) {
 	} catch (...) {
 		cout << "ERROR: unknown exception occurred.\n";
 	}
-	for_each(flowHM6->begin(),flowHM6->end(),print_flow);
+	//for_each(flowHM6->begin(),flowHM6->end(),print_flow);
+	cout << "Local IP; Local Port; Remote IP; Remote Port; Protocol; TCP-Flags; Flow-Size; Number of Packets; Direction; Start Time; Duration" << endl;
+	for_each(flowHM6->begin(),flowHM6->end(),print_cvs);
 }
 
 u_int16_t endian_swap(u_int16_t _x){
@@ -251,16 +255,65 @@ u_int16_t endian_swap(u_int16_t _x){
 	return x;
 }
 
+void print_cvs(std::pair<HashKeyIPv4_6T, cflow> hash){
+	cflow flow = hash.second;
+	char localIP[INET_ADDRSTRLEN];
+	char remoteIP[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &(flow.localIP), localIP, INET_ADDRSTRLEN);
+	inet_ntop(AF_INET, &(flow.remoteIP), remoteIP, INET_ADDRSTRLEN);
+	cout << localIP << "; " << flow.localPort << "; " << remoteIP << "; " << flow.remotePort << "; ";
+	switch (flow.prot) {
+		case IPPROTO_TCP:
+			cout << "TCP";
+			break;
+		case IPPROTO_UDP:
+			cout << "UDP";
+			break;
+		default:
+			cout << "Other";
+			break;
+	}
+	cout << "; 0x" << hex << (int) flow.tos_flags << dec << "; " << flow.dOctets << "; " << flow.dPkts << "; ";
+	switch (flow.flowtype) {
+		case outflow:
+			cout << "outflow";
+			break;
+		case inflow:
+			cout << "inflow";
+			break;
+		case biflow:
+			cout << "biflow";
+			break;
+		default:
+			cout << "other";
+			break;
+	}
+	time_t rawtime = flow.startMs/1000;
+	cout << "; " << flow.startMs/1000 << "; " << flow.durationMs << endl;
+}
 void print_flow(std::pair<HashKeyIPv4_6T, cflow> hash){
 	cflow flow = hash.second;
 	char localIP[INET_ADDRSTRLEN];
 	char remoteIP[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(flow.localIP), localIP, INET_ADDRSTRLEN);
 	inet_ntop(AF_INET, &(flow.remoteIP), remoteIP, INET_ADDRSTRLEN);
-	cout << "Source IP: " << localIP << "\tSource Port: " << flow.localPort << endl;
-	cout << "Destination IP: " << remoteIP << "\t Remote Port: " << flow.remotePort << endl;
-	cout << "ToS-Flags: " << flow.tos_flags << endl;
-	cout << "Flow-Size (Byte): " << flow.dOctets << endl;
+	cout << "Local IP: " << localIP << "\tLocal Port: " << flow.localPort << endl;
+	cout << "Remote IP: " << remoteIP << "\tRemote Port: " << flow.remotePort << endl;
+	cout << "Protocol: ";
+	switch (flow.prot) {
+		case IPPROTO_TCP:
+			cout << "TCP";
+			break;
+		case IPPROTO_UDP:
+			cout << "UDP";
+			break;
+		default:
+			cout << "Other";
+			break;
+	}
+	cout << endl;
+	if (flow.prot==IPPROTO_TCP){cout << "TCP-Flags: 0x" << hex << (int) flow.tos_flags << endl;}
+	cout << "Flow-Size (Byte): " << dec << flow.dOctets << endl;
 	cout << "Number of Packets: " << flow.dPkts << endl;
 	cout << "Direction: ";
 	switch (flow.flowtype) {
@@ -278,8 +331,12 @@ void print_flow(std::pair<HashKeyIPv4_6T, cflow> hash){
 			break;
 	}
 	cout << endl;
-	cout << "Start Time: " << flow.startMs << "ms \tDuration: " << flow.durationMs << "ms" << endl;
+	time_t rawtime = flow.startMs;
+	cout << "Start Time: " << ctime(&rawtime) << "ms \tDuration: " << flow.durationMs << "ms" << endl;
 	cout << "-----------------------" << endl;
 }
 
+uint8_t get_tcp_flags(tcphdr const &tcp_hdr) {
+	return *(((uint8_t *)&(tcp_hdr.ack_seq))+5);
+}
 
