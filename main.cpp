@@ -189,20 +189,23 @@ int main(int argc, char **argv) {
 
 				if (iter == flowHM6->end()) {
 					if (iter_inverse == flowHM6->end()){
-						flow.startMs = p.get_seconds()*1000 + p.get_miliseconds()/1000; //get_miliseconds() returns microseconds not miliseconds
-						flow.dOctets = p.get_capture_length();
-						flow.dPkts = 1;
-					}else if (iter_biflow == flowHM6->end()) {
-						(*flowHM6)[mykey_biflow].durationMs = p.get_seconds()*1000 + p.get_miliseconds()/1000 - (*flowHM6)[mykey_biflow].startMs;
-						(*flowHM6)[mykey_biflow].dOctets = p.get_capture_length() + (*flowHM6)[mykey_biflow].dOctets;
-						(*flowHM6)[mykey_biflow].dPkts = (*flowHM6)[mykey_biflow].dPkts + 1;
+						if (iter_biflow == flowHM6->end()) {
+							flow.startMs = p.get_seconds()*1000 + p.get_miliseconds()/1000; //get_miliseconds() returns microseconds not miliseconds
+							flow.dOctets = p.get_capture_length();
+							flow.dPkts = 1;
+							(*flowHM6)[mykey] = flow;
+						}else{
+							(*flowHM6)[mykey_biflow].durationMs = p.get_seconds()*1000 + p.get_miliseconds()/1000 - (*flowHM6)[mykey_biflow].startMs;
+							(*flowHM6)[mykey_biflow].dOctets = p.get_capture_length() + (*flowHM6)[mykey_biflow].dOctets;
+							(*flowHM6)[mykey_biflow].dPkts = (*flowHM6)[mykey_biflow].dPkts + 1;
+						}
 					}else {
 						(*flowHM6)[mykey_inverse].flowtype = biflow;
 						(*flowHM6)[mykey_inverse].durationMs = p.get_seconds()*1000 + p.get_miliseconds()/1000 - (*flowHM6)[mykey_inverse].startMs;
 						(*flowHM6)[mykey_inverse].dOctets = p.get_capture_length() + (*flowHM6)[mykey_inverse].dOctets;
 						(*flowHM6)[mykey_inverse].dPkts = (*flowHM6)[mykey_inverse].dPkts + 1;
 					}
-					(*flowHM6)[mykey] = flow;
+
 				} else {
 					(*flowHM6)[mykey].durationMs = p.get_seconds()*1000 + p.get_miliseconds()/1000 - (*flowHM6)[mykey].startMs;
 					(*flowHM6)[mykey].dOctets = p.get_capture_length() + (*flowHM6)[mykey].dOctets;
@@ -260,10 +263,19 @@ void print_flow(std::pair<HashKeyIPv4_6T, cflow> hash){
 	cout << "Flow-Size (Byte): " << flow.dOctets << endl;
 	cout << "Number of Packets: " << flow.dPkts << endl;
 	cout << "Direction: ";
-	if (flow.flowtype == outflow){
-		cout << "outflow";
-	}else{
-		cout << "inflow";
+	switch (flow.flowtype) {
+		case outflow:
+			cout << "outflow";
+			break;
+		case inflow:
+			cout << "inflow";
+			break;
+		case biflow:
+			cout << "biflow";
+			break;
+		default:
+			cout << "unknown";
+			break;
 	}
 	cout << endl;
 	cout << "Start Time: " << flow.startMs << "ms \tDuration: " << flow.durationMs << "ms" << endl;
