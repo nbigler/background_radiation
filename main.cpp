@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 				struct udphdr * udp_hdr = NULL;
 
 				uint32_t netmask;
-				inet_pton(AF_INET, "172.20.0.0", &netmask);
+				inet_pton(AF_INET, "10.0.0.2", &netmask);
 				// Show transport layer protocol
 				switch (ip_hdr->protocol) {
 				case IPPROTO_TCP:
@@ -288,8 +288,10 @@ void print_cvs(std::pair<HashKeyIPv4_6T, cflow> hash){
 			cout << "other";
 			break;
 	}
-	time_t rawtime = flow.startMs/1000;
-	cout << "; " << flow.startMs/1000 << "; " << flow.durationMs << endl;
+	cout.precision(10);
+	cout << "; " << fixed << 25569+((flow.startMs/(double) 1000)/(double) 86400);  // Pre-Formated for Excel/LibreOffice
+	// cout << "; " << fixed << (flow.startMs/(double) 1000);  // Unix-Timestamp
+	cout << "; " << flow.durationMs << endl;
 }
 void print_flow(std::pair<HashKeyIPv4_6T, cflow> hash){
 	cflow flow = hash.second;
