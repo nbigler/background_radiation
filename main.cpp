@@ -17,10 +17,12 @@
 #include <netinet/ip.h>			// IP header
 #include <netinet/tcp.h>		// TCP header
 #include <netinet/udp.h>		// UDP header
+#include <netinet/ip_icmp.h>	// ICMP header
 #include <netinet/in.h>			// IP protocol types
 
 #include "HashMap2.h"
-#include "cflow.h"
+#include "libs/utils.h"
+#include "libs/flowlist.h"
 
 
 
@@ -39,8 +41,10 @@ typedef hash_map<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, Has
 
 void print_flow(std::pair<HashKeyIPv4_6T, cflow> hash);
 void print_cvs(std::pair<HashKeyIPv4_6T, cflow> hash);
+void to_flow_list(FlowHashMap6 * flowHM6);
 u_int16_t endian_swap(u_int16_t _x);
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
+std::vector<cflow> flowlist;
 
 int main(int argc, char **argv) {
 
@@ -136,6 +140,7 @@ int main(int argc, char **argv) {
 
 				struct tcphdr * tcp_hdr = NULL;
 				struct udphdr * udp_hdr = NULL;
+				struct icmphdr * icmp_hdr = NULL;
 
 				uint32_t netmask;
 				inet_pton(AF_INET, "10.0.0.2", &netmask);
@@ -154,6 +159,14 @@ int main(int argc, char **argv) {
 					udp_hdr = (struct udphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
 					if ((ip_hdr->saddr&netmask) == netmask){
 						flow.init(ip_hdr->saddr, endian_swap(udp_hdr->source), ip_hdr->daddr, endian_swap(udp_hdr->dest), ip_hdr->protocol, outflow);
+					}else{
+						flow.init(ip_hdr->daddr, endian_swap(udp_hdr->dest), ip_hdr->saddr, endian_swap(udp_hdr->source), ip_hdr->protocol, inflow);
+					}
+					break;
+				case IPPROTO_ICMP:
+					icmp_hdr = (struct icmphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
+					if ((ip_hdr->saddr&netmask) == netmask){
+						flow.init(ip_hdr->saddr,ip_hdr->daddr, icmp_hdr->type, icmp_hdr->code, outflow);
 					}else{
 						flow.init(ip_hdr->daddr, endian_swap(udp_hdr->dest), ip_hdr->saddr, endian_swap(udp_hdr->source), ip_hdr->protocol, inflow);
 					}
@@ -245,8 +258,12 @@ int main(int argc, char **argv) {
 		cout << "ERROR: unknown exception occurred.\n";
 	}
 	//for_each(flowHM6->begin(),flowHM6->end(),print_flow);
-	cout << "Local IP; Local Port; Remote IP; Remote Port; Protocol; TCP-Flags; Flow-Size; Number of Packets; Direction; Start Time; Duration" << endl;
-	for_each(flowHM6->begin(),flowHM6->end(),print_cvs);
+	//cout << "Local IP; Local Port; Remote IP; Remote Port; Protocol; TCP-Flags; Flow-Size; Number of Packets; Direction; Start Time; Duration" << endl;
+
+	//for_each(flowHM6->begin(),flowHM6->end(),print_cvs);
+
+	CFlowlist flowl("test.gz", flowHM6);
+	flowl.write_flows();
 }
 
 u_int16_t endian_swap(u_int16_t _x){
@@ -255,25 +272,22 @@ u_int16_t endian_swap(u_int16_t _x){
 	return x;
 }
 
+void to_flow_list(FlowHashMap6 * flowHM6) {
+	FlowHashMap6::iterator iter;
+	iter = flowHM6->begin();
+	int flowcount = 0;
+	for (FlowHashMap6::iterator it = flowHM6->begin(); it!=flowHM6->end(); it++) {
+		flowlist[flowcount++] = it->second;
+	}
+}
 void print_cvs(std::pair<HashKeyIPv4_6T, cflow> hash){
 	cflow flow = hash.second;
 	char localIP[INET_ADDRSTRLEN];
 	char remoteIP[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, &(flow.localIP), localIP, INET_ADDRSTRLEN);
-	inet_ntop(AF_INET, &(flow.remoteIP), remoteIP, INET_ADDRSTRLEN);
-	cout << localIP << "; " << flow.localPort << "; " << remoteIP << "; " << flow.remotePort << "; ";
-	switch (flow.prot) {
-		case IPPROTO_TCP:
-			cout << "TCP";
-			break;
-		case IPPROTO_UDP:
-			cout << "UDP";
-			break;
-		default:
-			cout << "Other";
-			break;
-	}
-	cout << "; 0x" << hex << (int) flow.tos_flags << dec << "; " << flow.dOctets << "; " << flow.dPkts << "; ";
+	util::ipV4AddressToString(flow.localIP,localIP,INET_ADDRSTRLEN);
+	util::ipV4AddressToString(flow.remoteIP,remoteIP,INET_ADDRSTRLEN);
+	cout <<  localIP << "; " << flow.localPort << "; " << remoteIP << "; " << flow.remotePort << "; ";
+	cout << util::ipV4ProtocolToString(flow.prot) << "; 0x" << hex << (int) flow.tos_flags << dec << "; " << flow.dOctets << "; " << flow.dPkts << "; ";
 	switch (flow.flowtype) {
 		case outflow:
 			cout << "outflow";
