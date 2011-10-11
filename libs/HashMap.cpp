@@ -12,7 +12,7 @@
 
 #include <cstdio>
 #include <string.h>
-#include "HashMap2.h"
+#include "HashMap.h"
 
 /* *************************************************************
  * Key type HashKeyGeneric: Arbitrary lengt key (slow)         *

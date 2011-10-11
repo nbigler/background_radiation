@@ -13,10 +13,6 @@
 
 #include <boost/iostreams/filtering_stream.hpp>
 #include "cflow.h"
-#include "../HashMap2.h"
-
-typedef HashKeyIPv4_6T FlowHashKey6;
-typedef hash_map<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > FlowHashMap6;
 
 class CFlowlist {
 private:
@@ -25,7 +21,7 @@ private:
 	uint32_t crc32;				///< CRC32 value stored in GZIP file trailer
 	unsigned int ISIZE;			///< Size of the original (uncompressed) input data mpdulo 2^32
 
-	FlowHashMap6 * flowHM6;	///< List containing all flows
+	struct cflow * flowlist;	///< List containing all flows
 	int flow_count;				///< Count of flows kept in flowlist
 
 	long bytes;						///< Total bytes
@@ -36,16 +32,22 @@ private:
 										///< Set to -1 when at end of list or not initialized by get_first_flow()
 
 public:
-	CFlowlist(std::string filename, FlowHashMap6 * flowHM6);
+	CFlowlist(std::string filename);
 	~CFlowlist();
 
-	void write_flows();
+	void read_flows();
+	struct cflow * get_first_flow();
+	struct cflow * get_next_flow();
+	struct cflow * get_flow_at(int i) { return &(flowlist[i]); }
+
+	struct cflow * get_flowlist() { return flowlist; };
+	int get_flow_count() { return flow_count; }
+	std::string & get_filename() { return filename; }
 
 
 private:
 	void init();
-	void createFile();
-	void write_flow(boost::iostreams::filtering_ostream & outfs, struct cflow * cf);
+	bool read_flow(boost::iostreams::filtering_istream & infs, struct cflow * cf);
 
 };
 
