@@ -278,7 +278,10 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	for (int j=0; j<rule_count; j++) flow_per_rule_counter[j] = 0;
 	// Maintain a counter per rule
 	int * flow_per_class_counter	= new int[class_count+1];
-	for (int j = 0; j <= class_count; j++) flow_per_class_counter[j] = 0;
+	for (int j = 0; j <= class_count; j++){
+		flow_per_class_counter[j] = 0;
+		data.hashedFlowlist.push_back(new FlowHashMap6());
+	}
 
 	// Loop over all sign sets (i.e. all flows)
 	int flow_count = fl->get_flow_count();
@@ -313,6 +316,7 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 
 			// Check signs against all classes and increment counters for matching ones
 			bool found = false;
+			FlowHashKey6 flowkey;
 			for (int j=0; j<class_count; j++) { // j is class index
 				if (data.c.class_match(j, fl_ref[i])) {
 					flow_per_class_counter[j]++;
@@ -321,8 +325,9 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					data.flows2[j]++;
 					data.packets2[j] += pflow->dPkts;
 					data.bytes2[j]   += pflow->dOctets;
-					///TODO: Save Flow to [classname_YYYYMMDD.hhmm.gz] file
-
+					///TODO: Save Flow to datastructure
+					flowkey((&pflow->remoteIP),(&pflow->localIP),(&pflow->remotePort),(&pflow->localPort),(&pflow->prot),(&pflow->dir));
+					data.hashedFlowlist[j][flowkey] = pflow;
 					/*update_hm(data.srcIP_hm2[j], pflow->remoteIP);
 					update_hm(data.dstIP_hm2[j], pflow->localIP);
 					if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
@@ -340,7 +345,9 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 				data.flows2[class_count]++;
 				data.packets2[class_count] += pflow->dPkts;
 				data.bytes2[class_count]   += pflow->dOctets;
-				///TODO: Save Flow to [others_YYYYMMDD.hhmm.gz] file
+				///TODO: Save Flow to datastructure
+				flowkey((&pflow->remoteIP),(&pflow->localIP),(&pflow->remotePort),(&pflow->localPort),(&pflow->prot),(&pflow->dir));
+				data.hashedFlowlist[class_count][flowkey] = pflow;
 				/*update_hm(data.srcIP_hm2[class_count], pflow->remoteIP);
 				update_hm(data.dstIP_hm2[class_count], pflow->localIP);
 				if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
