@@ -17,8 +17,10 @@ struct ipPayload {
 		struct udphdr * udpHeader;
 		struct icmphdr * icmpHeader;
 	};
+	uint64_t timestamp;		///< Timestamp of the packet
+	uint64_t packetsize;	///< packet size in byte;
 	char const * payload;
-} ipPld;
+};
 
 
 struct flow {

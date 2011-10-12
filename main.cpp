@@ -49,6 +49,7 @@ using namespace pcappp;
 //
 typedef HashKeyIPv4_6T FlowHashKey6;
 typedef hash_map<HashKeyIPv4_6T, struct flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > FlowHashMap6;
+//typedef hash_map<HashKeyIPv4_6T, struct cflow *, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
 
 //void print_flow(std::pair<HashKeyIPv4_6T, flow> hash);
 void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash);
@@ -280,7 +281,7 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	int * flow_per_class_counter	= new int[class_count+1];
 	for (int j = 0; j <= class_count; j++){
 		flow_per_class_counter[j] = 0;
-		data.hashedFlowlist.push_back(new FlowHashMap6());
+		data.hashedFlowlist.push_back(new CFlowHashMap6());
 	}
 
 	// Loop over all sign sets (i.e. all flows)
@@ -316,7 +317,6 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 
 			// Check signs against all classes and increment counters for matching ones
 			bool found = false;
-			FlowHashKey6 flowkey;
 			for (int j=0; j<class_count; j++) { // j is class index
 				if (data.c.class_match(j, fl_ref[i])) {
 					flow_per_class_counter[j]++;
@@ -325,9 +325,10 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					data.flows2[j]++;
 					data.packets2[j] += pflow->dPkts;
 					data.bytes2[j]   += pflow->dOctets;
-					///TODO: Save Flow to datastructure
-					flowkey((&pflow->remoteIP),(&pflow->localIP),(&pflow->remotePort),(&pflow->localPort),(&pflow->prot),(&pflow->dir));
-					data.hashedFlowlist[j][flowkey] = pflow;
+					FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->dir));
+					//CFlowHashMap6 * test = data.hashedFlowlist[j];
+					(*data.hashedFlowlist[j])[flowkey] = pflow;
+					//(*data.hashedFlowlist[j])[flowkey] = pflow;
 					/*update_hm(data.srcIP_hm2[j], pflow->remoteIP);
 					update_hm(data.dstIP_hm2[j], pflow->localIP);
 					if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
@@ -345,9 +346,8 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 				data.flows2[class_count]++;
 				data.packets2[class_count] += pflow->dPkts;
 				data.bytes2[class_count]   += pflow->dOctets;
-				///TODO: Save Flow to datastructure
-				flowkey((&pflow->remoteIP),(&pflow->localIP),(&pflow->remotePort),(&pflow->localPort),(&pflow->prot),(&pflow->dir));
-				data.hashedFlowlist[class_count][flowkey] = pflow;
+				FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->dir));
+				(*data.hashedFlowlist[class_count])[flowkey] = pflow;
 				/*update_hm(data.srcIP_hm2[class_count], pflow->remoteIP);
 				update_hm(data.dstIP_hm2[class_count], pflow->localIP);
 				if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
@@ -359,210 +359,7 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	}
 	cout << endl;
 
-	// 3. Write aggregates to files
-	// ****************************
 
-	size_t pos = (fl->get_filename()).find(".gz");
-	string date_time = (fl->get_filename()).substr(pos-15, 13);	// Extract date/time as YYYYMMDD.hhmm
-
-	// Calculate unique count of destination port numbers
-	int all_dstPort_cnt = 0;
-	int all_dstPort_cnt3 = 0;
-	int all_dstPort_cnt5 = 0;
-	for (int i=0; i < 65536; i++) {
-		if (data.all_dstPort_arr[i]!=0) all_dstPort_cnt++;
-		if (data.all_dstPort_arr[i]>=3) all_dstPort_cnt3++;
-		if (data.all_dstPort_arr[i]>=5) all_dstPort_cnt5++;
-	}
-
-	// Output interval number and global signs statistics
-	data.fr_outfs << fixed << setprecision(5);
-	data.fr_outfs_frac << fixed << setprecision(5);
-
-	data.fr_outfs << inum;
-	data.fr_outfs_frac << inum;
-
-	data.fr_outfs <<  ", \"" << date_time << "\"";
-	data.fr_outfs_frac <<  ", \"" << date_time << "\"";
-
-	for (int j=0; j<rule_count; j++) {
-		data.fr_outfs << ", "<< (double)flow_per_rule_counter[j];
-		data.fr_outfs_frac << ", "<< (double)flow_per_rule_counter[j]/(double)total_flows;
-	}
-	// Add count of flows, packets and bytes for this rule
-	data.fr_outfs << ", " << total_flows << ", " << total_packets << ", " << total_bytes;
-	data.fr_outfs_frac << ", " << total_flows << ", " << total_packets << ", " << total_bytes;
-	// Add unique src/dstIP counts
-	data.fr_outfs << ", " << data.all_dstIP_hm.size() << ", " << data.all_srcIP_hm.size();
-	data.fr_outfs_frac << ", " << data.all_dstIP_hm.size() << ", " << data.all_srcIP_hm.size();
-
-	data.fr_outfs << ", " << all_dstPort_cnt << ", " << all_dstPort_cnt3 << ", " << all_dstPort_cnt5;
-	data.fr_outfs_frac << ", " << all_dstPort_cnt << ", " << all_dstPort_cnt3 << ", " << all_dstPort_cnt5;
-
-	data.fr_outfs << ", " << (double)data.all_dstIP_hm.size()/(double)data.all_srcIP_hm.size();
-	data.fr_outfs_frac << ", " << (double)data.all_dstIP_hm.size()/(double)data.all_srcIP_hm.size();
-
-	data.fr_outfs << ", " << (double)total_packets/(double)total_flows;
-	data.fr_outfs_frac << ", " << (double)total_packets/(double)total_flows;
-
-	data.fr_outfs << ", " << (double)total_bytes/(double)total_packets;
-	data.fr_outfs_frac << ", " << (double)total_bytes/(double)total_packets;
-
-	data.fr_outfs << endl;
-	data.fr_outfs_frac << endl;
-
-	// Output interval number and per-rule signs statistics
-	for (int i=0; i<data.rc.get_rc_count(); i++) {
-		(*(data.sr_outfs[i])) << fixed << setprecision(5);
-		(*(data.sr_outfs_frac[i])) << fixed << setprecision(5);
-
-		(*(data.sr_outfs[i])) << inum << ", ";
-		(*(data.sr_outfs_frac[i])) << inum << ", ";
-
-		(*(data.sr_outfs[i])) << "\"" << date_time << "\", ";
-		(*(data.sr_outfs_frac[i])) << "\"" << date_time << "\", ";
-
-		data.rc.write_csv(data.sr_outfs[i], i);
-		data.rc.write_csv(data.sr_outfs_frac[i], i, data.flows[i]);
-		// Add count of flows, packets and bytes for this rule
-		(*(data.sr_outfs[i])) << ", " << data.flows[i];
-		(*(data.sr_outfs_frac[i])) << ", " << data.flows[i];
-
-		(*(data.sr_outfs[i])) << ", " << data.packets[i];
-		(*(data.sr_outfs_frac[i])) << ", " << data.packets[i];
-
-		(*(data.sr_outfs[i])) << ", " << data.bytes[i];
-		(*(data.sr_outfs_frac[i])) << ", " << data.bytes[i];
-
-		// Add unique src/dstIP counts
-		(*(data.sr_outfs[i])) << ", " << data.srcIP_hm[i].size() << ", " << data.dstIP_hm[i].size();
-		(*(data.sr_outfs_frac[i])) << ", " << data.srcIP_hm[i].size() << ", " << data.dstIP_hm[i].size();
-		// Calculate unique dst port number count
-		int dstPort_cnt = 0;
-		int dstPort_cnt3 = 0;
-		int dstPort_cnt5 = 0;
-		for (int j=0; j < 65536; j++) {
-			if (data.dstPort_arr[i][j]!=0) dstPort_cnt++;
-			if (data.dstPort_arr[i][j]>=3) dstPort_cnt3++;
-			if (data.dstPort_arr[i][j]>=5) dstPort_cnt5++;
-		}
-		(*(data.sr_outfs[i])) << ", " << dstPort_cnt << ", " << dstPort_cnt3 << ", " << dstPort_cnt5;
-		(*(data.sr_outfs_frac[i])) << ", " << dstPort_cnt << ", " << dstPort_cnt3 << ", " << dstPort_cnt5;
-
-		(*(data.sr_outfs[i])) << ", " << (double)data.dstIP_hm[i].size()/(double)data.srcIP_hm[i].size();
-		(*(data.sr_outfs_frac[i])) << ", " << (double)data.dstIP_hm[i].size()/(double)data.srcIP_hm[i].size();
-
-		(*(data.sr_outfs[i])) << ", " << (double)data.packets[i]/(double)data.flows[i];
-		(*(data.sr_outfs_frac[i])) << ", " << (double)data.packets[i]/(double)data.flows[i];
-
-		(*(data.sr_outfs[i])) << ", " << (double)data.bytes[i]/(double)data.packets[i];
-		(*(data.sr_outfs_frac[i])) << ", " << (double)data.bytes[i]/(double)data.packets[i];
-
-		(*(data.sr_outfs[i])) << endl;
-		(*(data.sr_outfs_frac[i])) << endl;
-	}
-	data.rc.reset();	// Clear counters for next round
-
-	// Output interval number and global signs statistics
-	data.fc_outfs << fixed << setprecision(5);
-	data.fc_outfs_frac << fixed << setprecision(5);
-
-	data.fc_outfs << inum;
-	data.fc_outfs_frac << inum;
-
-	data.fc_outfs <<  ", \"" << date_time << "\"";
-	data.fc_outfs_frac <<  ", \"" << date_time << "\"";
-
-	for (int j = 0; j <= class_count; j++) {
-		data.fc_outfs << ", "<< (double)flow_per_class_counter[j];
-		data.fc_outfs_frac << ", "<< (double)flow_per_class_counter[j]/(double)total_flows;
-	}
-	// Add count of flows, packets and bytes for this rule
-	data.fc_outfs << ", " << total_flows << ", " << total_packets << ", " << total_bytes;
-	data.fc_outfs_frac << ", " << total_flows << ", " << total_packets << ", " << total_bytes;
-
-	// Add unique src/dstIP counts
-	data.fc_outfs << ", " << data.all_dstIP_hm.size() << ", " << data.all_srcIP_hm.size();
-	data.fc_outfs_frac << ", " << data.all_dstIP_hm.size() << ", " << data.all_srcIP_hm.size();
-
-	data.fc_outfs << ", " << all_dstPort_cnt << ", " << all_dstPort_cnt3 << ", " << all_dstPort_cnt5;
-	data.fc_outfs_frac << ", " << all_dstPort_cnt << ", " << all_dstPort_cnt3 << ", " << all_dstPort_cnt5;
-
-	data.fc_outfs << ", " << (double)data.all_dstIP_hm.size()/(double)data.all_srcIP_hm.size();
-	data.fc_outfs_frac << ", " << (double)data.all_dstIP_hm.size()/(double)data.all_srcIP_hm.size();
-
-	data.fc_outfs << ", " << (double)total_packets/(double)total_flows;
-	data.fc_outfs_frac << ", " << (double)total_packets/(double)total_flows;
-
-	data.fc_outfs << ", " << (double)total_bytes/(double)total_packets;
-	data.fc_outfs_frac << ", " << (double)total_bytes/(double)total_packets;
-
-	data.fc_outfs << endl;
-	data.fc_outfs_frac << endl;
-
-	// Output interval number and per-class signs statistics
-	for (int i=0; i<data.rc2.get_rc_count(); i++) {
-		(*(data.sc_outfs[i])) << fixed << setprecision(5);
-		(*(data.sc_outfs_frac[i])) << fixed << setprecision(5);
-
-		(*(data.sc_outfs[i])) << inum << ", ";
-		(*(data.sc_outfs_frac[i])) << inum << ", ";
-
-		(*(data.sc_outfs[i])) << "\"" << date_time << "\", ";
-		(*(data.sc_outfs_frac[i])) << "\"" << date_time << "\", ";
-
-		data.rc2.write_csv(data.sc_outfs[i], i);
-		data.rc2.write_csv(data.sc_outfs_frac[i], i, data.flows2[i]);
-
-		// Add count of flows, packets and bytes for this rule
-		(*(data.sc_outfs[i])) << ", " << data.flows2[i];
-		(*(data.sc_outfs_frac[i])) << ", " << data.flows2[i];
-
-		(*(data.sc_outfs[i])) << ", " << data.packets2[i];
-		(*(data.sc_outfs_frac[i])) << ", " << data.packets2[i];
-
-		(*(data.sc_outfs[i])) << ", " << data.bytes2[i];
-		(*(data.sc_outfs_frac[i])) << ", " << data.bytes2[i];
-
-		// Add unique src/dstIP counts
-		(*(data.sc_outfs[i])) << ", " << data.srcIP_hm2[i].size() << ", " << data.dstIP_hm2[i].size();
-		(*(data.sc_outfs_frac[i])) << ", " << data.srcIP_hm2[i].size() << ", " << data.dstIP_hm2[i].size();
-
-		// Calculate unique dst port number count
-		int dstPort_cnt = 0;
-		int dstPort_cnt3 = 0;
-		int dstPort_cnt5 = 0;
-		for (int j=0; j < 65536; j++) {
-			if (data.dstPort_arr2[i][j]!=0) dstPort_cnt++;
-			if (data.dstPort_arr2[i][j]>=3) dstPort_cnt3++;
-			if (data.dstPort_arr2[i][j]>=5) dstPort_cnt5++;
-		}
-		(*(data.sc_outfs[i])) << ", " << dstPort_cnt << ", " << dstPort_cnt3 << ", " << dstPort_cnt5;
-		(*(data.sc_outfs_frac[i])) << ", " << dstPort_cnt << ", " << dstPort_cnt3 << ", " << dstPort_cnt5;
-
-		(*(data.sc_outfs[i])) << ", " << (double)data.dstIP_hm2[i].size()/(double)data.srcIP_hm2[i].size();
-		(*(data.sc_outfs_frac[i])) << ", " << (double)data.dstIP_hm2[i].size()/(double)data.srcIP_hm2[i].size();
-
-		(*(data.sc_outfs[i])) << ", " << (double)data.packets2[i]/(double)data.flows2[i];
-		(*(data.sc_outfs_frac[i])) << ", " << (double)data.packets2[i]/(double)data.flows2[i];
-
-		(*(data.sc_outfs[i])) << ", " << (double)data.bytes2[i]/(double)data.packets2[i];
-		(*(data.sc_outfs_frac[i])) << ", " << (double)data.bytes2[i]/(double)data.packets2[i];
-
-		(*(data.sc_outfs[i])) << endl;
-		(*(data.sc_outfs_frac[i])) << endl;
-	}
-	data.rc2.reset();	// Clear counters for next round
-
-	if (data.verbose2) {
-		// Show results (for rules only)
-		cout << "\nNumber of flows (=matching sign sets) found per rule:\n";
-		for (int j=0; j<rule_count; j++) {
-			string rule_name;
-			data.c.get_rule_name(j, rule_name);
-			cout << "  " << rule_name << ": " << flow_per_rule_counter[j] << "\n";
-		}
-	}
 	return true;
 }
 
@@ -682,7 +479,7 @@ void usage(char * progname, ostream & outfs)
 
 int main(int argc, char **argv) {
 
-	const char * Date = __DATE__;
+	/*const char * Date = __DATE__;
 	const char * time = __TIME__;
 
 	cout << "Evaluation of One-Way Flows V 0.1 (c) E. Glatz, N. Bigler, M. Fisler (build: ";
@@ -693,6 +490,7 @@ int main(int argc, char **argv) {
 	string list_filename;
 	string rules_filename;
 	string classes_filename;
+	string pcap_filename;
 
 	bool test = false;
 	bool verbose = false;
@@ -702,7 +500,7 @@ int main(int argc, char **argv) {
 	string date("");
 
 	int i;
-	while ((i = getopt(argc, argv, "f:r:c:tOhd:vV")) != -1) {
+	while ((i = getopt(argc, argv, "f:r:c:p:tOhd:vV")) != -1) {
 		switch (i) {
 			case 'f':
 				list_filename = optarg;
@@ -712,6 +510,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'c':
 				classes_filename = optarg;
+				break;
+			case 'p':
+				pcap_filename = optarg;
 				break;
 			case 't':
 				test = true;
@@ -785,7 +586,7 @@ int main(int argc, char **argv) {
 		if (files.size() > 1) { cout << files[i] << endl; }
 		process_interval(files[i], data, i, use_outflows);
 	}
-
+	*/
 	FlowHashMap6 * flowHM6 = new FlowHashMap6();
 	FlowHashMap6::iterator iter;
 	FlowHashMap6::iterator iter_inverse;
@@ -794,22 +595,27 @@ int main(int argc, char **argv) {
 	struct flow flow;
 	memset((void *)&flow, 0,sizeof(flow));
 
-	if (argc != 2) {
+	/*if (pcap_filename == NULL) {
 		cerr << "ERROR: no pcap file name specified on command line.\n";
-		return 1;
+		usage(argv[0], cerr);
+		exit(1);
+	}*/
+	if (argc != 2){
+		cerr << "ERROR: no pcap file name specified on command line.\n";
+		exit(1);
 	}
 	// Open file for packet reading
 	int pcount = 0;	// Packet counter
 	try {
+		//PcapOffline pco(pcap_filename);
 		PcapOffline pco(argv[1]);
-
 		// Get some general infos from file
 		string filename = pco.get_filename();
 		//cout << "File name is: " << filename << endl;
 
 		int major = pco.get_major_version();
 		int minor = pco.get_minor_version();
-		//cout << "File format used is: " << major << "." << minor << endl;
+		cout << "File format used is: " << major << "." << minor << endl;
 
 		if (pco.is_swapped()) {
 			//cout << "Capture data byte order differs from byte order used on this system.\n";
@@ -889,6 +695,7 @@ int main(int argc, char **argv) {
 				}
 				flow.tos_flags = ip_hdr->tos;
 				ipPayload payload;
+
 				switch (ip_hdr->protocol) {
 				case IPPROTO_TCP:
 					tcp_hdr = (struct tcphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
@@ -896,7 +703,6 @@ int main(int argc, char **argv) {
 					flow.remotePort = endian_swap(tcp_hdr->dest);
 					payload.tcpHeader = tcp_hdr;
 					payload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr));
-					flow.payload.push_back(payload);
 					break;
 				case IPPROTO_UDP:
 					udp_hdr = (struct udphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
@@ -904,18 +710,19 @@ int main(int argc, char **argv) {
 					flow.remotePort = endian_swap(udp_hdr->dest);
 					payload.udpHeader = udp_hdr;
 					payload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr));
-					flow.payload.push_back(payload);
 					break;
 				case IPPROTO_ICMP:
 					icmp_hdr = (struct icmphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
 					payload.icmpHeader = icmp_hdr;
 					payload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr));
-					flow.payload.push_back(payload);
 					break;
 				default:
 					payload.payload = (char *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
 					break;
 				}
+				payload.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
+				payload.packetsize = p.get_capture_length();
+				flow.payload.push_back(payload);
 
 				// Check if current flow is already contained in hash map
 				FlowHashKey6 mykey(&(flow.localIP), &(flow.remoteIP), &(flow.localPort),
@@ -1015,10 +822,11 @@ void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash){
 	char remoteIP[INET_ADDRSTRLEN];
 	util::ipV4AddressToString(flow.localIP,localIP,INET_ADDRSTRLEN);
 	util::ipV4AddressToString(flow.remoteIP,remoteIP,INET_ADDRSTRLEN);
-	for (int i = 0; i < flow.dPkts; i++){
-		uint8_t tcp_header = *(((uint8_t *)&(flow.payload[i].tcpHeader->ack_seq))+5);
+	for (uint i = 0; i < flow.dPkts; i++){
+		uint8_t tcp_flags = *(((uint8_t *)&(flow.payload[i].tcpHeader->ack_seq))+5);
+		int flags = tcp_flags;
 		cout <<  localIP << "; " << flow.localPort << "; " << remoteIP << "; " << flow.remotePort << "; ";
-		cout << util::ipV4ProtocolToString(flow.protocol) << "; 0x" << hex << (int) flow.tos_flags << dec << "; 0x" << hex << (int) tcp_header << dec << "; " << flow.dOctets << "; " << flow.dPkts << "; ";
+		cout << util::ipV4ProtocolToString(flow.protocol) << "; 0x" << hex << (int) flow.tos_flags << dec << "; 0x" << hex << (int) flags << dec << "; " << flow.payload[i].packetsize << "; " << i+1 << "; ";
 		switch (flow.flowtype) {
 			case outflow:
 				cout << "outflow";
@@ -1036,8 +844,8 @@ void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash){
 
 	cout.precision(10);
 	//cout << "; " << fixed << 25569+((flow.startMs/(double) 1000)/(double) 86400);  // Pre-Formated for Excel/LibreOffice
-	cout << "; " << fixed << (flow.startMs/(double) 1000);  // Unix-Timestamp
-	cout << "; " << flow.durationMs << endl;
+	cout << "; " << fixed << (flow.payload[i].timestamp);  // Unix-Timestamp
+	cout << "; " << (flow.payload[i].timestamp - flow.startMs) << endl;
 	}
 }
 void print_flow(std::pair<HashKeyIPv4_6T, flow> hash){
