@@ -91,8 +91,10 @@ void count_flows(CFlowlist * fl)
 		pflow = fl->get_next_flow();
 	}
 
-	cout << flowcount << " flows read (TCP: " << tcp_flowcount << ", UDP: " << udp_flowcount;
-	cout << ", ICMP: " << icmp_flowcount << ", OTHER: " << other_flowcount << ")\n";
+	if(debug) {
+		cout << flowcount << " flows read (TCP: " << tcp_flowcount << ", UDP: " << udp_flowcount;
+		cout << ", ICMP: " << icmp_flowcount << ", OTHER: " << other_flowcount << ")\n";
+	}
 }
 
 
@@ -599,8 +601,8 @@ int main(int argc, char **argv) {
 
 	FlowHashMap6 * flowHM6 = new FlowHashMap6();
 	FlowHashMap6::iterator iter;
-	FlowHashMap6::iterator iter_inverse;
-	FlowHashMap6::iterator iter_biflow;
+
+
 
 	struct flow flow;
 	memset((void *)&flow, 0,sizeof(flow));
@@ -644,7 +646,7 @@ int main(int argc, char **argv) {
 			return 0;
 		}
 
-		unsigned int slen = pco.get_snaplen();
+		//unsigned int slen = pco.get_snaplen();
 		//cout << "Snap length: " << slen << endl << endl;
 
 		//cout << "Packet header details (for IPv4 packets):\n";
@@ -735,54 +737,27 @@ int main(int argc, char **argv) {
 				flow.payload.push_back(payload);
 
 				// Check if current flow is already contained in hash map
-				FlowHashKey6 mykey(&(flow.localIP), &(flow.remoteIP), &(flow.localPort),
-					&(flow.remotePort), &(flow.protocol), &(flow.flowtype));
+//				FlowHashKey6 mykey(&(flow.localIP), &(flow.remoteIP), &(flow.localPort),
+//					&(flow.remotePort), &(flow.protocol), &(flow.flowtype));
+//
+//
+//				iter = flowHM6->find(mykey);
 
-				uint8_t inv_flow;
-				if (flow.flowtype == inflow) {
-					inv_flow = outflow;
-				}else {
-					inv_flow = inflow;
-				}
-				FlowHashKey6 mykey_inverse(&(flow.localIP), &(flow.remoteIP), &(flow.localPort),
-					&(flow.remotePort), &(flow.protocol), &(inv_flow));
-
-				uint8_t bi_flow = biflow;
-
-				FlowHashKey6 mykey_biflow(&(flow.localIP), &(flow.remoteIP), &(flow.localPort),
-					&(flow.remotePort), &(flow.protocol), &(bi_flow));
-
-				iter = flowHM6->find(mykey);
-				iter_inverse = flowHM6->find(mykey_inverse);
-				iter_biflow = flowHM6->find(mykey_biflow);
-
-				if (iter == flowHM6->end()) {
-					if (iter_inverse == flowHM6->end()){
-						if (iter_biflow == flowHM6->end()) {
-							flow.startMs = p.get_seconds()*1000000 + p.get_miliseconds(); //get_miliseconds() returns microseconds not milliseconds
-							flow.dOctets = p.get_capture_length();
-							flow.dPkts = 1;
-							(*flowHM6)[mykey] = flow;
-						}else{
-							(*flowHM6)[mykey_biflow].durationMs = p.get_seconds()*1000000 + p.get_miliseconds() - (*flowHM6)[mykey_biflow].startMs;
-							(*flowHM6)[mykey_biflow].dOctets = p.get_capture_length() + (*flowHM6)[mykey_biflow].dOctets;
-							(*flowHM6)[mykey_biflow].dPkts = (*flowHM6)[mykey_biflow].dPkts + 1;
-							(*flowHM6)[mykey_biflow].payload.push_back(flow.payload.at(0));
-						}
-					}else {
-						(*flowHM6)[mykey_inverse].flowtype = biflow;
-						(*flowHM6)[mykey_inverse].durationMs = p.get_seconds()*1000000 + p.get_miliseconds() - (*flowHM6)[mykey_inverse].startMs;
-						(*flowHM6)[mykey_inverse].dOctets = p.get_capture_length() + (*flowHM6)[mykey_inverse].dOctets;
-						(*flowHM6)[mykey_inverse].dPkts = (*flowHM6)[mykey_inverse].dPkts + 1;
-						(*flowHM6)[mykey_inverse].payload.push_back(flow.payload.at(0));
-					}
-
-				} else {
-					(*flowHM6)[mykey].durationMs = p.get_seconds()*1000000 + p.get_miliseconds() - (*flowHM6)[mykey].startMs;
-					(*flowHM6)[mykey].dOctets = p.get_capture_length() + (*flowHM6)[mykey].dOctets;
-					(*flowHM6)[mykey].dPkts = (*flowHM6)[mykey].dPkts + 1;
-					(*flowHM6)[mykey].payload.push_back(flow.payload.at(0));
-				}
+//				if (iter == flowHM6->end()) { //no matching flow found
+//					if (iter_inverse == flowHM6->end()){ //no matching inverse flow found
+//						if (iter_biflow == flowHM6->end()) { //no matching biflow found
+//							flow.startMs = p.get_seconds()*1000000 + p.get_miliseconds(); //get_miliseconds() returns microseconds not milliseconds
+//							flow.dOctets = p.get_capture_length();
+//							flow.dPkts = 1;
+//							(*flowHM6)[mykey] = flow;
+//						}else{
+//							(*flowHM6)[mykey_biflow].durationMs = p.get_seconds()*1000000 + p.get_miliseconds() - (*flowHM6)[mykey_biflow].startMs;
+//							(*flowHM6)[mykey_biflow].dOctets = p.get_capture_length() + (*flowHM6)[mykey_biflow].dOctets;
+//							(*flowHM6)[mykey_biflow].dPkts = (*flowHM6)[mykey_biflow].dPkts + 1;
+//							(*flowHM6)[mykey_biflow].payload.push_back(flow.payload.at(0));
+//						}
+//					}
+//				}
 			} /*else {
 
 				// Handle all non-IPv4 traffic

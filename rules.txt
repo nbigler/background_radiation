@@ -1,0 +1,16 @@
+Scan1: TRWscan !HCscan !PotOk
+Scan2: HCscan !TRWscan !TRWnom !PotOk
+Scan3: TRWscan HCscan !PotOk
+Scan4: GreyIP Onepkt !TRWscan !HCscan !Backsc !ICMP
+Scan5: TRWnom HCscan
+Malign1: GreyIP !TRWscan !HCscan !Onepkt !ICMP !Backsc
+Malign2: Onepkt !GreyIP !ICMP !TRWscan !HCscan !bogon !P2P !Unreach !PotOk !Backsc
+Backscatter1: Backsc !TRWscan !HCscan !P2P
+Backscatter2: ICMP !TRWscan !HCscan !TRWnom !PotOk !Backsc !bogon
+Backscatter3: GreyIP TRWnom ICMP !HCscan
+Unreachable: Unreach !TRWscan !HCscan !bogon
+P2P: P2P !GreyIP !Unreach !TRWscan !HCscan !bogon
+Benign1: PotOk !Unreach !P2P !TRWnom !bogon
+Benign2: Large !GreyIP !TRWscan !HCscan !P2P !Unreach !PotOk !ICMP !Backsc !bogon !TRWnom
+Benign3: TRWnom !GreyIP !HCscan !P2P !Unreach !Onepkt !bogon
+Bogon: bogon !TRWscan !HCscan !GreyIP !Backsc

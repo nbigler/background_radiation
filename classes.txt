@@ -1,0 +1,7 @@
+MalScan: Scan1 Scan2 Scan3 Scan4 Scan5
+OtherMal: Malign1 Malign2
+Backscat: Backscatter1 Backscatter2 Backscatter3
+SrvUnreach: Unreachable
+BenignP2P: P2P
+SuspBenign: Benign1 Benign2 Benign3
+Bogon: Bogon
