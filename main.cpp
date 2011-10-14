@@ -29,6 +29,7 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/device/file.hpp>
 
+// Util
 #include "libs/HashMap.h"
 #include "libs/utils.h"
 #include "libs/flow.h"
@@ -53,11 +54,11 @@ typedef hash_map<HashKeyIPv4_6T, struct flow, HashFunction<HashKeyIPv4_6T>, Hash
 
 //void print_flow(std::pair<HashKeyIPv4_6T, flow> hash);
 void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash);
-u_int16_t endian_swap(u_int16_t _x);
+uint16_t endian_swap(uint16_t _x);
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
 
 /**
-  *	Count flows by several criterias to provide basic statistics.
+  *	Count flows by several criteria to provide basic statistics.
   *
   *	\param	fl Flowlist
   */
@@ -95,6 +96,32 @@ void count_flows(CFlowlist * fl)
 }
 
 
+void print_statistics(int & signedf, int unsignedf, int & outflows, int & outflows_signed, int & biflows, int & biflows_signed, int & inflows, int & inflows_signed, int tcp_ok, int tcp_nok, int udp_ok, int udp_nok, int icmp_ok, int icmp_nok, int other_ok, int other_nok)
+{
+    // Show result statistics
+    cout << "\nsigned (unsigned): " << signedf << " (" << unsignedf << ")\n";
+    cout << "outflows (signed): " << outflows << " (" << outflows_signed << ")\n";
+    cout << "biflows (signed): " << biflows << " (" << biflows_signed << ")\n";
+    cout << "inflows (signed): " << inflows << " (" << inflows_signed << ")\n";
+    cout << "TCP ok (nok):   " << tcp_ok << " (" << tcp_nok << ")\n";
+    cout << "UDP ok (nok):   " << udp_ok << " (" << udp_nok << ")\n";
+    cout << "ICMP ok (nok):  " << icmp_ok << " (" << icmp_nok << ")\n";
+    cout << "OTHER ok (nok): " << other_ok << " (" << other_nok << ")\n\n";
+}
+
+void count_ok_nok(uint8_t prot, C_Category::C_Category_set cats, int & tcp_ok, int & tcp_nok, int & udp_ok, int & udp_nok, int & icmp_ok, int & icmp_nok, int & other_ok, int & other_nok)
+{
+    if (prot==IPPROTO_TCP) {
+					if (cats.is_member(e_category::TCP)) { tcp_ok++; } else { tcp_nok++; }
+				} else if (prot==IPPROTO_UDP) {
+					if (cats.is_member(e_category::UDP)) { udp_ok++; } else { udp_nok++; }
+				} else if (prot==IPPROTO_ICMP) {
+					if (cats.is_member(e_category::ICMP)) { icmp_ok++; } else { icmp_nok++; }
+				} else {
+					if (cats.is_member(e_category::OTHER)) { other_ok++; } else { other_nok++; }
+				}
+}
+
 bool sanity_check(CFlowlist * fl, uint32_t * fl_ref, bool use_outflows)
 {
 	cout << "\nDoing sanity checks on flow and sign data\n";
@@ -123,7 +150,7 @@ bool sanity_check(CFlowlist * fl, uint32_t * fl_ref, bool use_outflows)
 	struct  cflow * pflow = fl->get_first_flow();
 	int i = 0;
 	while (pflow != NULL) {
-		uint8_t  dir=pflow->dir;
+		uint8_t dir = pflow->dir;
 		if (fl_ref[i] != 0) {
 			signedf++;
 		} else {
@@ -138,15 +165,7 @@ bool sanity_check(CFlowlist * fl, uint32_t * fl_ref, bool use_outflows)
 				cats.set(cset);
 
 				uint8_t prot = pflow->prot;
-				if (prot==IPPROTO_TCP) {
-					if (cats.is_member(e_category::TCP)) { tcp_ok++; } else { tcp_nok++; }
-				} else if (prot==IPPROTO_UDP) {
-					if (cats.is_member(e_category::UDP)) { udp_ok++; } else { udp_nok++; }
-				} else if (prot==IPPROTO_ICMP) {
-					if (cats.is_member(e_category::ICMP)) { icmp_ok++; } else { icmp_nok++; }
-				} else {
-					if (cats.is_member(e_category::OTHER)) { other_ok++; } else { other_nok++; }
-				}
+    count_ok_nok(prot, cats, tcp_ok, tcp_nok, udp_ok, udp_nok, icmp_ok, icmp_nok, other_ok, other_nok);
 
 				if ((i % 100000) == 0) { cout << "."; cout.flush(); }
 			}
@@ -165,15 +184,7 @@ bool sanity_check(CFlowlist * fl, uint32_t * fl_ref, bool use_outflows)
 				cats.set(cset);
 
 				uint8_t prot = pflow->prot;
-				if (prot==IPPROTO_TCP) {
-					if (cats.is_member(e_category::TCP)) { tcp_ok++; } else { tcp_nok++; }
-				} else if (prot==IPPROTO_UDP) {
-					if (cats.is_member(e_category::UDP)) { udp_ok++; } else { udp_nok++; }
-				} else if (prot==IPPROTO_ICMP) {
-					if (cats.is_member(e_category::ICMP)) { icmp_ok++; } else { icmp_nok++; }
-				} else {
-					if (cats.is_member(e_category::OTHER)) { other_ok++; } else { other_nok++; }
-				}
+    count_ok_nok(prot, cats, tcp_ok, tcp_nok, udp_ok, udp_nok, icmp_ok, icmp_nok, other_ok, other_nok);
 
 				if ((i % 100000) == 0) { cout << "."; cout.flush(); }
 			}
@@ -182,16 +193,7 @@ bool sanity_check(CFlowlist * fl, uint32_t * fl_ref, bool use_outflows)
 		i++;
 	}
 
-	// Show result statistics
-	cout << "\nsigned (unsigned): " << signedf  << " (" << unsignedf << ")\n";
-	cout << "outflows (signed): " << outflows << " (" << outflows_signed << ")\n";
-	cout << "biflows (signed): "  << biflows  << " (" << biflows_signed << ")\n";
-	cout << "inflows (signed): "  << inflows  << " (" << inflows_signed << ")\n";
-
-	cout << "TCP ok (nok):   " << tcp_ok   << " (" << tcp_nok << ")\n";
-	cout << "UDP ok (nok):   " << udp_ok   << " (" << udp_nok << ")\n";
-	cout << "ICMP ok (nok):  " << icmp_ok  << " (" << icmp_nok << ")\n";
-	cout << "OTHER ok (nok): " << other_ok << " (" << other_nok << ")\n\n";
+    print_statistics(signedf, unsignedf, outflows, outflows_signed, biflows, biflows_signed, inflows, inflows_signed, tcp_ok, tcp_nok, udp_ok, udp_nok, icmp_ok, icmp_nok, other_ok, other_nok);
 
 	// Check if results are as expected
 
@@ -210,7 +212,7 @@ bool sanity_check(CFlowlist * fl, uint32_t * fl_ref, bool use_outflows)
 
 
 /**
-  *	Classifies flows by appying rules and rule-to-class assocciations to actual
+  *	Classifies flows by applying rules and rule-to-class assocciations to actual
   *	sign sets of given flows. For each rule/class a flow matches the assigned
   *	counter is incremented. After all flows have been processed overall count
   *	values are written as new lines to statistics CSV files.
@@ -338,8 +340,9 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 				}
 			}
 
-			// Handle situation that "no rule/class applies"
-			if (!found && class_count>0) { // Add class "other" having no definition
+    bool other_class = !found && class_count > 0;
+    // Handle situation that "no rule/class applies"
+    if(other_class) { // Add class "other" having no definition
 				flow_per_class_counter[class_count]++;
 				// Update sign set of remainder class "other"
 				data.rc2.increment(class_count, fl_ref[i]);
@@ -810,8 +813,8 @@ int main(int argc, char **argv) {
 	for_each(flowHM6->begin(),flowHM6->end(),print_cvs);
 }
 
-u_int16_t endian_swap(u_int16_t _x){
-	u_int16_t x = _x;
+uint16_t endian_swap(uint16_t _x){
+	uint16_t x = _x;
 	x = (x>>8) | (x<<8);
 	return x;
 }
@@ -824,9 +827,9 @@ void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash){
 	util::ipV4AddressToString(flow.remoteIP,remoteIP,INET_ADDRSTRLEN);
 	for (uint i = 0; i < flow.dPkts; i++){
 		uint8_t tcp_flags = *(((uint8_t *)&(flow.payload[i].tcpHeader->ack_seq))+5);
-		int flags = tcp_flags;
+//		int flags = tcp_flags;
 		cout <<  localIP << "; " << flow.localPort << "; " << remoteIP << "; " << flow.remotePort << "; ";
-		cout << util::ipV4ProtocolToString(flow.protocol) << "; 0x" << hex << (int) flow.tos_flags << dec << "; 0x" << hex << (int) flags << dec << "; " << flow.payload[i].packetsize << "; " << i+1 << "; ";
+		cout << util::ipV4ProtocolToString(flow.protocol) << "; 0x" << hex << static_cast<unsigned int>(tcp_flags) << dec << "; " << flow.payload[i].packetsize << "; " << i+1 << "; ";
 		switch (flow.flowtype) {
 			case outflow:
 				cout << "outflow";
@@ -846,6 +849,7 @@ void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash){
 	//cout << "; " << fixed << 25569+((flow.startMs/(double) 1000)/(double) 86400);  // Pre-Formated for Excel/LibreOffice
 	cout << "; " << fixed << (flow.payload[i].timestamp);  // Unix-Timestamp
 	cout << "; " << (flow.payload[i].timestamp - flow.startMs) << endl;
+	//cout << "sizeof(tcp_flags): " << sizeof(tcp_flags) << endl;
 	}
 }
 void print_flow(std::pair<HashKeyIPv4_6T, flow> hash){
@@ -891,6 +895,14 @@ void print_flow(std::pair<HashKeyIPv4_6T, flow> hash){
 	time_t rawtime = flow.startMs;
 	cout << "Start Time: " << ctime(&rawtime) << "ms \tDuration: " << flow.durationMs << "ms" << endl;
 	cout << "-----------------------" << endl;
+}
+
+bool valid_flag_sequence_check(flow flow) {
+	for (uint i = 0; i < flow.dPkts; i++){
+//		flow.payload[i].tcpHeader->
+		//TODO flag decoding, flag categorization
+	}
+	return true;
 }
 
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr) {
