@@ -404,39 +404,15 @@ void select_flow_direction(bool & use_outflows, string & sign_filename, string b
     }
 }
 
-/**
-  *	Process flow and sign data from one time interval.
-  *
-  *	\param filename	  Name of flow data inoput file (name of sign file is derived from this name)
-  *	\param data         Cross-interval data (e.g. counters and output streams)
-  *	\param inum         Interval number (first interval must have inum=0)
-  *	\param use_outflows TRUE when outflows should be classified instead of inflows
-  *
-  *	\return TRUE if processing successful, FALSE otherwise
-  */
-bool process_interval(string & filename, CPersist & data, int inum, bool use_outflows)
+uint32_t *read_per_flow_sign_sets(string & filename, bool & use_outflows, int flow_count)
 {
-	// 1. Read flow data to memory
-	// ***************************
-	CFlowlist * fl = new CFlowlist(filename);
-	fl->read_flows();
-
-	// Show some basic statistics on flow data read
-	if (data.test) count_flows(fl);
-
-	int flow_count = fl->get_flow_count();
-	if (data.verbose) cout << endl << flow_count << " flows read from file " << filename << endl;
-
-	// 2. Get per-flow sign sets
-	// *************************
-	string basename = filename.substr(0, filename.find(".gz"));
-	string sign_filename;
-
-	select_flow_direction(use_outflows, sign_filename, basename);
-
-	check_file_status(sign_filename);
-
-	// Read per-flow sign sets to memory, i.e., array "fl_ref".
+    // 2. Get per-flow sign sets
+    // *************************
+    string basename = filename.substr(0, filename.find(".gz"));
+    string sign_filename;
+    select_flow_direction(use_outflows, sign_filename, basename);
+    check_file_status(sign_filename);
+    // Read per-flow sign sets to memory, i.e., array "fl_ref".
     uint32_t *fl_ref = new uint32_t[flow_count];
     // Open up a stream chain
     boost::iostreams::filtering_istream in;
@@ -450,15 +426,36 @@ bool process_interval(string & filename, CPersist & data, int inum, bool use_out
     }
     in.push(infs);
     // Now get all sign sets
-    in.read((char*)((fl_ref)), flow_count * sizeof(uint32_t));
-	cout << "\nRead " << in.gcount()/2 << " values from sig file " << sign_filename << endl;
+    in.read((char*)(((fl_ref))), flow_count * sizeof (uint32_t));
+    cout << "\nRead " << in.gcount() / 2 << " values from sig file " << sign_filename << endl;
+    // Close current input file (and stream compressor)
+    in.pop();
+    return fl_ref;
+}
 
-	// Close current input file (and stream compressor)
-	in.pop();
+/**
+  *	Process flow and sign data from one time interval.
+  *
+  *	\param filename	  Name of flow data inoput file (name of sign file is derived from this name)
+  *	\param data         Cross-interval data (e.g. counters and output streams)
+  *	\param inum         Interval number (first interval must have inum=0)
+  *	\param use_outflows TRUE when outflows should be classified instead of inflows
+  *
+  *	\return TRUE if processing successful, FALSE otherwise
+  */
+bool process_interval(string & filename, CPersist & data, int inum, bool use_outflows)
+{
+	CFlowlist * fl = new CFlowlist(filename);
+	fl->read_flows();
+
+	// Show some basic statistics on flow data read
+	if (data.test) count_flows(fl);
+
+	int flow_count = fl->get_flow_count();
+	if (data.verbose) cout << endl << flow_count << " flows read from file " << filename << endl;
 
 
-	// 3. Process input data
-	// *********************
+    uint32_t *fl_ref = read_per_flow_sign_sets(filename, use_outflows, flow_count);
 
 	if (data.test) {
 		sanity_check(fl, fl_ref, use_outflows);
