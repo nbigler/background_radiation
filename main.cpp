@@ -278,46 +278,53 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 
 	// Maintain a counter per rule
 	int * flow_per_rule_counter	= new int[rule_count];
-	for (int j=0; j<rule_count; j++) flow_per_rule_counter[j] = 0;
+	for (int j=0; j<rule_count; j++) {
+		flow_per_rule_counter[j] = 0;
+		data.hashedFlowlist.push_back(new CFlowHashMap6());
+	}
 	// Maintain a counter per rule
 	int * flow_per_class_counter	= new int[class_count+1];
 	for (int j = 0; j <= class_count; j++){
 		flow_per_class_counter[j] = 0;
-		data.hashedFlowlist.push_back(new CFlowHashMap6());
+
 	}
 
 	// Loop over all sign sets (i.e. all flows)
 	int flow_count = fl->get_flow_count();
 	for (int i=0; i<flow_count; i++) {
 		if (fl_ref[i] != 0) { // Ignore empty sign sets
-			struct cflow * pflow = fl->get_flow_at(i);
+			struct cflow pflow = *fl->get_flow_at(i);
 			total_flows++;
-			total_packets += pflow->dPkts;
-			total_bytes   += pflow->dOctets;
+			total_packets += pflow.dPkts;
+			total_bytes   += pflow.dOctets;
 			//update_hm(data.all_srcIP_hm, pflow->remoteIP);
 			//update_hm(data.all_dstIP_hm, pflow->localIP);
-			if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
-				data.all_dstPort_arr[pflow->localPort]++;  // We count flows per dst port
+			if (pflow.prot == IPPROTO_TCP  || pflow.prot == IPPROTO_UDP) {
+				data.all_dstPort_arr[pflow.localPort]++;  // We count flows per dst port
 			}
-/*
+
 			// Check signs against all rules and increment counters for matching ones
+			bool found = false;
 			for (int j=0; j<rule_count; j++) { // j is rule index
 				if (data.c.rule_match(j, fl_ref[i])) {
 					flow_per_rule_counter[j]++;
 					// Update sign set of current rule
 					data.rc.increment(j, fl_ref[i]);
 					data.flows[j]++;
-					data.packets[j] += pflow->dPkts;
-					data.bytes[j]   += pflow->dOctets;
-					update_hm(data.srcIP_hm[j], pflow->remoteIP);
-					update_hm(data.dstIP_hm[j], pflow->localIP);
-					if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
-						data.dstPort_arr[j][pflow->localPort]++;  // We count flows per dst port
+					data.packets[j] += pflow.dPkts;
+					data.bytes[j]   += pflow.dOctets;
+					FlowHashKey6 flowkey(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.dir));
+					(*data.hashedFlowlist[j])[flowkey] = &pflow;
+//					update_hm(data.srcIP_hm[j], pflow->remoteIP);
+//					update_hm(data.dstIP_hm[j], pflow->localIP);
+					if (pflow.prot == IPPROTO_TCP  || pflow.prot == IPPROTO_UDP) {
+						data.dstPort_arr[j][pflow.localPort]++;  // We count flows per dst port
 					}
+					found = true;
 				}
-			}*/
+			}
 
-			// Check signs against all classes and increment counters for matching ones
+			/*// Check signs against all classes and increment counters for matching ones
 			bool found = false;
 			for (int j=0; j<class_count; j++) { // j is class index
 				if (data.c.class_match(j, fl_ref[i])) {
@@ -335,10 +342,10 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					update_hm(data.dstIP_hm2[j], pflow->localIP);
 					if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
 						data.dstPort_arr2[j][pflow->localPort]++; // We count flows per dst port
-					}*/
+					}
 					found = true;
 				}
-			}
+			}*/
 
     bool other_class = !found && class_count > 0;
     // Handle situation that "no rule/class applies"
@@ -347,10 +354,10 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 				// Update sign set of remainder class "other"
 				data.rc2.increment(class_count, fl_ref[i]);
 				data.flows2[class_count]++;
-				data.packets2[class_count] += pflow->dPkts;
-				data.bytes2[class_count]   += pflow->dOctets;
-				FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->dir));
-				(*data.hashedFlowlist[class_count])[flowkey] = pflow;
+				data.packets2[class_count] += pflow.dPkts;
+				data.bytes2[class_count]   += pflow.dOctets;
+				FlowHashKey6 flowkey(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.dir));
+				(*data.hashedFlowlist[class_count])[flowkey] = &pflow;
 				/*update_hm(data.srcIP_hm2[class_count], pflow->remoteIP);
 				update_hm(data.dstIP_hm2[class_count], pflow->localIP);
 				if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
@@ -482,7 +489,7 @@ void usage(char * progname, ostream & outfs)
 
 int main(int argc, char **argv) {
 
-	/*const char * Date = __DATE__;
+	const char * Date = __DATE__;
 	const char * time = __TIME__;
 
 	cout << "Evaluation of One-Way Flows V 0.1 (c) E. Glatz, N. Bigler, M. Fisler (build: ";
@@ -589,7 +596,7 @@ int main(int argc, char **argv) {
 		if (files.size() > 1) { cout << files[i] << endl; }
 		process_interval(files[i], data, i, use_outflows);
 	}
-	*/
+
 	FlowHashMap6 * flowHM6 = new FlowHashMap6();
 	FlowHashMap6::iterator iter;
 	FlowHashMap6::iterator iter_inverse;
@@ -598,20 +605,20 @@ int main(int argc, char **argv) {
 	struct flow flow;
 	memset((void *)&flow, 0,sizeof(flow));
 
-	/*if (pcap_filename == NULL) {
+	if (pcap_filename == "") {
 		cerr << "ERROR: no pcap file name specified on command line.\n";
 		usage(argv[0], cerr);
 		exit(1);
-	}*/
-	if (argc != 2){
+	}
+	/*if (argc != 2){
 		cerr << "ERROR: no pcap file name specified on command line.\n";
 		exit(1);
-	}
+	}*/
 	// Open file for packet reading
 	int pcount = 0;	// Packet counter
 	try {
-		//PcapOffline pco(pcap_filename);
-		PcapOffline pco(argv[1]);
+		PcapOffline pco(pcap_filename);
+		//PcapOffline pco(argv[1]);
 		// Get some general infos from file
 		string filename = pco.get_filename();
 		//cout << "File name is: " << filename << endl;

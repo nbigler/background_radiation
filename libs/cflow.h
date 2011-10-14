@@ -44,8 +44,6 @@ struct cflow {
 	uint8_t	prot;				///< protocol type 
 	uint8_t	dir;				///< direction: 0: outgoing, 1: incoming, 2: transit other: invalid
 	uint8_t  tos_flags;		///< ToS flags
-	uint8_t icmp_type;		///< ICMP type
-	uint8_t icmp_code;		///< ICMP code
 	uint8_t	magic;			///< Magic number (format version)
 	uint32_t padding;			///< Fill up to next multiple of 8	
 };
@@ -96,8 +94,6 @@ struct cflow {
 		uint8_t flowtype;		///< Flow type
 	};
 	uint8_t tos_flags;		///< ToS flags
-	uint8_t icmp_type;		///< ICMP type
-	uint8_t icmp_code;		///< ICMP code
 	uint8_t	magic;			///< Magic number (format version)
 	uint32_t padding;			///< Fill up to next multiple of 8	
 
@@ -118,8 +114,6 @@ struct cflow {
 		AS.local         = 0;
 		AS.remote        = 0;
 		tos_flags        = 0;
-		icmp_type		 = 0;
-		icmp_code		 = 0;
 		magic            = 1;
 	}
 
@@ -139,8 +133,6 @@ struct cflow {
 		AS.local         = 0;
 		AS.remote        = 0;
 		tos_flags        = 0;
-		icmp_type		 = 0;
-		icmp_code		 = 0;
 		magic            = 1;
 	}
 
@@ -159,28 +151,6 @@ struct cflow {
 		AS.local         = 0;
 		AS.remote        = 0;
 		tos_flags        = 0;
-		icmp_type		 = 0;
-		icmp_code		 = 0;
-		magic            = 1;
-	}
-
-	void init(uint32_t localIP, uint32_t remoteIP, uint8_t icmpType, uint8_t icmpCode, uint8_t flowtype)
-	{
-		this->localIP    = localIP;
-		this->localPort  = 0;
-		this->remoteIP   = remoteIP;
-		this->remotePort = 0;
-		this->prot       = 1;
-		this->flowtype   = flowtype;
-		this->startMs    = 0;
-		this->durationMs = 0;
-		this->dOctets    = 0;
-		this->dPkts      = 0;
-		AS.local         = 0;
-		AS.remote        = 0;
-		tos_flags        = 0;
-		icmp_type		 = icmpType;
-		icmp_code		 = icmpCode;
 		magic            = 1;
 	}
 };

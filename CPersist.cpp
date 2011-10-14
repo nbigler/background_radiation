@@ -39,6 +39,7 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		srcIP_hm = new HashMap[rule_count];
 		dstIP_hm = new HashMap[rule_count];
 
+		/*
 		// Create csv files
 		// ================
 
@@ -71,13 +72,14 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 
 		fr_outfs << endl;
 		fr_outfs_frac << endl;
-
+		*/
 		// 2. Signs per rule
 		// -----------------
 		// Prepare a file for each rule
 
 		// For each rule
 		for (int i=0; i<c.get_rule_count(); i++) {
+			/*
 			// Derive file name from rule name
 			string rulename;
 			if (!c.get_rule_name(i, rulename)) {
@@ -110,7 +112,7 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 
 			(*outfs) << endl;
 			(*outfs_frac) << endl;
-
+			*/
 			// Prepare a dst port arr per rule
 			uint16_t * arr = new uint16_t[65536];
 			dstPort_arr.push_back(arr);
@@ -141,6 +143,7 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		srcIP_hm2 = new HashMap[class_count+1];
 		dstIP_hm2 = new HashMap[class_count+1];
 
+		/*
 		// Create csv files
 		// ================
 
@@ -176,13 +179,14 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 
 		fc_outfs << endl;
 		fc_outfs_frac << endl;
-
+		*/
 		// 2. Signs per class
 		// ------------------
 		// Prepare a file for each class
 
 		// For each class
 		for (int i = 0; i <= class_count; i++) { // Add class "other" having no definition
+			/*
 			// Derive file name from class name
 			string classname;
 			if (i==class_count) {
@@ -217,7 +221,7 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 
 			(*outfs) << endl;
 			(*outfs_frac) << endl;
-
+			*/
 			// Prepare a dst port arr per class
 			uint16_t * arr = new uint16_t[65536];
 			dstPort_arr2.push_back(arr);
