@@ -208,7 +208,12 @@ bool sanity_check(CFlowlist * fl, uint32_t * fl_ref, bool use_outflows)
 		if (inflows_signed!=0 || biflows_signed!=0 || outflows_signed==0) error = true;
 		if (signedf != outflows_signed) error = true;
 	}
+	if(error) {
+		cout << "ERROR: test failed.\n";
+		exit(-1);
+	}
 
+	cout << "Test passed successfully.\n";
 	return error;
 }
 
@@ -220,7 +225,7 @@ bool sanity_check(CFlowlist * fl, uint32_t * fl_ref, bool use_outflows)
   *	values are written as new lines to statistics CSV files.
   *
   *
-  *	\param	fl			Flowlis
+  *	\param	fl			Flowlist
   *	\param	fl_ref	List of sign sets aligned with fl
   *	\param	data		Persistent statistics variables needed for overall statistics.
   *	\param	inum		Number of currenr interval
@@ -375,6 +380,30 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	return true;
 }
 
+void check_file_status(string & sign_filename)
+{
+    struct stat fileStatus;
+    int iretStat = stat(sign_filename.c_str(), &fileStatus);
+    if(iretStat == -1){
+        cerr << "\nERROR: " << sign_filename << " does not exist or is not accessible.\n";
+        perror("stat()");
+        cerr << "Check file name.\n\n";
+        char buf[256];
+        getcwd(buf, 256);
+        cout << "Current working directory is: " << buf << endl;
+        exit(1);
+    }
+}
+
+void select_flow_direction(bool & use_outflows, string & sign_filename, string basename)
+{
+    if(!use_outflows){
+        sign_filename = basename + ".sig.gz";
+    }else{
+        sign_filename = basename + "_O.sig.gz";
+    }
+}
+
 /**
   *	Process flow and sign data from one time interval.
   *
@@ -402,42 +431,26 @@ bool process_interval(string & filename, CPersist & data, int inum, bool use_out
 	// *************************
 	string basename = filename.substr(0, filename.find(".gz"));
 	string sign_filename;
-	if (!use_outflows) {
-		sign_filename = basename + ".sig.gz";
-	} else {
-		sign_filename = basename + "_O.sig.gz";
-	}
 
-   struct stat fileStatus;
-   int iretStat = stat(sign_filename.c_str(), &fileStatus);
-   if (iretStat==-1) {
-		cerr << "\nERROR: " << sign_filename << " does not exist or is not accessible.\n";
-		perror("stat()");
-		cerr << "Check file name.\n\n";
-		char buf[256];
-		getcwd(buf, 256);
-		cout << "Current working directory is: " << buf << endl;
-		exit(1);
-	 }
+	select_flow_direction(use_outflows, sign_filename, basename);
+
+	check_file_status(sign_filename);
 
 	// Read per-flow sign sets to memory, i.e., array "fl_ref".
-	uint32_t * fl_ref = new uint32_t[flow_count];
-
-	// Open up a stream chain
-	boost::iostreams::filtering_istream in;
-	// Add stream compressor
-	in.push(boost::iostreams::gzip_decompressor());
-
-	// Open input file and link it to stream chain
-	boost::iostreams::file_source infs(sign_filename);
-	if (!infs.is_open()) {
-		cerr << "ERROR: could not open file source \"" << sign_filename << "\".\n";
-		exit(1);
-	}
-	in.push(infs);
-
-	// Now get all sign sets
-	in.read((char *)fl_ref, flow_count * sizeof(uint32_t));
+    uint32_t *fl_ref = new uint32_t[flow_count];
+    // Open up a stream chain
+    boost::iostreams::filtering_istream in;
+    // Add stream compressor
+    in.push(boost::iostreams::gzip_decompressor());
+    // Open input file and link it to stream chain
+    boost::iostreams::file_source infs(sign_filename);
+    if(!infs.is_open()){
+        cerr << "ERROR: could not open file source \"" << sign_filename << "\".\n";
+        exit(1);
+    }
+    in.push(infs);
+    // Now get all sign sets
+    in.read((char*)((fl_ref)), flow_count * sizeof(uint32_t));
 	cout << "\nRead " << in.gcount()/2 << " values from sig file " << sign_filename << endl;
 
 	// Close current input file (and stream compressor)
@@ -448,13 +461,7 @@ bool process_interval(string & filename, CPersist & data, int inum, bool use_out
 	// *********************
 
 	if (data.test) {
-		bool error = sanity_check(fl, fl_ref, use_outflows);
-		if (!error) {
-			cout << "Test passed successfully.\n";
-		} else {
-			cout << "ERROR: test failed.\n";
-		}
-		exit(error);
+		sanity_check(fl, fl_ref, use_outflows);
 	}
 
 	process_rules(fl, fl_ref, data, inum);
