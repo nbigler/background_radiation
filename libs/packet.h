@@ -1,5 +1,5 @@
-#ifndef FLOW_H_
-#define FLOW_H_
+#ifndef PACKET_H_
+#define PACKET_H_
 
 
 #include <stdint.h>
@@ -23,7 +23,7 @@ struct ipPayload {
 };
 
 
-struct flow {
+struct packet {
 	uint32_t localIP;		///< Numeric ip address of source vertex (host byte order)
 	uint32_t remoteIP;		///< Numeric ip address of destination vertex (host byte order)
 
@@ -43,7 +43,7 @@ struct flow {
 	uint8_t tos_flags;		///< ToS flags
 	uint8_t magic;			///< Magic number (format version)
 
-	std::vector<struct ipPayload> payload; ///< IP-payload of each packet in flow
+	struct ipPayload ipPayload; ///< IP-payload of each packet in flow
 
 	void init(uint32_t localIP, uint32_t remoteIP, uint8_t protocol,  uint8_t direction) {
 		this->localIP = localIP;
@@ -54,4 +54,4 @@ struct flow {
 
 };
 
-#endif // CFLOW_H_
+#endif // FLOW_H_

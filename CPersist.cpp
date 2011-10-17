@@ -238,7 +238,7 @@ CPersist::~CPersist()
 {
 	fr_outfs.close();
 	fr_outfs_frac.close();
-	for (int i=0; i<sr_outfs.size(); i++) {
+	for (size_t i=0; i<sr_outfs.size(); i++) {
 		sr_outfs[i]->close();
 		sr_outfs_frac[i]->close();
 		delete sr_outfs[i];
@@ -247,7 +247,7 @@ CPersist::~CPersist()
 	}
 	fc_outfs.close();
 	fc_outfs_frac.close();
-	for (int i=0; i<sc_outfs.size(); i++) {
+	for (size_t i=0; i<sc_outfs.size(); i++) {
 		sc_outfs[i]->close();
 		sc_outfs_frac[i]->close();
 		delete sc_outfs[i];

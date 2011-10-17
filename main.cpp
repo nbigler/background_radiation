@@ -7,6 +7,7 @@
 #include <cstring>
 #include <string>
 #include <iomanip>
+#include <functional>
 
 #include <pcap++.h>
 
@@ -32,7 +33,7 @@
 // Util
 #include "libs/HashMap.h"
 #include "libs/utils.h"
-#include "libs/flow.h"
+#include "libs/packet.h"
 #include "libs/flowlist.h"
 #include "CPersist.h"
 
@@ -49,11 +50,12 @@ using namespace pcappp;
 // data = references to flowlist records
 //
 typedef HashKeyIPv4_6T FlowHashKey6;
-typedef hash_map<HashKeyIPv4_6T, struct flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > FlowHashMap6;
-//typedef hash_map<HashKeyIPv4_6T, struct cflow *, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
+//typedef hash_map<HashKeyIPv4_6T, struct flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > FlowHashMap6;
+typedef hash_map<HashKeyIPv4_6T, struct cflow *, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
 
 //void print_flow(std::pair<HashKeyIPv4_6T, flow> hash);
-void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash);
+//void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash);
+//void find_match(CFlowHashMap6*);
 uint16_t endian_swap(uint16_t _x);
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
 
@@ -345,7 +347,7 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					//CFlowHashMap6 * test = data.hashedFlowlist[j];
 					(*data.hashedFlowlist[j])[flowkey] = pflow;
 					//(*data.hashedFlowlist[j])[flowkey] = pflow;
-					/*update_hm(data.srcIP_hm2[j], pflow->remoteIP);
+					update_hm(data.srcIP_hm2[j], pflow->remoteIP);
 					update_hm(data.dstIP_hm2[j], pflow->localIP);
 					if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
 						data.dstPort_arr2[j][pflow->localPort]++; // We count flows per dst port
@@ -491,7 +493,49 @@ void usage(char * progname, ostream & outfs)
 	outfs << endl;
 }
 
+/*struct find_match : public std::binary_function<CFlowHashMap6*, packet,void> {
+    explicit find_match(CFlowHashMap6 * cflowHash, const packet p) : p(p), cflowHash(cflowHash){ }
+    void operator()(CFlowHashMap6& hash) {
 
+    }
+private:
+    packet p;
+    CFlowHashMap6 * cflowHash;
+};*/
+
+struct find_match {
+	find_match(packet p) : p(p) {}
+	void operator()(CFlowHashMap6* hashedFlowMap) {
+		// Check if current flow is already contained in hash map
+		uint8_t inflow = inflow;
+		uint8_t outflow = outflow;
+		FlowHashKey6 mykey_in(&(p.localIP), &(p.remoteIP), &(p.localPort),
+			&(p.remotePort), &(p.protocol), &(inflow));
+		FlowHashKey6 mykey_inverse_in(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+			&(p.localPort), &(p.protocol), &(inflow));
+		FlowHashKey6 mykey_out(&(p.localIP), &(p.remoteIP), &(p.localPort),
+			&(p.remotePort), &(p.protocol), &(outflow));
+		FlowHashKey6 mykey_inverse_out(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+			&(p.localPort), &(p.protocol), &(outflow));
+
+		CFlowHashMap6::iterator iter_in = hashedFlowMap->find(mykey_in);
+		CFlowHashMap6::iterator iter_inverse_in = hashedFlowMap->find(mykey_inverse_in);
+		CFlowHashMap6::iterator iter_out = hashedFlowMap->find(mykey_out);
+		CFlowHashMap6::iterator iter_inverse_out = hashedFlowMap->find(mykey_out);
+
+		if ((hashedFlowMap->end() != iter_in )|| (hashedFlowMap->end() != iter_inverse_in) || (hashedFlowMap->end() != iter_out) || (hashedFlowMap->end() != iter_inverse_out)){
+			cout << "Packet Found:" <<endl;
+			char localIP[INET_ADDRSTRLEN];
+			char remoteIP[INET_ADDRSTRLEN];
+			inet_ntop(AF_INET, &(p.localIP), localIP, INET_ADDRSTRLEN);
+			inet_ntop(AF_INET, &(p.remoteIP), remoteIP, INET_ADDRSTRLEN);
+			cout << "localIP: " << localIP << "\t remoteIP: " << remoteIP << endl;
+		}
+
+	}
+private:
+	packet p;
+};
 
 int main(int argc, char **argv) {
 
@@ -566,7 +610,10 @@ int main(int argc, char **argv) {
 	vector<string> files;
 
 	if (list_filename.size() > 0) {
-		int result = util::getSamples(list_filename, files);
+		if (util::getSamples(list_filename, files)!=0) {
+			cerr << "\ERROR: could not read files in " + list_filename << endl;
+			exit(1);
+		}
 	} else {
 		// Try to obtain filename from command line
 		if ((argc - optind) == 1) {
@@ -598,18 +645,17 @@ int main(int argc, char **argv) {
 	// ******************
 
 	if (files.size() > 1) { cout << "Processing file:\n"; }
-	for (int i = 0; i< files.size(); i++) {
+	for (size_t i = 0; i< files.size(); i++) {
 		if (files.size() > 1) { cout << files[i] << endl; }
 		process_interval(files[i], data, i, use_outflows);
 	}
 
-	FlowHashMap6 * flowHM6 = new FlowHashMap6();
-	FlowHashMap6::iterator iter;
 
 
 
-	struct flow flow;
-	memset((void *)&flow, 0,sizeof(flow));
+
+	struct packet packet;
+	memset((void *)&packet, 0,sizeof(packet));
 
 	if (pcap_filename == "") {
 		cerr << "ERROR: no pcap file name specified on command line.\n";
@@ -660,7 +706,9 @@ int main(int argc, char **argv) {
 		// Loop through pcap file by reading packet-by-packet.
 		Packet p;
 		while (pco.ok()) {
-			flow = {};
+			//flow = {0};
+			memset(&packet, 0, sizeof(packet));
+
 			// Get next packet from file
 			if (!pco.next(p)) break;	// Quit if no more packets avaliable
 			pcount++;
@@ -705,47 +753,42 @@ int main(int argc, char **argv) {
 				inet_pton(AF_INET, "10.0.0.2", &netmask);
 				// Show transport layer protocol
 				if ((ip_hdr->saddr&netmask) == netmask){
-					flow.init(ip_hdr->saddr, ip_hdr->daddr, ip_hdr->protocol, outflow);
+					packet.init(ip_hdr->saddr, ip_hdr->daddr, ip_hdr->protocol, outflow);
 				}else{
-					flow.init(ip_hdr->daddr, ip_hdr->saddr, ip_hdr->protocol, inflow);
+					packet.init(ip_hdr->daddr, ip_hdr->saddr, ip_hdr->protocol, inflow);
 				}
-				flow.tos_flags = ip_hdr->tos;
-				ipPayload payload;
+				packet.tos_flags = ip_hdr->tos;
 
 				switch (ip_hdr->protocol) {
 				case IPPROTO_TCP:
 					tcp_hdr = (struct tcphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
-					flow.localPort = endian_swap(tcp_hdr->source);
-					flow.remotePort = endian_swap(tcp_hdr->dest);
-					payload.tcpHeader = tcp_hdr;
-					payload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr));
+					packet.localPort = endian_swap(tcp_hdr->source);
+					packet.remotePort = endian_swap(tcp_hdr->dest);
+					packet.ipPayload.tcpHeader = tcp_hdr;
+					packet.ipPayload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr));
 					break;
 				case IPPROTO_UDP:
 					udp_hdr = (struct udphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
-					flow.localPort = endian_swap(udp_hdr->source);
-					flow.remotePort = endian_swap(udp_hdr->dest);
-					payload.udpHeader = udp_hdr;
-					payload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr));
+					packet.localPort = endian_swap(udp_hdr->source);
+					packet.remotePort = endian_swap(udp_hdr->dest);
+					packet.ipPayload.udpHeader = udp_hdr;
+					packet.ipPayload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr));
 					break;
 				case IPPROTO_ICMP:
 					icmp_hdr = (struct icmphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
-					payload.icmpHeader = icmp_hdr;
-					payload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr));
+					packet.ipPayload.icmpHeader = icmp_hdr;
+					packet.ipPayload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr));
 					break;
 				default:
-					payload.payload = (char *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
+					packet.ipPayload.payload = (char *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
 					break;
 				}
-				payload.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
-				payload.packetsize = p.get_capture_length();
-				flow.payload.push_back(payload);
+				packet.ipPayload.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
+				packet.ipPayload.packetsize = p.get_capture_length();
 
-				// Check if current flow is already contained in hash map
-//				FlowHashKey6 mykey(&(flow.localIP), &(flow.remoteIP), &(flow.localPort),
-//					&(flow.remotePort), &(flow.protocol), &(flow.flowtype));
-//
-//
-//				iter = flowHM6->find(mykey);
+
+
+				for_each(data.hashedFlowlist.begin(), data.hashedFlowlist.end(), find_match(packet));
 
 //				if (iter == flowHM6->end()) { //no matching flow found
 //					if (iter_inverse == flowHM6->end()){ //no matching inverse flow found
@@ -796,7 +839,9 @@ int main(int argc, char **argv) {
 	//for_each(flowHM6->begin(),flowHM6->end(),print_flow);
 	cout << "Local IP; Local Port; Remote IP; Remote Port; Protocol; ToS-Flags; TCP-Flags; Flow-Size; Number of Packets; Direction; Start Time; Duration" << endl;
 
-	for_each(flowHM6->begin(),flowHM6->end(),print_cvs);
+	//for_each(flowHM6->begin(),flowHM6->end(),print_cvs);
+	//for (int i = 0; i< data.c.get_rule_count(); i++)
+		//for_each(data.hashedFlowlist[i]->begin(), data.hashedFlowlist[i]->end(), print_cvs);
 }
 
 uint16_t endian_swap(uint16_t _x){
@@ -805,86 +850,89 @@ uint16_t endian_swap(uint16_t _x){
 	return x;
 }
 
-void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash){
-	flow flow = hash.second;
-	char localIP[INET_ADDRSTRLEN];
-	char remoteIP[INET_ADDRSTRLEN];
-	util::ipV4AddressToString(flow.localIP,localIP,INET_ADDRSTRLEN);
-	util::ipV4AddressToString(flow.remoteIP,remoteIP,INET_ADDRSTRLEN);
-	for (uint i = 0; i < flow.dPkts; i++){
-		uint8_t tcp_flags = *(((uint8_t *)&(flow.payload[i].tcpHeader->ack_seq))+5);
-//		int flags = tcp_flags;
-		cout <<  localIP << "; " << flow.localPort << "; " << remoteIP << "; " << flow.remotePort << "; ";
-		cout << util::ipV4ProtocolToString(flow.protocol) << "; 0x" << hex << static_cast<unsigned int>(tcp_flags) << dec << "; " << flow.payload[i].packetsize << "; " << i+1 << "; ";
-		switch (flow.flowtype) {
-			case outflow:
-				cout << "outflow";
-				break;
-			case inflow:
-				cout << "inflow";
-				break;
-			case biflow:
-				cout << "biflow";
-				break;
-			default:
-				cout << "other";
-				break;
-		}
 
-	cout.precision(10);
-	//cout << "; " << fixed << 25569+((flow.startMs/(double) 1000)/(double) 86400);  // Pre-Formated for Excel/LibreOffice
-	cout << "; " << fixed << (flow.payload[i].timestamp);  // Unix-Timestamp
-	cout << "; " << (flow.payload[i].timestamp - flow.startMs) << endl;
-	//cout << "sizeof(tcp_flags): " << sizeof(tcp_flags) << endl;
-	}
-}
-void print_flow(std::pair<HashKeyIPv4_6T, flow> hash){
-	flow flow = hash.second;
-	char localIP[INET_ADDRSTRLEN];
-	char remoteIP[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, &(flow.localIP), localIP, INET_ADDRSTRLEN);
-	inet_ntop(AF_INET, &(flow.remoteIP), remoteIP, INET_ADDRSTRLEN);
-	cout << "Local IP: " << localIP << "\tLocal Port: " << flow.localPort << endl;
-	cout << "Remote IP: " << remoteIP << "\tRemote Port: " << flow.remotePort << endl;
-	cout << "Protocol: ";
-	switch (flow.protocol) {
-		case IPPROTO_TCP:
-			cout << "TCP";
-			break;
-		case IPPROTO_UDP:
-			cout << "UDP";
-			break;
-		default:
-			cout << "Other";
-			break;
-	}
-	cout << endl;
-	if (flow.protocol==IPPROTO_TCP){cout << "TCP-Flags: 0x" << hex << (int) flow.tos_flags << endl;}
-	cout << "Flow-Size (Byte): " << dec << flow.dOctets << endl;
-	cout << "Number of Packets: " << flow.dPkts << endl;
-	cout << "Direction: ";
-	switch (flow.flowtype) {
-		case outflow:
-			cout << "outflow";
-			break;
-		case inflow:
-			cout << "inflow";
-			break;
-		case biflow:
-			cout << "biflow";
-			break;
-		default:
-			cout << "unknown";
-			break;
-	}
-	cout << endl;
-	time_t rawtime = flow.startMs;
-	cout << "Start Time: " << ctime(&rawtime) << "ms \tDuration: " << flow.durationMs << "ms" << endl;
-	cout << "-----------------------" << endl;
-}
 
-bool valid_flag_sequence_check(flow flow) {
-	for (uint i = 0; i < flow.dPkts; i++){
+
+//void print_cvs(std::pair<HashKeyIPv4_6T, packet> hash){
+//	cflow flow = hash.second;
+//	char localIP[INET_ADDRSTRLEN];
+//	char remoteIP[INET_ADDRSTRLEN];
+//	util::ipV4AddressToString(flow.localIP,localIP,INET_ADDRSTRLEN);
+//	util::ipV4AddressToString(flow.remoteIP,remoteIP,INET_ADDRSTRLEN);
+//	for (uint i = 0; i < flow.dPkts; i++){
+//		uint8_t tcp_flags = *(((uint8_t *)&(flow.payload[i].tcpHeader->ack_seq))+5);
+////		int flags = tcp_flags;
+//		cout <<  localIP << "; " << flow.localPort << "; " << remoteIP << "; " << flow.remotePort << "; ";
+//		cout << util::ipV4ProtocolToString(flow.protocol) << "; 0x" << hex << static_cast<unsigned int>(tcp_flags) << dec << "; " << flow.payload[i].packetsize << "; " << i+1 << "; ";
+//		switch (flow.flowtype) {
+//			case outflow:
+//				cout << "outflow";
+//				break;
+//			case inflow:
+//				cout << "inflow";
+//				break;
+//			case biflow:
+//				cout << "biflow";
+//				break;
+//			default:
+//				cout << "other";
+//				break;
+//		}
+//
+//	cout.precision(10);
+//	//cout << "; " << fixed << 25569+((flow.startMs/(double) 1000)/(double) 86400);  // Pre-Formated for Excel/LibreOffice
+//	cout << "; " << fixed << (flow.payload[i].timestamp);  // Unix-Timestamp
+//	cout << "; " << (flow.payload[i].timestamp - flow.startMs) << endl;
+//	//cout << "sizeof(tcp_flags): " << sizeof(tcp_flags) << endl;
+//	}
+//}
+//void print_flow(std::pair<HashKeyIPv4_6T, flow> hash){
+//	flow flow = hash.second;
+//	char localIP[INET_ADDRSTRLEN];
+//	char remoteIP[INET_ADDRSTRLEN];
+//	inet_ntop(AF_INET, &(flow.localIP), localIP, INET_ADDRSTRLEN);
+//	inet_ntop(AF_INET, &(flow.remoteIP), remoteIP, INET_ADDRSTRLEN);
+//	cout << "Local IP: " << localIP << "\tLocal Port: " << flow.localPort << endl;
+//	cout << "Remote IP: " << remoteIP << "\tRemote Port: " << flow.remotePort << endl;
+//	cout << "Protocol: ";
+//	switch (flow.protocol) {
+//		case IPPROTO_TCP:
+//			cout << "TCP";
+//			break;
+//		case IPPROTO_UDP:
+//			cout << "UDP";
+//			break;
+//		default:
+//			cout << "Other";
+//			break;
+//	}
+//	cout << endl;
+//	if (flow.protocol==IPPROTO_TCP){cout << "TCP-Flags: 0x" << hex << (int) flow.tos_flags << endl;}
+//	cout << "Flow-Size (Byte): " << dec << flow.dOctets << endl;
+//	cout << "Number of Packets: " << flow.dPkts << endl;
+//	cout << "Direction: ";
+//	switch (flow.flowtype) {
+//		case outflow:
+//			cout << "outflow";
+//			break;
+//		case inflow:
+//			cout << "inflow";
+//			break;
+//		case biflow:
+//			cout << "biflow";
+//			break;
+//		default:
+//			cout << "unknown";
+//			break;
+//	}
+//	cout << endl;
+//	time_t rawtime = flow.startMs;
+//	cout << "Start Time: " << ctime(&rawtime) << "ms \tDuration: " << flow.durationMs << "ms" << endl;
+//	cout << "-----------------------" << endl;
+//}
+
+bool valid_flag_sequence_check(packet packet) {
+	for (uint i = 0; i < packet.dPkts; i++){
 //		flow.payload[i].tcpHeader->
 		//TODO flag decoding, flag categorization
 	}
