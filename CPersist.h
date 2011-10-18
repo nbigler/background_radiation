@@ -20,7 +20,7 @@
 using namespace std;
 
 typedef hash_map<HashKeyIPv4, uint32_t , HashFunction<HashKeyIPv4>,HashFunction<HashKeyIPv4> > HashMap;
-typedef hash_map<HashKeyIPv4_6T, struct cflow *, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
+typedef hash_map<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
 
 class CPersist {
 public:

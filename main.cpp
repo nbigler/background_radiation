@@ -51,7 +51,7 @@ using namespace pcappp;
 //
 typedef HashKeyIPv4_6T FlowHashKey6;
 //typedef hash_map<HashKeyIPv4_6T, struct flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > FlowHashMap6;
-typedef hash_map<HashKeyIPv4_6T, struct cflow *, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
+typedef hash_map<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
 
 //void print_flow(std::pair<HashKeyIPv4_6T, flow> hash);
 //void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash);
@@ -323,7 +323,7 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					data.packets[j] += pflow.dPkts;
 					data.bytes[j]   += pflow.dOctets;
 					FlowHashKey6 flowkey(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.dir));
-					(*data.hashedFlowlist[j])[flowkey] = &pflow;
+					(*data.hashedFlowlist[j])[flowkey] = pflow;
 //					update_hm(data.srcIP_hm[j], pflow->remoteIP);
 //					update_hm(data.dstIP_hm[j], pflow->localIP);
 					if (pflow.prot == IPPROTO_TCP  || pflow.prot == IPPROTO_UDP) {
@@ -366,7 +366,7 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 				data.packets2[class_count] += pflow.dPkts;
 				data.bytes2[class_count]   += pflow.dOctets;
 				FlowHashKey6 flowkey(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.dir));
-				(*data.hashedFlowlist[class_count])[flowkey] = &pflow;
+				(*data.hashedFlowlist[class_count])[flowkey] = pflow;
 				/*update_hm(data.srcIP_hm2[class_count], pflow->remoteIP);
 				update_hm(data.dstIP_hm2[class_count], pflow->localIP);
 				if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
@@ -788,7 +788,7 @@ int main(int argc, char **argv) {
 
 
 
-				for_each(data.hashedFlowlist.begin(), data.hashedFlowlist.end(), find_match(packet));
+				//for_each(data.hashedFlowlist.begin(), data.hashedFlowlist.end(), find_match(packet));
 
 //				if (iter == flowHM6->end()) { //no matching flow found
 //					if (iter_inverse == flowHM6->end()){ //no matching inverse flow found
@@ -835,6 +835,18 @@ int main(int argc, char **argv) {
 
 	} catch (...) {
 		cout << "ERROR: unknown exception occurred.\n";
+	}
+	char out [1000];
+	vector<CFlowHashMap6>::iterator iter;
+	CFlowHashMap6 map;
+	for (unsigned int i = 0; i< data.hashedFlowlist.size(); i++){
+		map = *data.hashedFlowlist[i];
+		CFlowHashMap6::iterator iter;
+		cout << "-----------------Rule " << i << ": ------------------------------" << endl;
+		for (iter = map.begin(); iter != map.end(); ++iter) {
+			util::record2String(&(iter->second), out);
+			cout << out << endl;
+		}
 	}
 	//for_each(flowHM6->begin(),flowHM6->end(),print_flow);
 	cout << "Local IP; Local Port; Remote IP; Remote Port; Protocol; ToS-Flags; TCP-Flags; Flow-Size; Number of Packets; Direction; Start Time; Duration" << endl;
