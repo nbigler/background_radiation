@@ -514,7 +514,7 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 	//char out [1000];
 	//util::record2String(&flow, out);
 	//cout << "Flags for flow: " << endl;
-	while (iter != data.hashedPacketlist[rule_pos]->end()){
+	if (iter != data.hashedPacketlist[rule_pos]->end()){
 		for (vector<packet>::iterator it = (*iter).second.begin(); it != (*iter).second.end(); ++it){
 			if ((*it).protocol == IPPROTO_TCP) {
 				/*char localIP[INET_ADDRSTRLEN];
