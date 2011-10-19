@@ -24,6 +24,7 @@ namespace util {
 	void ipV4AddressToString(uint32_t addr, char * dst, size_t dst_len);
 	const std::string& ipV4ProtocolToString(uint8_t prot);
 	void record2String(struct cflow * record, char * out);
+	void swap_endians(struct cflow & pflow);
 	void seconds2date_ISO8601(uint32_t seconds, std::string & s);
 	std::string pformat(int x, int min_fieldsize);
 	std::string pformat(long x, int min_fieldsize);

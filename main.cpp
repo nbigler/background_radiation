@@ -55,8 +55,7 @@ typedef hash_map<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, Has
 
 //void print_flow(std::pair<HashKeyIPv4_6T, flow> hash);
 //void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash);
-//void find_match(CFlowHashMap6*);
-uint16_t endian_swap(uint16_t _x);
+//void find_match(CFlowHashMap6*);;
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
 
 /**
@@ -306,6 +305,7 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 			total_flows++;
 			total_packets += pflow.dPkts;
 			total_bytes   += pflow.dOctets;
+			util::swap_endians(pflow);
 			//update_hm(data.all_srcIP_hm, pflow->remoteIP);
 			//update_hm(data.all_dstIP_hm, pflow->localIP);
 			if (pflow.prot == IPPROTO_TCP  || pflow.prot == IPPROTO_UDP) {
@@ -322,7 +322,7 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					data.flows[j]++;
 					data.packets[j] += pflow.dPkts;
 					data.bytes[j]   += pflow.dOctets;
-					FlowHashKey6 flowkey(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.dir));
+					FlowHashKey6 flowkey(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.tos_flags));
 					(*data.hashedFlowlist[j])[flowkey] = pflow;
 //					update_hm(data.srcIP_hm[j], pflow->remoteIP);
 //					update_hm(data.dstIP_hm[j], pflow->localIP);
@@ -365,7 +365,7 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 				data.flows2[class_count]++;
 				data.packets2[class_count] += pflow.dPkts;
 				data.bytes2[class_count]   += pflow.dOctets;
-				FlowHashKey6 flowkey(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.dir));
+				FlowHashKey6 flowkey(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.tos_flags));
 				(*data.hashedFlowlist[class_count])[flowkey] = pflow;
 				/*update_hm(data.srcIP_hm2[class_count], pflow->remoteIP);
 				update_hm(data.dstIP_hm2[class_count], pflow->localIP);
@@ -503,12 +503,34 @@ private:
     CFlowHashMap6 * cflowHash;
 };*/
 
-struct find_match {
-	find_match(packet p) : p(p) {}
+void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int rule_pos){
+	FlowHashKey6 mykey(&(p.localIP), &(p.remoteIP), &(p.localPort),
+		&(p.remotePort), &(p.protocol), &(p.tos_flags));
+	FlowHashKey6 mykey_inverse(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+		&(p.localPort), &(p.protocol), &(p.tos_flags));
+
+	CFlowHashMap6::iterator iter = hashedFlowMap->find(mykey);
+	CFlowHashMap6::iterator iter_inverse = hashedFlowMap->find(mykey_inverse);
+
+	if (hashedFlowMap->end() != iter ){
+		(*data.hashedPacketlist[rule_pos])[mykey] = p;
+		cout << "Packet Found:" <<endl;
+	}else if (hashedFlowMap->end() != iter_inverse) {
+		uint32_t localIP = p.localIP;
+		uint16_t localPort = p.localPort;
+		p.localIP = p.remoteIP;
+		p.remoteIP = localIP;
+		p.localPort = p.remotePort;
+		p.remotePort = localPort;
+		(*data.hashedPacketlist[rule_pos])[mykey_inverse] = p;
+	}
+}
+/*struct find_match {
+	find_match(packet p, CPersist * data) : p(p), data(data) {}
 	void operator()(CFlowHashMap6* hashedFlowMap) {
 		// Check if current flow is already contained in hash map
-		uint8_t inflow = inflow;
-		uint8_t outflow = outflow;
+		uint8_t inflow = 2;
+		uint8_t outflow = 1;
 		FlowHashKey6 mykey_in(&(p.localIP), &(p.remoteIP), &(p.localPort),
 			&(p.remotePort), &(p.protocol), &(inflow));
 		FlowHashKey6 mykey_inverse_in(&(p.remoteIP), &(p.localIP), &(p.remotePort),
@@ -517,13 +539,21 @@ struct find_match {
 			&(p.remotePort), &(p.protocol), &(outflow));
 		FlowHashKey6 mykey_inverse_out(&(p.remoteIP), &(p.localIP), &(p.remotePort),
 			&(p.localPort), &(p.protocol), &(outflow));
+		FlowHashKey6 mykey(&(p.localIP), &(p.remoteIP), &(p.localPort),
+			&(p.remotePort), &(p.protocol), &(p.tos_flags));
+		FlowHashKey6 mykey_inverse(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+			&(p.localPort), &(p.protocol), &(p.tos_flags));
 
 		CFlowHashMap6::iterator iter_in = hashedFlowMap->find(mykey_in);
 		CFlowHashMap6::iterator iter_inverse_in = hashedFlowMap->find(mykey_inverse_in);
 		CFlowHashMap6::iterator iter_out = hashedFlowMap->find(mykey_out);
 		CFlowHashMap6::iterator iter_inverse_out = hashedFlowMap->find(mykey_out);
+		CFlowHashMap6::iterator iter = hashedFlowMap->find(mykey);
+		CFlowHashMap6::iterator iter_inverse = hashedFlowMap->find(mykey_inverse);
 
-		if ((hashedFlowMap->end() != iter_in )|| (hashedFlowMap->end() != iter_inverse_in) || (hashedFlowMap->end() != iter_out) || (hashedFlowMap->end() != iter_inverse_out)){
+		//if ((hashedFlowMap->end() != iter_in )|| (hashedFlowMap->end() != iter_inverse_in) || (hashedFlowMap->end() != iter_out) || (hashedFlowMap->end() != iter_inverse_out)){
+		if ((hashedFlowMap->end() != iter )|| (hashedFlowMap->end() != iter_inverse)){
+			data->hashedPacketlist[]
 			cout << "Packet Found:" <<endl;
 			char localIP[INET_ADDRSTRLEN];
 			char remoteIP[INET_ADDRSTRLEN];
@@ -535,7 +565,8 @@ struct find_match {
 	}
 private:
 	packet p;
-};
+	CPersist * data;
+};*/
 
 int main(int argc, char **argv) {
 
@@ -762,15 +793,15 @@ int main(int argc, char **argv) {
 				switch (ip_hdr->protocol) {
 				case IPPROTO_TCP:
 					tcp_hdr = (struct tcphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
-					packet.localPort = endian_swap(tcp_hdr->source);
-					packet.remotePort = endian_swap(tcp_hdr->dest);
+					packet.localPort = ntohs(tcp_hdr->source);
+					packet.remotePort = ntohs(tcp_hdr->dest);
 					packet.ipPayload.tcpHeader = tcp_hdr;
 					packet.ipPayload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr));
 					break;
 				case IPPROTO_UDP:
 					udp_hdr = (struct udphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
-					packet.localPort = endian_swap(udp_hdr->source);
-					packet.remotePort = endian_swap(udp_hdr->dest);
+					packet.localPort = ntohs(udp_hdr->source);
+					packet.remotePort = ntohs(udp_hdr->dest);
 					packet.ipPayload.udpHeader = udp_hdr;
 					packet.ipPayload.payload = (char * )(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr));
 					break;
@@ -786,10 +817,23 @@ int main(int argc, char **argv) {
 				packet.ipPayload.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
 				packet.ipPayload.packetsize = p.get_capture_length();
 
+				/*cflow temp;
+				temp.init(packet.localIP,packet.localPort,packet.remoteIP,packet.remotePort, packet.protocol, packet.flowtype);
+				temp.startMs = packet.startMs;
+				temp.durationMs = packet.durationMs;
+				temp.dOctets = packet.dOctets;
+				temp.dPkts = packet.dPkts;
+				char out [1000];
+				util::record2String(&temp, out);
+				cout << out << endl;*/
 
 
-				//for_each(data.hashedFlowlist.begin(), data.hashedFlowlist.end(), find_match(packet));
+				//for_each(data.hashedFlowlist.begin(), data.hashedFlowlist.end(), find_match(packet, &data));
 
+				int rule_pos = 0;
+				for (vector<CFlowHashMap6*>::iterator it = data.hashedFlowlist.begin(); it != data.hashedFlowlist.end(); ++it){
+					find_match(packet, *it, data, rule_pos++);
+				}
 //				if (iter == flowHM6->end()) { //no matching flow found
 //					if (iter_inverse == flowHM6->end()){ //no matching inverse flow found
 //						if (iter_biflow == flowHM6->end()) { //no matching biflow found
@@ -836,7 +880,7 @@ int main(int argc, char **argv) {
 	} catch (...) {
 		cout << "ERROR: unknown exception occurred.\n";
 	}
-	char out [1000];
+	/*char out [1000];
 	vector<CFlowHashMap6>::iterator iter;
 	CFlowHashMap6 map;
 	for (unsigned int i = 0; i< data.hashedFlowlist.size(); i++){
@@ -847,7 +891,8 @@ int main(int argc, char **argv) {
 			util::record2String(&(iter->second), out);
 			cout << out << endl;
 		}
-	}
+	}*/
+
 	//for_each(flowHM6->begin(),flowHM6->end(),print_flow);
 	cout << "Local IP; Local Port; Remote IP; Remote Port; Protocol; ToS-Flags; TCP-Flags; Flow-Size; Number of Packets; Direction; Start Time; Duration" << endl;
 
@@ -856,11 +901,7 @@ int main(int argc, char **argv) {
 		//for_each(data.hashedFlowlist[i]->begin(), data.hashedFlowlist[i]->end(), print_cvs);
 }
 
-uint16_t endian_swap(uint16_t _x){
-	uint16_t x = _x;
-	x = (x>>8) | (x<<8);
-	return x;
-}
+
 
 
 

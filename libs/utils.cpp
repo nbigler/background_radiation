@@ -222,7 +222,20 @@ void record2String(struct cflow * record, char * out)
 }
 
 
-
+/**
+  *	swap_endians - Converts the ip-address from the cflow struct
+  *	from network byte order to host byte order.
+  *
+  *	\param pflow cflow struct to convert
+  *
+  */
+void swap_endians(struct cflow & pflow)
+{
+    pflow.localIP = ntohl(pflow.localIP);
+    pflow.remoteIP = ntohl(pflow.remoteIP);
+    //pflow.localPort = ntohs(pflow.localPort);
+    //pflow.remotePort = ntohs(pflow.remotePort);
+}
 
 
 
