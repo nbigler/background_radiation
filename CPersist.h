@@ -16,11 +16,13 @@
 #include "libs/HashMap.h"
 #include "libs/flowlist.h"
 #include "libs/utils.h"
+#include "libs/packet.h"
 
 using namespace std;
 
 typedef hash_map<HashKeyIPv4, uint32_t , HashFunction<HashKeyIPv4>,HashFunction<HashKeyIPv4> > HashMap;
 typedef hash_map<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
+typedef hash_map<HashKeyIPv4_6T, vector<struct packet>, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > packetHashMap6;
 
 class CPersist {
 public:
@@ -42,6 +44,7 @@ public:
 	uint64_t * bytes2;		///< Byte count per class (class number is index)
 
 	vector<CFlowHashMap6*> hashedFlowlist;
+	vector<packetHashMap6*> hashedPacketlist;
 
 	ofstream fr_outfs;		///< Flows per rule statistics file (as fractions of flows)
 	ofstream fc_outfs;		///< Flows per class statistics file (as fractions of flows)
