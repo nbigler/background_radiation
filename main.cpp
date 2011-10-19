@@ -514,8 +514,16 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 	//char out [1000];
 	//util::record2String(&flow, out);
 	//cout << "Flags for flow: " << endl;
+	int counter = 0;
+	uint8_t flags_group [5] = {0};
+	uint8_t flags;
+	int tcp_flags;
 	if (iter != data.hashedPacketlist[rule_pos]->end()){
-		for (vector<packet>::iterator it = (*iter).second.begin(); it != (*iter).second.end(); ++it){
+		for (vector<packet>::iterator it = (*iter).second.begin(); (it != (*iter).second.end()) && counter < 5; ++it){
+			flags = *(((uint8_t *)&((*it).ipPayload.tcpHeader->ack_seq))+5);
+			tcp_flags = flags;
+			flags_group[counter] = tcp_flags;;
+			counter++;
 			if ((*it).protocol == IPPROTO_TCP) {
 				/*char localIP[INET_ADDRSTRLEN];
 				char remoteIP[INET_ADDRSTRLEN];
