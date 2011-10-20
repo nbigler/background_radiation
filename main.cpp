@@ -515,10 +515,9 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 			&(flow.remotePort), &(flow.prot), &(flow.flowtype));
 
 	packetHashMap6::iterator iter = data.hashedPacketlist[rule_pos]->find(mykey);
-	if()
 
 	int counter = 0;
-	uint8_t flag_sequence[5] = {0x00};
+	uint8_t flag_sequence[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
 	uint8_t tcp_flags;
 
 	//Fill flag sequence with 5 first packets from flow
