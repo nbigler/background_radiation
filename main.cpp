@@ -29,6 +29,9 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/device/file.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <fstream>
+
 
 // Util
 #include "libs/HashMap.h"
@@ -597,181 +600,18 @@ void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int ru
 		cout << "--------- out inverse ----------" << endl;
 	}*/
 }
-/*struct find_match {
-	find_match(packet p, CPersist * data) : p(p), data(data) {}
-	void operator()(CFlowHashMap6* hashedFlowMap) {
-		// Check if current flow is already contained in hash map
-		uint8_t inflow = 2;
-		uint8_t outflow = 1;
-		FlowHashKey6 mykey_in(&(p.localIP), &(p.remoteIP), &(p.localPort),
-			&(p.remotePort), &(p.protocol), &(inflow));
-		FlowHashKey6 mykey_inverse_in(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-			&(p.localPort), &(p.protocol), &(inflow));
-		FlowHashKey6 mykey_out(&(p.localIP), &(p.remoteIP), &(p.localPort),
-			&(p.remotePort), &(p.protocol), &(outflow));
-		FlowHashKey6 mykey_inverse_out(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-			&(p.localPort), &(p.protocol), &(outflow));
-		FlowHashKey6 mykey(&(p.localIP), &(p.remoteIP), &(p.localPort),
-			&(p.remotePort), &(p.protocol), &(p.tos_flags));
-		FlowHashKey6 mykey_inverse(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-			&(p.localPort), &(p.protocol), &(p.tos_flags));
+void process_pcap(string pcap_filename, CPersist & data)
+{
+    struct packet packet;
+    memset((void*)(&packet), 0, sizeof (packet));
 
-		CFlowHashMap6::iterator iter_in = hashedFlowMap->find(mykey_in);
-		CFlowHashMap6::iterator iter_inverse_in = hashedFlowMap->find(mykey_inverse_in);
-		CFlowHashMap6::iterator iter_out = hashedFlowMap->find(mykey_out);
-		CFlowHashMap6::iterator iter_inverse_out = hashedFlowMap->find(mykey_out);
-		CFlowHashMap6::iterator iter = hashedFlowMap->find(mykey);
-		CFlowHashMap6::iterator iter_inverse = hashedFlowMap->find(mykey_inverse);
-
-		//if ((hashedFlowMap->end() != iter_in )|| (hashedFlowMap->end() != iter_inverse_in) || (hashedFlowMap->end() != iter_out) || (hashedFlowMap->end() != iter_inverse_out)){
-		if ((hashedFlowMap->end() != iter )|| (hashedFlowMap->end() != iter_inverse)){
-			data->hashedPacketlist[]
-			cout << "Packet Found:" <<endl;
-			char localIP[INET_ADDRSTRLEN];
-			char remoteIP[INET_ADDRSTRLEN];
-			inet_ntop(AF_INET, &(p.localIP), localIP, INET_ADDRSTRLEN);
-			inet_ntop(AF_INET, &(p.remoteIP), remoteIP, INET_ADDRSTRLEN);
-			cout << "localIP: " << localIP << "\t remoteIP: " << remoteIP << endl;
-		}
-
-	}
-private:
-	packet p;
-	CPersist * data;
-};*/
-
-int main(int argc, char **argv) {
-
-	const char * Date = __DATE__;
-	const char * time = __TIME__;
-
-	cout << "Evaluation of One-Way Flows V 0.1 (c) E. Glatz, N. Bigler, M. Fisler (build: ";
-	cout << Date << " " << time << ")\n\n";
-
-	// 1. Parse command line
-	// *********************
-	string list_filename;
-	string rules_filename;
-	string classes_filename;
-	string pcap_filename;
-
-	bool test = false;
-	bool verbose = false;
-	bool verbose2 = false;
-	bool use_outflows = false;
-
-	string date("");
-
-	int i;
-	while ((i = getopt(argc, argv, "f:r:c:p:tOhd:vV")) != -1) {
-		switch (i) {
-			case 'f':
-				list_filename = optarg;
-				break;
-			case 'r':
-				rules_filename = optarg;
-				break;
-			case 'c':
-				classes_filename = optarg;
-				break;
-			case 'p':
-				pcap_filename = optarg;
-				break;
-			case 't':
-				test = true;
-				verbose = true;
-				break;
-			case 'O':
-				use_outflows = true;
-				cout << "\n### INFO: classifying outflows instead of inflows\n\n";
-				break;
-			case 'h':
-				usage(argv[0], cout);
-				exit(0);
-				break;
-			case 'd':
-				date = optarg;
-				if (date.size()!=8) {
-					cerr << "\n\nERROR: invalid date string. Option -d expects a date of form YYYYMMSS.\n";
-					usage(argv[0], cerr);
-					exit(1);
-				}
-				break;
-			case 'v':
-				verbose = true;
-				break;
-			case 'V':
-				verbose2 = true;
-				break;
-			default:
-				cerr << "\n\nERROR: Unknown option: " << argv[optind] << endl;
-				usage(argv[0], cerr);
-				exit(1);
-		}
-	}
-
-	vector<string> files;
-
-	if (list_filename.size() > 0) {
-		if (util::getSamples(list_filename, files)!=0) {
-			cerr << "\ERROR: could not read files in " + list_filename << endl;
-			exit(1);
-		}
-	} else {
-		// Try to obtain filename from command line
-		if ((argc - optind) == 1) {
-			// We have one non-option argument: this must be the input file name
-			string fname = argv[optind];
-			files.push_back(fname);
-		} else {
-			cerr << "\nERROR: missing input file name.\n";
-			usage(argv[0], cerr);
-			exit(1);
-		}
-	}
-
-	// Extract date and time of first interval flow data file
-	size_t pos = files[0].find(".gz");
-	if (pos == string::npos) {
-		cerr << "ERROR: input file name " << files[0] << " does not end in .gz as it should.\n\n";
-		exit(1);
-	}
-	string date_time;
-	if (date.size()>0) {
-		date_time = date + ".0000";
-	} else {
-		date_time = files[0].substr(pos-15, 13);	// Extract date/time as YYYYMMDD.hhmm
-	}
-	CPersist data(date_time, verbose, verbose2, test, rules_filename, classes_filename, use_outflows);
-
-	// 2. Execute command
-	// ******************
-
-	if (files.size() > 1) { cout << "Processing file:\n"; }
-	for (size_t i = 0; i< files.size(); i++) {
-		if (files.size() > 1) { cout << files[i] << endl; }
-		process_interval(files[i], data, i, use_outflows);
-	}
-
-
-
-
-
-	struct packet packet;
-	memset((void *)&packet, 0,sizeof(packet));
-
-	if (pcap_filename == "") {
-		cerr << "ERROR: no pcap file name specified on command line.\n";
-		usage(argv[0], cerr);
-		exit(1);
-	}
-	/*if (argc != 2){
+    /*if (argc != 2){
 		cerr << "ERROR: no pcap file name specified on command line.\n";
 		exit(1);
 	}*/
-	// Open file for packet reading
-	int pcount = 0;	// Packet counter
-	try {
+    // Open file for packet reading
+    int pcount = 0; // Packet counter
+    try {
 		PcapOffline pco(pcap_filename);
 		//PcapOffline pco(argv[1]);
 		// Get some general infos from file
@@ -796,7 +636,7 @@ int main(int argc, char **argv) {
 		} else {
 			//cout << "INFO: data link type is NOT Ethernet. Type code is: " << dl.get_type() << ".\n";
 			//cout << "\nAll done.\n\n";
-			return 0;
+			//return 0;
 		}
 
 		//unsigned int slen = pco.get_snaplen();
@@ -954,6 +794,192 @@ int main(int argc, char **argv) {
 	} catch (...) {
 		cout << "ERROR: unknown exception occurred.\n";
 	}
+}
+
+/*struct find_match {
+	find_match(packet p, CPersist * data) : p(p), data(data) {}
+	void operator()(CFlowHashMap6* hashedFlowMap) {
+		// Check if current flow is already contained in hash map
+		uint8_t inflow = 2;
+		uint8_t outflow = 1;
+		FlowHashKey6 mykey_in(&(p.localIP), &(p.remoteIP), &(p.localPort),
+			&(p.remotePort), &(p.protocol), &(inflow));
+		FlowHashKey6 mykey_inverse_in(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+			&(p.localPort), &(p.protocol), &(inflow));
+		FlowHashKey6 mykey_out(&(p.localIP), &(p.remoteIP), &(p.localPort),
+			&(p.remotePort), &(p.protocol), &(outflow));
+		FlowHashKey6 mykey_inverse_out(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+			&(p.localPort), &(p.protocol), &(outflow));
+		FlowHashKey6 mykey(&(p.localIP), &(p.remoteIP), &(p.localPort),
+			&(p.remotePort), &(p.protocol), &(p.tos_flags));
+		FlowHashKey6 mykey_inverse(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+			&(p.localPort), &(p.protocol), &(p.tos_flags));
+
+		CFlowHashMap6::iterator iter_in = hashedFlowMap->find(mykey_in);
+		CFlowHashMap6::iterator iter_inverse_in = hashedFlowMap->find(mykey_inverse_in);
+		CFlowHashMap6::iterator iter_out = hashedFlowMap->find(mykey_out);
+		CFlowHashMap6::iterator iter_inverse_out = hashedFlowMap->find(mykey_out);
+		CFlowHashMap6::iterator iter = hashedFlowMap->find(mykey);
+		CFlowHashMap6::iterator iter_inverse = hashedFlowMap->find(mykey_inverse);
+
+		//if ((hashedFlowMap->end() != iter_in )|| (hashedFlowMap->end() != iter_inverse_in) || (hashedFlowMap->end() != iter_out) || (hashedFlowMap->end() != iter_inverse_out)){
+		if ((hashedFlowMap->end() != iter )|| (hashedFlowMap->end() != iter_inverse)){
+			data->hashedPacketlist[]
+			cout << "Packet Found:" <<endl;
+			char localIP[INET_ADDRSTRLEN];
+			char remoteIP[INET_ADDRSTRLEN];
+			inet_ntop(AF_INET, &(p.localIP), localIP, INET_ADDRSTRLEN);
+			inet_ntop(AF_INET, &(p.remoteIP), remoteIP, INET_ADDRSTRLEN);
+			cout << "localIP: " << localIP << "\t remoteIP: " << remoteIP << endl;
+		}
+
+	}
+private:
+	packet p;
+	CPersist * data;
+};*/
+
+int main(int argc, char **argv) {
+
+	const char * Date = __DATE__;
+	const char * time = __TIME__;
+
+	cout << "Evaluation of One-Way Flows V 0.1 (c) E. Glatz, N. Bigler, M. Fisler (build: ";
+	cout << Date << " " << time << ")\n\n";
+
+	// 1. Parse command line
+	// *********************
+	string list_filename;
+	string rules_filename;
+	string classes_filename;
+	string pcap_filelist;
+
+	bool test = false;
+	bool verbose = false;
+	bool verbose2 = false;
+	bool use_outflows = false;
+
+	string date("");
+
+	int i;
+	while ((i = getopt(argc, argv, "f:r:c:p:tOhd:vV")) != -1) {
+		switch (i) {
+			case 'f':
+				list_filename = optarg;
+				break;
+			case 'r':
+				rules_filename = optarg;
+				break;
+			case 'c':
+				classes_filename = optarg;
+				break;
+			case 'p':
+				pcap_filelist = optarg;
+				break;
+			case 't':
+				test = true;
+				verbose = true;
+				break;
+			case 'O':
+				use_outflows = true;
+				cout << "\n### INFO: classifying outflows instead of inflows\n\n";
+				break;
+			case 'h':
+				usage(argv[0], cout);
+				exit(0);
+				break;
+			case 'd':
+				date = optarg;
+				if (date.size()!=8) {
+					cerr << "\n\nERROR: invalid date string. Option -d expects a date of form YYYYMMSS.\n";
+					usage(argv[0], cerr);
+					exit(1);
+				}
+				break;
+			case 'v':
+				verbose = true;
+				break;
+			case 'V':
+				verbose2 = true;
+				break;
+			default:
+				cerr << "\n\nERROR: Unknown option: " << argv[optind] << endl;
+				usage(argv[0], cerr);
+				exit(1);
+		}
+	}
+
+	vector<string> files;
+
+	if (list_filename.size() > 0) {
+		if (util::getSamples(list_filename, files)!=0) {
+			cerr << "\ERROR: could not read files in " + list_filename << endl;
+			exit(1);
+		}
+	} else {
+		// Try to obtain filename from command line
+		if ((argc - optind) == 1) {
+			// We have one non-option argument: this must be the input file name
+			string fname = argv[optind];
+			files.push_back(fname);
+		} else {
+			cerr << "\nERROR: missing input file name.\n";
+			usage(argv[0], cerr);
+			exit(1);
+		}
+	}
+
+	// Extract date and time of first interval flow data file
+	size_t pos = files[0].find(".gz");
+	if (pos == string::npos) {
+		cerr << "ERROR: input file name " << files[0] << " does not end in .gz as it should.\n\n";
+		exit(1);
+	}
+	string date_time;
+	if (date.size()>0) {
+		date_time = date + ".0000";
+	} else {
+		date_time = files[0].substr(pos-15, 13);	// Extract date/time as YYYYMMDD.hhmm
+	}
+	CPersist data(date_time, verbose, verbose2, test, rules_filename, classes_filename, use_outflows);
+
+	// 2. Execute command
+	// ******************
+
+	if (files.size() > 1) { cout << "Processing file:\n"; }
+	for (size_t i = 0; i< files.size(); i++) {
+		if (files.size() > 1) { cout << files[i] << endl; }
+		process_interval(files[i], data, i, use_outflows);
+	}
+
+	vector<string> pcap_files;
+	if (pcap_filelist.size() > 0) {
+		if (util::getSamples(pcap_filelist, pcap_files)!=0) {
+			cerr << "ERROR: could not read files in " + list_filename << endl;
+			exit(1);
+		}
+	}else{
+		cerr << "ERROR: no pcap file_list provided" << endl;
+		usage(argv[0], cerr);
+	}
+
+
+	string pcap_filename;
+	for (size_t i = 0; i< pcap_files.size(); i++) {
+		if (pcap_files.size() > 1) { cout << pcap_files[i] << endl; }
+		ifstream file(pcap_files[i].c_str(), ios_base::in | ios_base::binary);
+		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+		pcap_filename = pcap_files[i].substr(0,pcap_files[i].find(".gz")).substr(pcap_files[i].find("/trace")+1);
+		ofstream out(pcap_filename.c_str());
+		in.push(boost::iostreams::gzip_decompressor());
+		in.push(file);
+		boost::iostreams::copy(in, out);
+		process_pcap(pcap_filename, data);
+		remove(pcap_filename.c_str());
+
+	}
+
+
 	//for (vector<CFlowHashMap6*>::iterator it = data.hashedFlowlist.begin(); it != data.hashedFlowlist.end(); ++it){
 	for (int i = 0; i < data.c.get_rule_count(); i++){
 		for (CFlowHashMap6::iterator iter = data.hashedFlowlist[i]->begin(); iter != data.hashedFlowlist[i]->end(); ++iter){
