@@ -513,43 +513,33 @@ private:
 bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 	FlowHashKey6 mykey(&(flow.localIP), &(flow.remoteIP), &(flow.localPort),
 			&(flow.remotePort), &(flow.prot), &(flow.flowtype));
+
 	packetHashMap6::iterator iter = data.hashedPacketlist[rule_pos]->find(mykey);
-	//char out [1000];
-	//util::record2String(&flow, out);
-	//cout << "Flags for flow: " << endl;
+	if()
+
 	int counter = 0;
-	uint8_t flags_group [5] = {0};
-	uint8_t flags;
-	int tcp_flags;
+	uint8_t flag_sequence[5] = {0x00};
+	uint8_t tcp_flags;
+
+	//Fill flag sequence with 5 first packets from flow
 	if (iter != data.hashedPacketlist[rule_pos]->end()){
 		for (vector<packet>::iterator it = (*iter).second.begin(); (it != (*iter).second.end()) && counter < 5; ++it){
-			flags = *(((uint8_t *)&((*it).ipPayload.tcpHeader->ack_seq))+5);
-			tcp_flags = flags;
-			flags_group[counter] = tcp_flags;;
-			counter++;
-			if ((*it).protocol == IPPROTO_TCP) {
-				/*char localIP[INET_ADDRSTRLEN];
-				char remoteIP[INET_ADDRSTRLEN];
-				uint8_t flags = *(((uint8_t *)&((*it).ipPayload.tcpHeader->ack_seq))+5);
-				int tcp_flags = flags;
-				util::ipV4AddressToString((*it).localIP,localIP,INET_ADDRSTRLEN);
-				util::ipV4AddressToString((*it).remoteIP,remoteIP,INET_ADDRSTRLEN);
-				//cout << "Local IP: " << localIP << ":" << (*it).localPort << "; " << "\tRemote IP: " << remoteIP << ":" << (*it).remotePort << endl;
-				cout << "TCP Flags: 0x" << hex << static_cast<unsigned int>(tcp_flags) << dec << "\tPacketsize: " << (*it).ipPayload.packetsize << endl;
-				cout.precision(10);
-				//cout << "Timestamp: " << fixed << ((*it).ipPayload.timestamp) << endl; // Unix-Timestamp
-				//cout << "-----------------" << endl;*/
+			tcp_flags = *(((uint8_t *)&((*it).ipPayload.tcpHeader->ack_seq))+5);
 
-			}
+			flag_sequence[counter] = tcp_flags;
+			counter++;
 		}
 		iter++;
 
 	}
-	//for (uint i = 0; i < packet.dPkts; i++){
-//		flow.payload[i].tcpHeader->
-		//TODO flag decoding, flag categorization
-	//}
-	return true;
+	//Check if flag sequence is valid
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x02) return true // 5 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x00) return true // 4 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true // 5 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true // 5 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x00 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true // 5 syn flags
+
+	return false;
 }
 
 void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int rule_pos){
