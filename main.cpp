@@ -533,11 +533,11 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 
 	}
 	//Check if flag sequence is valid
-	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x02) return true // 5 syn flags
-	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x00) return true // 4 syn flags
-	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true // 5 syn flags
-	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true // 5 syn flags
-	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x00 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true // 5 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x02) return true; // 5 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x00) return true; // 4 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 3 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 2 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x00 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 1 syn flag
 
 	return false;
 }
