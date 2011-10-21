@@ -82,7 +82,7 @@ void open_infile(ifstream & infs, string ifname) {
 	try {	
 		infs.open(ifname.c_str(), ios::in | ios_base::binary);
 	}
-	catch (ifstream::failure e) {
+	catch (ifstream::failure & e) {
    	cout << "Exception opening file " << ifname << endl;
 		if (infs.fail()) cout << "failbit set\n";
 		if (infs.eof())  cout << "eofbit set\n";
@@ -216,8 +216,8 @@ void record2String(struct cflow * record, char * out)
 			ipV4ProtocolToString(record->prot).c_str(), dirviz,
 			ip_padding1, local, record->localPort, ip_padding2, remote, record->remotePort, 
 			record->AS.local, record->AS.remote,
-			record->dOctets, record->dPkts, 
-			ts.tm_hour, ts.tm_min, ts.tm_sec, record->startMs % 1000,
+			(unsigned int) record->dOctets, record->dPkts,
+			ts.tm_hour, ts.tm_min, ts.tm_sec, (long long int) record->startMs % 1000,
 			record->durationMs / 1000, record->durationMs % 1000, record->tos_flags, record->magic);
 }
 
@@ -308,7 +308,6 @@ string pformat(int x, int min_fieldsize)
 		s += buf;
 	}
 
-	char c;	
 	int leadingdigits = (numdigits-numsigns) % 3;
 
 	if (dbg) {
@@ -384,7 +383,6 @@ string pformat(long x, int min_fieldsize)
 		s += buf;
 	}
 
-	char c;	
 	int leadingdigits = (numdigits-numsigns) % 3;
 
 	if (dbg) {
@@ -477,7 +475,7 @@ int getSamples(string filename, vector<string> & files)
 		try {	
 			infs.open(filename.c_str(), ios::in | ios_base::binary);
 		}
-		catch (ifstream::failure e) {
+		catch (ifstream::failure & e) {
 			cout << "Exception opening file " << filename << endl;
 			if (infs.fail()) cout << "failbit set\n";
 			if (infs.eof())  cout << "eofbit set\n";

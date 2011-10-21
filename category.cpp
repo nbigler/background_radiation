@@ -46,7 +46,7 @@ C_Category::C_Category_set::C_Category_set(unsigned int c)
 
 	std::string tmp;
 	ecnt = 1;
-	for (int i=0; i < enames.size(); i++) {
+	for (size_t i=0; i < enames.size(); i++) {
 		if (enames[i]==',') {
 			category_t_str.push_back(tmp);
 			tmp.clear();
@@ -81,18 +81,6 @@ void C_Category::C_Category_set::print(ostream & outfs) {
 		pos++;
 	}
 }
-
-
-
-// Create one CSV column header per sign name.
-// Result is a CSV header line.
-void C_Category::C_Category_set::print_enums_csv(ostream & outfs) {
-	for (int i=0; i<=e_category::Unknown; i++) {
-		if (i>0) outfs << ", ";
-		outfs << category_t_str.at(i);
-	}
-}
-
 
 
 /**
@@ -161,95 +149,16 @@ bool C_Category::C_Category_set::get_rules(string & rules_filename)
 
 
 /**
-  *	Read a set of class definitions from a text file. Each line starts
-  *	with a class name followed by a colon and a list of tab-separated rule names.
-  *
-  *	\param Name of classes text file
-  *
-  *	\return TRUE if success, FALSE in case of errors.
-  */
-bool C_Category::C_Category_set::get_classes(string & classes_filename)
-{
-	ifstream infs;
-	util::open_infile(infs, classes_filename);
-
-	class_names.clear();
-	rule2class_map.clear(); 
-	rule2class_map.resize(32,-1); // Set size of mapping vector to the supported maximum of 32 signs
-	
-	// Loop over all classes definition
-	while (infs.good()) {	
-		char buf[65536];
-		infs.getline(buf, sizeof(buf));	
-		if (!infs.good()) break;	// No new line available
-		string line = buf;
-		if (line.size()==0) break;	// Handle empty line
-
-		// Process a class definition
-		stringstream ss;
-		ss << line;
-
-		// Get class name
-		string classname="";
-		ss >>	classname;
-		int size = classname.size();
-		if (size<2 || classname[size-1]!=':') {
-			// No class name found
-			cerr << "Missing class name in line: " << line << "\n\n";
-			return false;
-		}
-		// Add class name to names vector
-		class_names.push_back(classname.substr(0,size-1));
-		int class_number = class_names.size()-1;
-
-		// Now, add all rules for this class to rule2class map
-		string rule_name = "";
-		while(1) {
-			ss >> rule_name;
-			if (rule_name.size()==0) {
-				break;
-			} else {
-				// Find rule number
-				int rule_count = rule_set.size();
-				int j=0;
-				for (j=0; j<rule_count; j++) { 
-					if (rule_name.find(rule_set[j][0])!=string::npos) {
-						// Update rule2class map by new rule/class association
-						rule2class_map[j] = class_number;
-						break;
-					}
-				}
-				if (j>=rule_count) {
-					cerr << "ERROR in C_Category::C_Category_set::get_classes(): rule name does not fit any known rule.\n";
-					return false;
-				}
-				rule_name = "";
-			}
-		}
-	}
-
-	infs.close();
-
-	// Initialize bit mask arrays needed by "rule_match()".
-	load_bitmasks();
-
-	return true;
-}
-
-
-
-
-/**
   *	Load bit masks according to rule set currently stored in "rule_set".
   */
 void C_Category::C_Category_set::load_bitmasks()
 {
 	// For each rule
-	for (int i=0; i<rule_set.size(); i++) {
+	for (size_t i=0; i<rule_set.size(); i++) {
 		unsigned int mask1=0;
 		unsigned int mask2=0;
 		// For each sign
-		for (int k=1; k<rule_set[i].size(); k++) {
+		for (size_t k=1; k<rule_set[i].size(); k++) {
 			string cur_sign = rule_set[i][k];
 			bool pos = true;
 			if (cur_sign.size()>0 && cur_sign[0]=='!') {
@@ -281,12 +190,12 @@ void C_Category::C_Category_set::load_bitmasks()
 
 void C_Category::C_Category_set::show_masks()
 {
-	for (int i=0; i<mask_arr1.size(); i++) {
+	for (size_t i=0; i<mask_arr1.size(); i++) {
 		if (i>0) cout << ", ";
 		cout << hex << mask_arr1[i];
 	}
 	cout << endl;
-	for (int i=0; i<mask_arr2.size(); i++) {
+	for (size_t i=0; i<mask_arr2.size(); i++) {
 		if (i>0) cout << ", ";
 		cout << hex << mask_arr2[i];
 	}
@@ -327,7 +236,7 @@ int C_Category::C_Category_set::get_enum_by_name(string & sign_name) {
 int C_Category::C_Category_set::get_rule_number(string & rule_name)
 {
 	// Column 0 of matrix "rule_set" contains sign names
-	for (int i = 0; i < rule_set.size(); i++) {
+	for (size_t i = 0; i < rule_set.size(); i++) {
 		if (rule_set[i][0].find(rule_name)!=string::npos) {
 			return i;
 		}
@@ -345,22 +254,11 @@ int C_Category::C_Category_set::get_rule_number(string & rule_name)
   *
   *	\return TRUE if rule found, FALSe otherwise.
   */
-bool C_Category::C_Category_set::get_rule_name(int rule_num, std::string & rule_name)
+bool C_Category::C_Category_set::get_rule_name(size_t rule_num, std::string & rule_name)
 {
 	if (rule_num >= rule_set.size()) return false;
 	rule_name = rule_set[rule_num][0];
 	return true;	
-}
-
-
-
-bool C_Category::C_Category_set::get_class_name(int class_num, std::string & class_name) { 
-	if (class_num >= class_names.size()) {
-		return false;
-	} else {
-		class_name = class_names[class_num];
-		return true;				
-	}
 }
 
 
@@ -373,7 +271,7 @@ bool C_Category::C_Category_set::get_class_name(int class_num, std::string & cla
   *
   *	\return TRUE if sign set matches rule, FALSE otherwise.
   */
-bool C_Category::C_Category_set::rule_match(int rule_num, unsigned int cset)
+bool C_Category::C_Category_set::rule_match(size_t rule_num, unsigned int cset)
 {
 	// Check if all required signs for requested rule are present in "cset"
 	if ((cset & mask_arr1[rule_num]) != mask_arr1[rule_num]) return false;
@@ -385,31 +283,6 @@ bool C_Category::C_Category_set::rule_match(int rule_num, unsigned int cset)
 	return true;
 }
 
-
-
-/**
-  *	Checks if a given sign set matches a particular class whose number is given.
-  *
-  *	\param class_num Internal class number
-  *	\param  cset A sign set to test against class
-  *
-  *	\return TRUE if sign set matches rule, FALSE otherwise.
-  */
-bool C_Category::C_Category_set::class_match(int class_num, unsigned int cset)
-{
-	int i = 0;
-	for (i = 0; i < rule_set.size(); i++) {
-		if (rule_match(i, cset)) break;
-	} 
-	if (i >= rule_set.size()) {
-//cout << "DEBUG: i = " << i << ", rule_set.size()  = " << rule_set.size() << endl;
-		return false;
-	} else {
-//cout << "DEBUG: i = " << i << ", rule2class_map[i] = " << rule2class_map[i];
-//cout << ", class_num = " << class_num << endl;
-		return (rule2class_map[i]==class_num);
-	} 
-}
 
 //********************************************************************************************
 
@@ -436,7 +309,7 @@ void C_Category::C_Category_rc_signs::init(int enum_count, int rc_count)
 
 C_Category::C_Category_rc_signs::~C_Category_rc_signs()
 {
-	for (int i=0; i<rc_signs.size(); i++) {
+	for (size_t i=0; i<rc_signs.size(); i++) {
 		delete rc_signs[i];
 	}
 }
@@ -447,7 +320,7 @@ C_Category::C_Category_rc_signs::~C_Category_rc_signs()
   */
 void C_Category::C_Category_rc_signs::reset()
 {
-	for (int i=0; i<rc_signs.size(); i++) {
+	for (size_t i=0; i<rc_signs.size(); i++) {
 		for (int j=0; j<enum_count; j++) {
 			rc_signs[i][j] = 0;
 		}
@@ -567,87 +440,6 @@ void C_Category::print_counters_full()
 		cout << "(" << i << hex << ", 0x" << i << dec << ")\n";
 	}
 }
-
-void C_Category::print_csv_header(ostream & outfs)
-{
-	C_Category_set s;	
-	for (int i = 1; i < num_counters; i++) {
-		if (i>1) outfs << ", ";	// Skip "empty set counter"
-		s.set(i);	
-		s.print(outfs);
-	}
-	outfs << endl;
-}
-
-
-
-void C_Category::print_csv_header_nz(ostream & outfs, long long threshold)
-{
-	C_Category_set s;
-	int j=1;	
-	for (int i = 1; i < num_counters; i++) {
-		if (ccounters[i]<=threshold) continue; // Skip counts below threshold
-		if (j>1) outfs << ", ";	// Skip "empty set counter"
-		s.set(i);	
-		s.print(outfs);
-		j++;
-	}
-	outfs << endl;
-}
-
-
-
-void C_Category::print_csv_data(ostream & outfs)
-{
-	for (int i = 1; i < num_counters; i++) {
-		if (i>1) { outfs << ", "; }	// Skip empty set counter
-		outfs << ccounters[i];
-	}
-	outfs << endl;
-}
-
-
-
-void C_Category::print_csv_data_nz(ostream & outfs, long long threshold, long long total)
-{
-	if (total>0) {
-		outfs.precision(2);
-	}
-	int j=1;	
-	for (int i = 1; i < num_counters; i++) {
-		if (ccounters[i]<=threshold) continue;	// Skip counts below threshold
-		if (j>1) { outfs << ", "; }	// Skip "empty set counter"
-		if (total>0) {
-			double percentage = 100.0 * (double)ccounters[i] / (double)total;
-			outfs << fixed << percentage;
-		} else {
-			outfs << ccounters[i];
-		}
-		j++;
-	}
-	outfs << endl;
-}
-
-
-
-void C_Category::print_csv_header_cat(ostream & outfs)
-{
-	C_Category_set s;
-	s.print_enums_csv(outfs);
-	outfs << endl;
-}
-
-
-
-void C_Category::print_csv_data_cat(ostream & outfs)
-{
-	for (int i=0; i<num_enums; i++) {
-		if (i>0) outfs << ", ";
-		outfs << ecounters[i];
-	}
-	outfs << endl;
-}
-
 
 
 void C_Category::clear()

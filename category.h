@@ -129,10 +129,6 @@ class C_Category {
 				// Print all names of enum type values to console (or a given stream)
 				void print(std::ostream & outfs=std::cout); 
 
-				// Create one CSV column header per sign name.
-				// Result is a CSV header line.
-				void print_enums_csv(std::ostream & outfs=std::cout);
-
 				// Output a newline to console
 				void printnl() { print(); std::cout << std::endl; }
 
@@ -146,9 +142,6 @@ class C_Category {
 				// must be present or absent in a given set to match the rule.
 				bool get_rules(std::string & rules_filename);
 
-				// Read a set of rules-per-class definitions from a text file. Every rule is
-				// associated with one and only one class.
-				bool get_classes(std::string & classes_filename);
 
 				// Show current settings of bitmasks.
 				void show_masks();
@@ -164,17 +157,10 @@ class C_Category {
 				int get_rule_count() { return rule_set.size(); }
 
 				// Get rule name string for a given rule number.
-				bool get_rule_name(int rule_num, std::string & rule_name);
-
-				int get_class_count() { return class_names.size(); }
-
-				bool get_class_name(int class_num, std::string & class_name);
+				bool get_rule_name(size_t rule_num, std::string & rule_name);
 
 				// Checks if a given sign set matches a particular rule whose number is given
-				bool rule_match(int rule_num, unsigned int cset);
-
-				// Checks if a given sign set matches a particular class whose number is given
-				bool class_match(int class_num, unsigned int cset);
+				bool rule_match(size_t rule_num, unsigned int cset);
 
 				// Make sign set empty
 				void clear() { cset = 0; }
@@ -235,15 +221,6 @@ class C_Category {
 
 		void print_counters();
 		void print_counters_full();
-
-		void print_csv_header(std::ostream & outfs);
-		void print_csv_data(std::ostream & outfs);
-
-		void print_csv_header_nz(std::ostream & outfs, long long threshold);
-		void print_csv_data_nz(std::ostream & outfs, long long threshold, long long total=0);
-
-		void print_csv_header_cat(std::ostream & outfs=std::cout);
-		void print_csv_data_cat(std::ostream & outfs=std::cout);
 
 		void clear();
 };

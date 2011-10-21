@@ -53,13 +53,7 @@ using namespace pcappp;
 // data = references to flowlist records
 //
 typedef HashKeyIPv4_6T FlowHashKey6;
-//typedef hash_map<HashKeyIPv4_6T, struct flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > FlowHashMap6;
-//typedef hash_map<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
-//typedef hash_multimap<HashKeyIPv4_6T, vector<struct packet>, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > packetHashMap6;
 
-//void print_flow(std::pair<HashKeyIPv4_6T, flow> hash);
-//void print_cvs(std::pair<HashKeyIPv4_6T, flow> hash);
-//void find_match(CFlowHashMap6*);;
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
 
 /**
@@ -235,46 +229,23 @@ bool sanity_check(CFlowlist * fl, uint32_t * fl_ref, bool use_outflows)
   *	\param	data		Persistent statistics variables needed for overall statistics.
   *	\param	inum		Number of currenr interval
   */
-bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
+void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 {
 	// 1. Initialize
 	// *************
 	int rule_count = data.c.get_rule_count();
 	if (rule_count == 0) {
-		return true;
+		return;
 	}
-	int class_count = data.c.get_class_count();
 	uint32_t total_flows = 0;
 	uint32_t total_packets = 0;
 	uint64_t total_bytes = 0;
-
-	data.all_srcIP_hm.clear();
-	data.all_dstIP_hm.clear();
-
-	for (int i = 0; i < 65536; i++) data.all_dstPort_arr[i] = 0;
-
-	for (int i = 0; i < rule_count; i++)  memset(data.dstPort_arr[i], 0, 65536);
-	for (int i = 0; i < class_count; i++) memset(data.dstPort_arr2[i], 0, 65536);
 
 
 	for (int i = 0; i < rule_count; i++) {
 		data.flows[i] = 0;
 		data.packets[i] = 0;
 		data.bytes[i] = 0;
-	}
-	for (int k=0; k < rule_count; k++) {
-		data.srcIP_hm[k].clear();
-		data.dstIP_hm[k].clear();
-	}
-
-	for (int i = 0; i <= class_count; i++) {
-		data.flows2[i] = 0;
-		data.packets2[i] = 0;
-		data.bytes2[i] = 0;
-	}
-	for (int k=0; k <= class_count; k++) {
-		data.srcIP_hm2[k].clear();
-		data.dstIP_hm2[k].clear();
 	}
 
 
@@ -297,96 +268,31 @@ bool process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 		data.hashedPacketlist.push_back(new packetHashMap6());
 	}
 
-	// Maintain a counter per rule
-	int * flow_per_class_counter	= new int[class_count+1];
-	for (int j = 0; j <= class_count; j++){
-		flow_per_class_counter[j] = 0;
-
-	}
-
 	// Loop over all sign sets (i.e. all flows)
-	int flow_count = fl->get_flow_count();
-	for (int i=0; i<flow_count; i++) {
+	int i = 0;
+	struct cflow * pflow = fl->get_first_flow();
+	while (pflow != NULL) {
 		if (fl_ref[i] != 0) { // Ignore empty sign sets
-			struct cflow pflow = *fl->get_flow_at(i);
 			total_flows++;
-			total_packets += pflow.dPkts;
-			total_bytes   += pflow.dOctets;
-			util::swap_endians(pflow);
-			//update_hm(data.all_srcIP_hm, pflow->remoteIP);
-			//update_hm(data.all_dstIP_hm, pflow->localIP);
-			if (pflow.prot == IPPROTO_TCP  || pflow.prot == IPPROTO_UDP) {
-				data.all_dstPort_arr[pflow.localPort]++;  // We count flows per dst port
-			}
+			total_packets += pflow->dPkts;
+			total_bytes   += pflow->dOctets;
+			util::swap_endians(*pflow);
 
 			// Check signs against all rules and increment counters for matching ones
-			bool found = false;
 			for (int j=0; j<rule_count; j++) { // j is rule index
 				if (data.c.rule_match(j, fl_ref[i])) {
 					flow_per_rule_counter[j]++;
 					// Update sign set of current rule
 					data.rc.increment(j, fl_ref[i]);
 					data.flows[j]++;
-					data.packets[j] += pflow.dPkts;
-					data.bytes[j]   += pflow.dOctets;
-					FlowHashKey6 flowkey(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.flowtype));
-					(*data.hashedFlowlist[j])[flowkey] = pflow;
-//					update_hm(data.srcIP_hm[j], pflow->remoteIP);
-//					update_hm(data.dstIP_hm[j], pflow->localIP);
-					if (pflow.prot == IPPROTO_TCP  || pflow.prot == IPPROTO_UDP) {
-						data.dstPort_arr[j][pflow.localPort]++;  // We count flows per dst port
-					}
-					found = true;
+					data.packets[j] += pflow->dPkts;
+					data.bytes[j]   += pflow->dOctets;
+					FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->flowtype));
+					(*data.hashedFlowlist[j])[flowkey] = *pflow;
 				}
-			}
-
-			/*// Check signs against all classes and increment counters for matching ones
-			bool found = false;
-			for (int j=0; j<class_count; j++) { // j is class index
-				if (data.c.class_match(j, fl_ref[i])) {
-					flow_per_class_counter[j]++;
-					// Update sign set of current class
-					data.rc2.increment(j, fl_ref[i]);
-					data.flows2[j]++;
-					data.packets2[j] += pflow->dPkts;
-					data.bytes2[j]   += pflow->dOctets;
-					FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->dir));
-					//CFlowHashMap6 * test = data.hashedFlowlist[j];
-					(*data.hashedFlowlist[j])[flowkey] = pflow;
-					//(*data.hashedFlowlist[j])[flowkey] = pflow;
-					update_hm(data.srcIP_hm2[j], pflow->remoteIP);
-					update_hm(data.dstIP_hm2[j], pflow->localIP);
-					if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
-						data.dstPort_arr2[j][pflow->localPort]++; // We count flows per dst port
-					}
-					found = true;
-				}
-			}*/
-
-    bool other_class = !found && class_count > 0;
-    // Handle situation that "no rule/class applies"
-    if(other_class) { // Add class "other" having no definition
-				flow_per_class_counter[class_count]++;
-				// Update sign set of remainder class "other"
-				data.rc2.increment(class_count, fl_ref[i]);
-				data.flows2[class_count]++;
-				data.packets2[class_count] += pflow.dPkts;
-				data.bytes2[class_count]   += pflow.dOctets;
-				FlowHashKey6 flowkey(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.flowtype));
-				(*data.hashedFlowlist[class_count])[flowkey] = pflow;
-				/*update_hm(data.srcIP_hm2[class_count], pflow->remoteIP);
-				update_hm(data.dstIP_hm2[class_count], pflow->localIP);
-				if (pflow->prot == IPPROTO_TCP  || pflow->prot == IPPROTO_UDP) {
-					data.dstPort_arr2[class_count][pflow->localPort]++;
-				}*/
 			}
 		}
-		if (data.verbose) { if ((i % 100000) == 0) { cout << "."; cout.flush(); } }
 	}
-	cout << endl;
-
-
-	return true;
 }
 
 void check_file_status(string & sign_filename)
@@ -500,15 +406,6 @@ void usage(char * progname, ostream & outfs)
 	outfs << endl;
 }
 
-/*struct find_match : public std::binary_function<CFlowHashMap6*, packet,void> {
-    explicit find_match(CFlowHashMap6 * cflowHash, const packet p) : p(p), cflowHash(cflowHash){ }
-    void operator()(CFlowHashMap6& hash) {
-
-    }
-private:
-    packet p;
-    CFlowHashMap6 * cflowHash;
-};*/
 
 bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 	FlowHashKey6 mykey(&(flow.localIP), &(flow.remoteIP), &(flow.localPort),
@@ -523,7 +420,7 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 	//Fill flag sequence with 5 first packets from flow
 	if (iter != data.hashedPacketlist[rule_pos]->end()){
 		for (vector<packet>::iterator it = (*iter).second.begin(); (it != (*iter).second.end()) && counter < 5; ++it){
-			tcp_flags = *(((uint8_t *)&((*it).ipPayload.tcpHeader->ack_seq))+5);
+			tcp_flags = get_tcp_flags(*(*it).ipPayload.tcpHeader);
 
 			flag_sequence[counter] = tcp_flags;
 			counter++;
@@ -543,20 +440,14 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 
 void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int rule_pos){
 	uint8_t in = inflow;
-	//uint8_t out = outflow;
+
 	FlowHashKey6 mykey_in_inverse(&(p.localIP), &(p.remoteIP), &(p.localPort),
 			&(p.remotePort), &(p.protocol), &(in));
 	FlowHashKey6 mykey_in(&(p.remoteIP), &(p.localIP), &(p.remotePort),
 			&(p.localPort), &(p.protocol), &(in));
-	/*FlowHashKey6 mykey_out(&(p.localIP), &(p.remoteIP), &(p.localPort),
-			&(p.remotePort), &(p.protocol), &(out));
-	FlowHashKey6 mykey_out_inverse(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-			&(p.localPort), &(p.protocol), &(out));*/
 
 	CFlowHashMap6::iterator iter_in = hashedFlowMap->find(mykey_in);
 	CFlowHashMap6::iterator iter_in_inverse = hashedFlowMap->find(mykey_in_inverse);
-	//CFlowHashMap6::iterator iter_out = hashedFlowMap->find(mykey_out);
-	//CFlowHashMap6::iterator iter_out_inverse = hashedFlowMap->find(mykey_out_inverse);
 
 	typedef pair<HashKeyIPv4_6T, packet> hash_pair;
 	if (hashedFlowMap->end() != iter_in ){
@@ -573,65 +464,30 @@ void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int ru
 		p.flowtype = inflow;
 		(*data.hashedPacketlist[rule_pos])[mykey_in].push_back(p);
 		//cout << "--------- in inverse ----------" << endl;
-	}/*else if (hashedFlowMap->end() != iter_out) {
-		p.flowtype = outflow;
-		(*data.hashedPacketlist[rule_pos])[mykey_out].push_back(p);
-		cout << "--------- out ----------" << endl;
-	}else if (hashedFlowMap->end() != iter_out_inverse) {
-		uint32_t localIP = p.localIP;
-		uint16_t localPort = p.localPort;
-		p.localIP = p.remoteIP;
-		p.remoteIP = localIP;
-		p.localPort = p.remotePort;
-		p.remotePort = localPort;
-		p.flowtype = outflow;
-		(*data.hashedPacketlist[rule_pos])[mykey_out_inverse].push_back(p);
-		cout << "--------- out inverse ----------" << endl;
-	}*/
+	}
 }
 void process_pcap(string pcap_filename, CPersist & data)
 {
     struct packet packet;
     memset((void*)(&packet), 0, sizeof (packet));
 
-    /*if (argc != 2){
-		cerr << "ERROR: no pcap file name specified on command line.\n";
-		exit(1);
-	}*/
     // Open file for packet reading
     int pcount = 0; // Packet counter
     try {
 		PcapOffline pco(pcap_filename);
-		//PcapOffline pco(argv[1]);
-		// Get some general infos from file
 		string filename = pco.get_filename();
-		//cout << "File name is: " << filename << endl;
 
-		int major = pco.get_major_version();
-		int minor = pco.get_minor_version();
-		cout << "File format used is: " << major << "." << minor << endl;
+//		int major = pco.get_major_version();
+//		int minor = pco.get_minor_version();
+//		cout << "File format used is: " << major << "." << minor << endl;
 
-		if (pco.is_swapped()) {
-			//cout << "Capture data byte order differs from byte order used on this system.\n";
-		} else {
-			//cout << "Capture data byte order complies with byte order used on this system.\n";
-		}
+//		if (pco.is_swapped()) {
+//			//cout << "Capture data byte order differs from byte order used on this system.\n";
+//		} else {
+//			//cout << "Capture data byte order complies with byte order used on this system.\n";
+//		}
 
 		DataLink dl = pco.get_datalink();
-		//cout << "Data link code: " << dl.get_description() << endl;
-
-		if (dl.get_type() == DataLink::EN10MB) {
-			//cout << "INFO: data link type is standard Ethernet (10 MB up).\n";
-		} else {
-			//cout << "INFO: data link type is NOT Ethernet. Type code is: " << dl.get_type() << ".\n";
-			//cout << "\nAll done.\n\n";
-			//return 0;
-		}
-
-		//unsigned int slen = pco.get_snaplen();
-		//cout << "Snap length: " << slen << endl << endl;
-
-		//cout << "Packet header details (for IPv4 packets):\n";
 
 		// Process saved packets
 		// *********************
@@ -664,8 +520,6 @@ void process_pcap(string pcap_filename, CPersist & data)
 				cout.fill(prev);
 				cout.width(oldwidth);
 			}
-
-			// cout << pcount << ": ";
 			// Display packet header data if data link protocol is ethernet
 			if (ntohs(ether_hdr->h_proto) == ETH_P_IP) {	// Check if IPv4 packet
 
@@ -718,62 +572,11 @@ void process_pcap(string pcap_filename, CPersist & data)
 				packet.ipPayload.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
 				packet.ipPayload.packetsize = p.get_capture_length();
 
-				/*cflow temp;
-				temp.init(packet.localIP,packet.localPort,packet.remoteIP,packet.remotePort, packet.protocol, packet.flowtype);
-				temp.startMs = packet.startMs;
-				temp.durationMs = packet.durationMs;
-				temp.dOctets = packet.dOctets;
-				temp.dPkts = packet.dPkts;
-				char out [1000];
-				util::record2String(&temp, out);
-				cout << out << endl;*/
-
-
-				//for_each(data.hashedFlowlist.begin(), data.hashedFlowlist.end(), find_match(packet, &data));
-
-				//int rule_pos = 0;
-				//for (vector<CFlowHashMap6*>::iterator it = data.hashedFlowlist.begin(); it != data.hashedFlowlist.end(); ++it){
 				for (int i = 0; i < data.c.get_rule_count(); i++){
 					//cout << "---------------Rule position: " << i << "-----------------" << endl;
 					find_match(packet, data.hashedFlowlist[i], data, i);
 				}
-//				if (iter == flowHM6->end()) { //no matching flow found
-//					if (iter_inverse == flowHM6->end()){ //no matching inverse flow found
-//						if (iter_biflow == flowHM6->end()) { //no matching biflow found
-//							flow.startMs = p.get_seconds()*1000000 + p.get_miliseconds(); //get_miliseconds() returns microseconds not milliseconds
-//							flow.dOctets = p.get_capture_length();
-//							flow.dPkts = 1;
-//							(*flowHM6)[mykey] = flow;
-//						}else{
-//							(*flowHM6)[mykey_biflow].durationMs = p.get_seconds()*1000000 + p.get_miliseconds() - (*flowHM6)[mykey_biflow].startMs;
-//							(*flowHM6)[mykey_biflow].dOctets = p.get_capture_length() + (*flowHM6)[mykey_biflow].dOctets;
-//							(*flowHM6)[mykey_biflow].dPkts = (*flowHM6)[mykey_biflow].dPkts + 1;
-//							(*flowHM6)[mykey_biflow].payload.push_back(flow.payload.at(0));
-//						}
-//					}
-//				}
-			} /*else {
-
-				// Handle all non-IPv4 traffic
-				// ***************************
-
-				switch (ntohs(ether_hdr->h_proto)) {
-				case  ETH_P_ARP:
-					cout << "ARP packet\n";
-					break;
-				case ETH_P_IPV6:
-					cout << "IPv6 packet\n";
-					break;
-				default:
-					cout << "non-IPv4 packet. Protocol code is: 0x";
-					char prev = cout.fill('0');
-					streamsize oldwidth = cout.width(4);
-					cout << hex << ntohs(ether_hdr->h_proto) << dec << endl;
-					cout.fill(prev);
-					cout.width(oldwidth);
-					break;
-				}
-			}*/
+			}
 		}
 
 	} catch (PcapError & pcerror) {
@@ -970,9 +773,11 @@ int main(int argc, char **argv) {
 
 
 	//for (vector<CFlowHashMap6*>::iterator it = data.hashedFlowlist.begin(); it != data.hashedFlowlist.end(); ++it){
+	bool valid_sequence;
 	for (int i = 0; i < data.c.get_rule_count(); i++){
 		for (CFlowHashMap6::iterator iter = data.hashedFlowlist[i]->begin(); iter != data.hashedFlowlist[i]->end(); ++iter){
-			valid_flag_sequence_check(iter->second, data, i);
+			valid_sequence = valid_flag_sequence_check(iter->second, data, i);
+			cout << "---------- Valid sequence: " << valid_sequence << "----------" << endl;
 		}
 	}
 	/*char out [1000];

@@ -98,12 +98,12 @@ void CFlowlist::init()
 	}
 	// Ok, file has valid GZIP format
 	infs0.seekg (0, ios::end);
-	int filesize = infs0.tellg();
+	//int filesize = infs0.tellg();
 	//cout << "File size is: " << filesize << " bytes.\n";
 	infs0.seekg (-8, ios::end);
 	// Now fetch CRC32 code and initial file size from file trailer
 	infs0.read((char *)&crc32, 4);
-	uint32_t CRC32 = crc32;
+	//uint32_t CRC32 = crc32;
 //	cout << "CRC32 stored in file trailer is: " << hex << CRC32 << dec << ".\n";
 	uint32_t isize=0;	
 	infs0.read((char *)&isize, 4);
@@ -181,12 +181,12 @@ void CFlowlist::read_flows()
 	//cout << "Latest flow read starts at: " << stime << ".\n";
 
 
-	double MBytes = (double)bytes / (1024.0*1024.0);
+	//double MBytes = (double)bytes / (1024.0*1024.0);
 	cout.precision(2);
-	cout.setf(ios::fixed,ios::floatfield); 
+	cout.setf(ios::fixed,ios::floatfield);
 	//cout << "Total byte count is " << util::pformat(bytes, 11) << " (" << MBytes << " MB).\n";
 //	cout << "Compression factor is " << (double)(flow_count*sizeof(struct cflow))/(double)statbuf.st_size << "\n";
-	double sizeMB = ((double)(flow_count*sizeof(struct cflow)))/(1024.0*1024.0);
+	//double sizeMB = ((double)(flow_count*sizeof(struct cflow)))/(1024.0*1024.0);
 //	cout << "Flowlist size is " << sizeMB << " MB.\n";
 //	cout << "Per flow magic number verified: ";
 	if (in.eof()) {
