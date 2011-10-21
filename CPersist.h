@@ -37,6 +37,7 @@ public:
 	uint32_t * flows;			///< Flow count per rule (rule number is index)
 	uint32_t * packets;		///< Packet count per rule (rule number is index)
 	uint64_t * bytes;			///< Byte count per rule (rule number is index)
+	string date;
 
 
 	vector<CFlowHashMap6*> hashedFlowlist;

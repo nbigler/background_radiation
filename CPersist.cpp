@@ -17,6 +17,7 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 	this->use_outflows = use_outflows;
 	flows = packets = NULL;
 	bytes = NULL;
+	date = date_time.substr(0,8);
 
 	// Read rules files if any
 	// ***********************

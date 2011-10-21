@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 #include <vector>
+#include <netinet/ether.h>
+#include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <netinet/ip_icmp.h>
@@ -13,17 +15,21 @@
 
 struct ipPayload {
 	union {
-		struct tcphdr * tcpHeader;
-		struct udphdr * udpHeader;
-		struct icmphdr * icmpHeader;
+		struct tcphdr tcpHeader;
+		struct udphdr udpHeader;
+		struct icmphdr icmpHeader;
 	};
 	uint64_t timestamp;		///< Timestamp of the packet
-	uint64_t packetsize;	///< packet size in byte;
-	char const * payload;
+	uint32_t packetsize;	///< packet size in byte;
+	uint32_t actualsize;
+	uint32_t  payloadsize;
+	char payload [65535 - (sizeof(struct ethhdr)+sizeof(struct iphdr))];
 };
 
 
 struct packet {
+	struct ethhdr ethHeader;
+	struct iphdr ipHeader;
 	uint32_t localIP;		///< Numeric ip address of source vertex (host byte order)
 	uint32_t remoteIP;		///< Numeric ip address of destination vertex (host byte order)
 
