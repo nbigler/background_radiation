@@ -140,7 +140,7 @@ void CFlowlist::read_flows()
 		exit(1);
 	}
 	in.push(infs);
-	cout << "Reading file " << filename << ":\n";
+	//cout << "Reading file " << filename << ":\n";
 
 	// Allocate flow list based on original (uncompressed) file size stored in GZIP file trailer.
 	const int maxnum_flows = 1 + ISIZE / sizeof(struct cflow);	// Allow 1 more for overflow check
@@ -172,7 +172,7 @@ void CFlowlist::read_flows()
 	// Close current input file (and stream compressor)
 	in.pop();
 
-	cout << "Successfully read " << util::pformat(flow_count, 9) << " flows from file \"" << filename << "\".\n";
+	//cout << "Successfully read " << util::pformat(flow_count, 9) << " flows from file \"" << filename << "\".\n";
 
 	string stime;
 	util::seconds2date_ISO8601(start_time/1000, stime);

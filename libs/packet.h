@@ -22,8 +22,8 @@ struct ipPayload {
 	uint64_t timestamp;		///< Timestamp of the packet
 	uint32_t packetsize;	///< packet size in byte;
 	uint32_t actualsize;
-	uint32_t  payloadsize;
-	char payload [65535 - (sizeof(struct ethhdr)+sizeof(struct iphdr))];
+	//uint32_t  payloadsize;
+	//char payload [65535 - (sizeof(struct ethhdr)+sizeof(struct iphdr))];
 };
 
 
