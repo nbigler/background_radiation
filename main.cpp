@@ -10,6 +10,7 @@
 #include <functional>
 
 #include <pcap++.h>
+#include <pcap.h>
 
 // Library functions, e.g. ntoh()
 #include <arpa/inet.h>
@@ -590,49 +591,11 @@ void process_pcap(string pcap_filename, CPersist & data)
 	}
 }
 
-/*struct find_match {
-	find_match(packet p, CPersist * data) : p(p), data(data) {}
-	void operator()(CFlowHashMap6* hashedFlowMap) {
-		// Check if current flow is already contained in hash map
-		uint8_t inflow = 2;
-		uint8_t outflow = 1;
-		FlowHashKey6 mykey_in(&(p.localIP), &(p.remoteIP), &(p.localPort),
-			&(p.remotePort), &(p.protocol), &(inflow));
-		FlowHashKey6 mykey_inverse_in(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-			&(p.localPort), &(p.protocol), &(inflow));
-		FlowHashKey6 mykey_out(&(p.localIP), &(p.remoteIP), &(p.localPort),
-			&(p.remotePort), &(p.protocol), &(outflow));
-		FlowHashKey6 mykey_inverse_out(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-			&(p.localPort), &(p.protocol), &(outflow));
-		FlowHashKey6 mykey(&(p.localIP), &(p.remoteIP), &(p.localPort),
-			&(p.remotePort), &(p.protocol), &(p.tos_flags));
-		FlowHashKey6 mykey_inverse(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-			&(p.localPort), &(p.protocol), &(p.tos_flags));
 
-		CFlowHashMap6::iterator iter_in = hashedFlowMap->find(mykey_in);
-		CFlowHashMap6::iterator iter_inverse_in = hashedFlowMap->find(mykey_inverse_in);
-		CFlowHashMap6::iterator iter_out = hashedFlowMap->find(mykey_out);
-		CFlowHashMap6::iterator iter_inverse_out = hashedFlowMap->find(mykey_out);
-		CFlowHashMap6::iterator iter = hashedFlowMap->find(mykey);
-		CFlowHashMap6::iterator iter_inverse = hashedFlowMap->find(mykey_inverse);
+void write_pcap(CPersist & data){
 
-		//if ((hashedFlowMap->end() != iter_in )|| (hashedFlowMap->end() != iter_inverse_in) || (hashedFlowMap->end() != iter_out) || (hashedFlowMap->end() != iter_inverse_out)){
-		if ((hashedFlowMap->end() != iter )|| (hashedFlowMap->end() != iter_inverse)){
-			data->hashedPacketlist[]
-			cout << "Packet Found:" <<endl;
-			char localIP[INET_ADDRSTRLEN];
-			char remoteIP[INET_ADDRSTRLEN];
-			inet_ntop(AF_INET, &(p.localIP), localIP, INET_ADDRSTRLEN);
-			inet_ntop(AF_INET, &(p.remoteIP), remoteIP, INET_ADDRSTRLEN);
-			cout << "localIP: " << localIP << "\t remoteIP: " << remoteIP << endl;
-		}
 
-	}
-private:
-	packet p;
-	CPersist * data;
-};*/
-
+}
 int main(int argc, char **argv) {
 
 	const char * Date = __DATE__;
@@ -782,109 +745,13 @@ int main(int argc, char **argv) {
 			cout << "---------- Valid sequence: " << valid_sequence << "----------" << endl;
 		}
 	}
-	/*char out [1000];
-	vector<CFlowHashMap6>::iterator iter;
-	CFlowHashMap6 map;
-	for (unsigned int i = 0; i< data.hashedFlowlist.size(); i++){
-		map = *data.hashedFlowlist[i];
-		CFlowHashMap6::iterator iter;
-		cout << "-----------------Rule " << i << ": ------------------------------" << endl;
-		for (iter = map.begin(); iter != map.end(); ++iter) {
-			util::record2String(&(iter->second), out);
-			cout << out << endl;
-		}
-	}*/
 
-	//for_each(flowHM6->begin(),flowHM6->end(),print_flow);
+	void write_pcap(data);
+
+
+
 	cout << "Local IP; Local Port; Remote IP; Remote Port; Protocol; ToS-Flags; TCP-Flags; Flow-Size; Number of Packets; Direction; Start Time; Duration" << endl;
-
-	//for_each(flowHM6->begin(),flowHM6->end(),print_cvs);
-	//for (int i = 0; i< data.c.get_rule_count(); i++)
-		//for_each(data.hashedFlowlist[i]->begin(), data.hashedFlowlist[i]->end(), print_cvs);
 }
-
-
-
-
-
-
-//void print_cvs(std::pair<HashKeyIPv4_6T, packet> hash){
-//	cflow flow = hash.second;
-//	char localIP[INET_ADDRSTRLEN];
-//	char remoteIP[INET_ADDRSTRLEN];
-//	util::ipV4AddressToString(flow.localIP,localIP,INET_ADDRSTRLEN);
-//	util::ipV4AddressToString(flow.remoteIP,remoteIP,INET_ADDRSTRLEN);
-//	for (uint i = 0; i < flow.dPkts; i++){
-//		uint8_t tcp_flags = *(((uint8_t *)&(flow.payload[i].tcpHeader->ack_seq))+5);
-////		int flags = tcp_flags;
-//		cout <<  localIP << "; " << flow.localPort << "; " << remoteIP << "; " << flow.remotePort << "; ";
-//		cout << util::ipV4ProtocolToString(flow.protocol) << "; 0x" << hex << static_cast<unsigned int>(tcp_flags) << dec << "; " << flow.payload[i].packetsize << "; " << i+1 << "; ";
-//		switch (flow.flowtype) {
-//			case outflow:
-//				cout << "outflow";
-//				break;
-//			case inflow:
-//				cout << "inflow";
-//				break;
-//			case biflow:
-//				cout << "biflow";
-//				break;
-//			default:
-//				cout << "other";
-//				break;
-//		}
-//
-//	cout.precision(10);
-//	//cout << "; " << fixed << 25569+((flow.startMs/(double) 1000)/(double) 86400);  // Pre-Formated for Excel/LibreOffice
-//	cout << "; " << fixed << (flow.payload[i].timestamp);  // Unix-Timestamp
-//	cout << "; " << (flow.payload[i].timestamp - flow.startMs) << endl;
-//	//cout << "sizeof(tcp_flags): " << sizeof(tcp_flags) << endl;
-//	}
-//}
-//void print_flow(std::pair<HashKeyIPv4_6T, flow> hash){
-//	flow flow = hash.second;
-//	char localIP[INET_ADDRSTRLEN];
-//	char remoteIP[INET_ADDRSTRLEN];
-//	inet_ntop(AF_INET, &(flow.localIP), localIP, INET_ADDRSTRLEN);
-//	inet_ntop(AF_INET, &(flow.remoteIP), remoteIP, INET_ADDRSTRLEN);
-//	cout << "Local IP: " << localIP << "\tLocal Port: " << flow.localPort << endl;
-//	cout << "Remote IP: " << remoteIP << "\tRemote Port: " << flow.remotePort << endl;
-//	cout << "Protocol: ";
-//	switch (flow.protocol) {
-//		case IPPROTO_TCP:
-//			cout << "TCP";
-//			break;
-//		case IPPROTO_UDP:
-//			cout << "UDP";
-//			break;
-//		default:
-//			cout << "Other";
-//			break;
-//	}
-//	cout << endl;
-//	if (flow.protocol==IPPROTO_TCP){cout << "TCP-Flags: 0x" << hex << (int) flow.tos_flags << endl;}
-//	cout << "Flow-Size (Byte): " << dec << flow.dOctets << endl;
-//	cout << "Number of Packets: " << flow.dPkts << endl;
-//	cout << "Direction: ";
-//	switch (flow.flowtype) {
-//		case outflow:
-//			cout << "outflow";
-//			break;
-//		case inflow:
-//			cout << "inflow";
-//			break;
-//		case biflow:
-//			cout << "biflow";
-//			break;
-//		default:
-//			cout << "unknown";
-//			break;
-//	}
-//	cout << endl;
-//	time_t rawtime = flow.startMs;
-//	cout << "Start Time: " << ctime(&rawtime) << "ms \tDuration: " << flow.durationMs << "ms" << endl;
-//	cout << "-----------------------" << endl;
-//}
 
 
 
