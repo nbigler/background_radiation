@@ -425,6 +425,9 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 		for (vector<packet>::iterator it = (*iter).second.begin(); (it != (*iter).second.end()) && counter < 5; ++it){
 			tcp_flags = get_tcp_flags(*(*it).ipPayload.tcpHeader);
 
+			cout << "Packet of flow: " << counter << endl;
+			cout << "Current Flag Sequence: " << tcp_flags << endl;
+
 			flag_sequence[counter] = tcp_flags;
 			counter++;
 		}
