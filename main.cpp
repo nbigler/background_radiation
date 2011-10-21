@@ -644,6 +644,9 @@ void write_pcap(CPersist & data){
 	ofstream fileout;
 	string rulename;
 	string filename;
+
+
+
 	for (int i=0; i < data.c.get_rule_count(); i++){
 		data.c.get_rule_name(i, rulename);
 		filename = "temppcap/rule_" + rulename + "_" + data.date + ".pcap";
@@ -684,9 +687,6 @@ void write_pcap(CPersist & data){
 
 	//packet.ipPayload.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
 
-
-
-	fileout.close();
 }
 int main(int argc, char **argv) {
 
@@ -818,7 +818,7 @@ int main(int argc, char **argv) {
 		if (pcap_files.size() > 1) { cout << pcap_files[i] << endl; }
 		ifstream file(pcap_files[i].c_str(), ios_base::in | ios_base::binary);
 		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-		pcap_filename = pcap_files[i].substr(0,pcap_files[i].find(".gz")).substr(pcap_files[i].find("/trace")+1);
+		pcap_filename = pcap_files[i].substr(0,pcap_files[i].find(".gz")).substr(pcap_files[i].find_last_of("/")+1);
 		ofstream out(pcap_filename.c_str());
 		in.push(boost::iostreams::gzip_decompressor());
 		in.push(file);
