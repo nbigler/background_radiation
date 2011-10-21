@@ -292,6 +292,8 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 				}
 			}
 		}
+		pflow = fl->get_next_flow();
+		i++;
 	}
 }
 
