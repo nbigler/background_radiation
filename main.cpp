@@ -265,7 +265,6 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	for (int j=0; j<rule_count; j++) {
 		flow_per_rule_counter[j] = 0;
 		data.hashedFlowlist.push_back(new CFlowHashMap6());
-		data.hashedPacketlist.push_back(new packetHashMap6());
 	}
 
 	// Loop over all sign sets (i.e. all flows)
@@ -825,6 +824,10 @@ int main(int argc, char **argv) {
 		boost::iostreams::copy(in, out);
 		process_pcap(pcap_filename, data);
 		remove(pcap_filename.c_str());
+		write_pcap(data);
+		for (int i = 0; i < data.c.get_rule_count(); i++){
+			delete[] data.hashedPacketlist[i];
+		}
 
 	}
 
@@ -838,7 +841,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	write_pcap(data);
+
 
 
 
