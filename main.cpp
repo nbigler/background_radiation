@@ -842,9 +842,6 @@ int main(int argc, char **argv) {
 	}*/
 
 
-
-
-
 	//cout << "Local IP; Local Port; Remote IP; Remote Port; Protocol; ToS-Flags; TCP-Flags; Flow-Size; Number of Packets; Direction; Start Time; Duration" << endl;
 }
 
