@@ -306,6 +306,10 @@ vector<int> check_icmp_category(CPersist &data) {
 	int scan_false_positive = 0;
 	int malign_false_positive = 0;
 	int backscatter_false_positive = 0;
+	//TODO : What are the exact criteria for the categories below?
+//	int unreachable_false_positive = 0;
+//	int p2p_false_positive = 0;
+//	int benign_false_positive = 0;
 
 	//Check flows classified as scan for ICMP non-requests
 	for(int rule_no = 8; rule_no < 11; rule_no++) {
@@ -351,12 +355,6 @@ vector<int> check_icmp_category(CPersist &data) {
 		}
 		false_positives.push_back(backscatter_false_positive);
 	}
-
-	int unreachable_false_positive = 0;
-
-	int p2p_false_positive = 0;
-
-	int benign_false_positive = 0;
 
 	return false_positives;
 }
