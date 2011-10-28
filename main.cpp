@@ -744,7 +744,7 @@ void write_pcap(CPersist & data){
 	}
 
 }
-void cleanup_hashedPacketlist(CPersist data)
+void clear_hashedPacketlist(CPersist data)
 {
     for(int i = 0;i < data.c.get_rule_count();i++){
         delete data.hashedPacketlist[i];
@@ -896,7 +896,7 @@ int main(int argc, char **argv) {
 		remove(pcap_filename.c_str());
 		write_pcap(data);
 
-		cleanup_hashedPacketlist(data);
+		clear_hashedPacketlist(data);
 
 	}
 
