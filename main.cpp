@@ -54,6 +54,8 @@ using namespace pcappp;
 //
 typedef HashKeyIPv4_6T FlowHashKey6;
 
+uint8_t get_icmp_type(icmphdr const &icmp_hdr);
+uint8_t get_icmp_code(icmphdr const &icmp_hdr);
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
 
 /**
@@ -297,6 +299,68 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	}
 }
 
+vector<int> check_icmp_category(CPersist &data) {
+
+	vector<int> false_positives;
+
+	int scan_false_positive = 0;
+	int malign_false_positive = 0;
+	int backscatter_false_positive = 0;
+
+	//Check flows classified as scan for ICMP non-requests
+	for(int rule_no = 8; rule_no < 11; rule_no++) {
+			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
+					if((*it2).protocol == 1) { //ICMP packet
+						if(!(get_icmp_type((*it2).ipPayload.icmpHeader) == 8 || get_icmp_type((*it2).ipPayload.icmpHeader) == 13 ||get_icmp_type((*it2).ipPayload.icmpHeader) == 15)) {
+							scan_false_positive++;
+							cout << "ICMP Packet found which doesn't belong to class scan" << endl;
+						}
+					}
+				}
+			}
+			false_positives.push_back(scan_false_positive);
+		}
+
+
+	//Check flows classified as malign for ICMP packets
+	for(int rule_no = 5; rule_no < 7; rule_no++) {
+			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
+					if((*it2).protocol == 1) { //ICMP packet
+							malign_false_positive++;
+							cout << "ICMP Packet found which doesn't belong to class malign" << endl;
+					}
+				}
+			}
+			false_positives.push_back(malign_false_positive);
+	}
+
+	//Check flows classified as backscatter for requests (ICMP Type 8, ICMP Type 13 or ICMP Type 15)
+	for(int rule_no = 7; rule_no < 10; rule_no++) {
+
+		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
+				if((*it2).protocol == 1) { //ICMP packet
+					if(get_icmp_type((*it2).ipPayload.icmpHeader) == 8 || get_icmp_type((*it2).ipPayload.icmpHeader) == 13 ||get_icmp_type((*it2).ipPayload.icmpHeader) == 15) {
+						backscatter_false_positive++;
+						cout << "ICMP Packet found which doesn't belong to class backscatter" << endl;
+					}
+				}
+			}
+		}
+		false_positives.push_back(backscatter_false_positive);
+	}
+
+	int unreachable_false_positive = 0;
+
+	int p2p_false_positive = 0;
+
+	int benign_false_positive = 0;
+
+	return false_positives;
+}
+
 void check_file_status(string & sign_filename)
 {
     struct stat fileStatus;
@@ -430,8 +494,6 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 			flag_sequence[counter] = tcp_flags;
 			counter++;
 		}
-		iter++;
-
 	}
 	//Check if flag sequence is valid
 	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x02) return true; // 5 syn flags
@@ -581,6 +643,7 @@ void process_pcap(string pcap_filename, CPersist & data)
 					//cout << "---------------Rule position: " << i << "-----------------" << endl;
 					find_match(packet, data.hashedFlowlist[i], data, i);
 				}
+
 			}
 		}
 
@@ -683,6 +746,17 @@ void write_pcap(CPersist & data){
 	}
 
 }
+void cleanup_hashedPacketlist(CPersist data)
+{
+    for(int i = 0;i < data.c.get_rule_count();i++){
+        delete data.hashedPacketlist[i];
+    }
+    data.hashedPacketlist.clear();
+    for(int i = 0;i < data.c.get_rule_count();i++){
+        data.hashedPacketlist.push_back(new packetHashMap6());
+    }
+}
+
 int main(int argc, char **argv) {
 
 	const char * Date = __DATE__;
@@ -819,19 +893,16 @@ int main(int argc, char **argv) {
 		in.push(file);
 		boost::iostreams::copy(in, out);
 		process_pcap(pcap_filename, data);
+		check_icmp_category(data);
+
 		remove(pcap_filename.c_str());
 		write_pcap(data);
-		for (int i = 0; i < data.c.get_rule_count(); i++){
-			delete data.hashedPacketlist[i];
-		}
-		data.hashedPacketlist.clear();
-		for (int i = 0; i < data.c.get_rule_count(); i++){
-			data.hashedPacketlist.push_back(new packetHashMap6());
-		}
+
+		cleanup_hashedPacketlist(data);
 
 	}
 
-
+//TODO: Inefficient? Do only for TCP and for applicable Category.
 	//for (vector<CFlowHashMap6*>::iterator it = data.hashedFlowlist.begin(); it != data.hashedFlowlist.end(); ++it){
 	/*bool valid_sequence;
 	for (int i = 0; i < data.c.get_rule_count(); i++){
@@ -841,11 +912,15 @@ int main(int argc, char **argv) {
 		}
 	}*/
 
-
-	//cout << "Local IP; Local Port; Remote IP; Remote Port; Protocol; ToS-Flags; TCP-Flags; Flow-Size; Number of Packets; Direction; Start Time; Duration" << endl;
 }
 
+uint8_t get_icmp_type(icmphdr const &icmp_hdr) {
+	return *((uint8_t *)&(icmp_hdr.code));
+}
 
+uint8_t get_icmp_code(icmphdr const &icmp_hdr) {
+	return *((uint8_t *)&(icmp_hdr.type));
+}
 
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr) {
 	return *(((uint8_t *)&(tcp_hdr.ack_seq))+5);
