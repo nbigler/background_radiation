@@ -243,8 +243,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	uint32_t total_packets = 0;
 	uint64_t total_bytes = 0;
 
-
-	for (int i = 0; i < rule_count; i++) {
+	for (int i = 0; i <= rule_count; i++) {
 		data.flows[i] = 0;
 		data.packets[i] = 0;
 		data.bytes[i] = 0;
@@ -264,7 +263,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	// Maintain a counter per rule
 	int * flow_per_rule_counter	= new int[rule_count];
 	//cout << "Rule count: " << rule_count << endl;
-	for (int j=0; j<rule_count; j++) {
+	for (int j=0; j <= rule_count; j++) {
 		flow_per_rule_counter[j] = 0;
 		data.hashedFlowlist.push_back(new CFlowHashMap6());
 		data.hashedPacketlist.push_back(new packetHashMap6());
@@ -281,6 +280,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 			util::swap_endians(*pflow);
 
 			// Check signs against all rules and increment counters for matching ones
+			bool found = false;
 			for (int j=0; j<rule_count; j++) { // j is rule index
 				if (data.c.rule_match(j, fl_ref[i])) {
 					flow_per_rule_counter[j]++;
@@ -291,7 +291,18 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					data.bytes[j]   += pflow->dOctets;
 					FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->flowtype));
 					(*data.hashedFlowlist[j])[flowkey] = *pflow;
+					found = true;
 				}
+			}
+			if (found == false) {
+				flow_per_rule_counter[rule_count]++;
+                                // Update sign set of current rule
+                                data.rc.increment(rule_count, fl_ref[i]);
+                                data.flows[rule_count]++;
+                                data.packets[rule_count] += pflow->dPkts;
+                                data.bytes[rule_count]   += pflow->dOctets;
+                                FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->flowtype));
+                                (*data.hashedFlowlist[rule_count])[flowkey] = *pflow;
 			}
 		}
 		pflow = fl->get_next_flow();
@@ -637,7 +648,7 @@ void process_pcap(string pcap_filename, CPersist & data)
 				//packet.ipPayload.packetsize = p.get_capture_length();
 				packet.ipPayload.actualsize = p.get_length();
 
-				for (int i = 0; i < data.c.get_rule_count(); i++){
+				for (int i = 0; i <= data.c.get_rule_count(); i++){
 					//cout << "---------------Rule position: " << i << "-----------------" << endl;
 					find_match(packet, data.hashedFlowlist[i], data, i);
 				}
@@ -702,8 +713,12 @@ void write_pcap(CPersist & data){
 
 
 
-	for (int i=0; i < data.c.get_rule_count(); i++){
-		data.c.get_rule_name(i, rulename);
+	for (int i=0; i <= data.c.get_rule_count(); i++){
+		if (i == data.c.get_rule_count()){
+			rulename = "Other";
+		}else {
+			data.c.get_rule_name(i, rulename);
+		}
 		filename = "temppcap/rule_" + rulename + "_" + data.date + ".pcap";
 		if (fopen(filename.c_str(),"r")==0){
 			fileout.open(filename.c_str(), ios::trunc | ios::binary);
