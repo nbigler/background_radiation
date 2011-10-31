@@ -34,7 +34,6 @@ g++ category.cpp libs/utils.cpp -o category -DUNIT_TEST2
 #include "category.h"
 
 
-
 using namespace std;
 
 
@@ -299,7 +298,7 @@ void C_Category::C_Category_rc_signs::init(int enum_count, int rc_count)
 	this->enum_count = enum_count;
 	this->rc_count = rc_count;
 
-	for (int i=0; i<rc_count; i++) {
+	for (int i=0; i<=rc_count; i++) {
 		long long * counter = new long long[enum_count];
 		for (int j=0; j<enum_count;j++) counter[j] = 0;
 		rc_signs.push_back(counter);	// Add per rule or class sign array
@@ -320,7 +319,7 @@ C_Category::C_Category_rc_signs::~C_Category_rc_signs()
   */
 void C_Category::C_Category_rc_signs::reset()
 {
-	for (size_t i=0; i<rc_signs.size(); i++) {
+	for (size_t i=0; i<=rc_signs.size(); i++) {
 		for (int j=0; j<enum_count; j++) {
 			rc_signs[i][j] = 0;
 		}

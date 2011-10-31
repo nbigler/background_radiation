@@ -34,9 +34,9 @@ public:
 	C_Category::C_Category_set c;
 	C_Category::C_Category_rc_signs rc;	///< For per-rule sign accounting
 
-	uint32_t * flows;			///< Flow count per rule (rule number is index)
+	/*uint32_t * flows;			///< Flow count per rule (rule number is index)
 	uint32_t * packets;		///< Packet count per rule (rule number is index)
-	uint64_t * bytes;			///< Byte count per rule (rule number is index)
+	uint64_t * bytes;			///< Byte count per rule (rule number is index)*/
 	string date;
 
 

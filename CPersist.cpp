@@ -15,8 +15,8 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 	this->verbose2 = verbose2;
 	this->test = test;
 	this->use_outflows = use_outflows;
-	flows = packets = NULL;
-	bytes = NULL;
+	/*flows = packets = NULL;
+	bytes = NULL;*/
 	date = date_time.substr(0,8);
 
 	// Read rules files if any
@@ -32,9 +32,9 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		if (verbose) cout << "Loaded " << rule_count << " rules.\n";
 		rc.init(c.get_enum_count(), rule_count);
 
-		flows   = new uint32_t[rule_count];
+		/*flows   = new uint32_t[rule_count];
 		packets = new uint32_t[rule_count];
-		bytes   = new uint64_t[rule_count];
+		bytes   = new uint64_t[rule_count];*/
 	}
 }
 
@@ -45,7 +45,7 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
   */
 CPersist::~CPersist()
 {
-	delete[] flows;
+	/*delete[] flows;
 	delete[] packets;
-	delete[] bytes;
+	delete[] bytes;*/
 }

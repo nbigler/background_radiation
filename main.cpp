@@ -243,11 +243,11 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	uint32_t total_packets = 0;
 	uint64_t total_bytes = 0;
 
-	for (int i = 0; i <= rule_count; i++) {
+	/*for (int i = 0; i <= rule_count; i++) {
 		data.flows[i] = 0;
 		data.packets[i] = 0;
 		data.bytes[i] = 0;
-	}
+	}*/
 
 
 	if (data.verbose) {
@@ -286,9 +286,9 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					flow_per_rule_counter[j]++;
 					// Update sign set of current rule
 					data.rc.increment(j, fl_ref[i]);
-					data.flows[j]++;
+					/*data.flows[j]++;
 					data.packets[j] += pflow->dPkts;
-					data.bytes[j]   += pflow->dOctets;
+					data.bytes[j]   += pflow->dOctets;*/
 					FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->flowtype));
 					(*data.hashedFlowlist[j])[flowkey] = *pflow;
 					found = true;
@@ -298,9 +298,9 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 				flow_per_rule_counter[rule_count]++;
                                 // Update sign set of current rule
                                 data.rc.increment(rule_count, fl_ref[i]);
-                                data.flows[rule_count]++;
+                                /*data.flows[rule_count]++;
                                 data.packets[rule_count] += pflow->dPkts;
-                                data.bytes[rule_count]   += pflow->dOctets;
+                                data.bytes[rule_count]   += pflow->dOctets;*/
                                 FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->flowtype));
                                 (*data.hashedFlowlist[rule_count])[flowkey] = *pflow;
 			}
@@ -323,15 +323,20 @@ vector<int> check_icmp_category(CPersist &data) {
 //	int benign_false_positive = 0;
 
 	//Check flows classified as scan for ICMP non-requests
-	for(int rule_no = 8; rule_no < 11; rule_no++) {
+	bool found = false;
+	for(int rule_no = 0; rule_no < 5; rule_no++) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == 1) { //ICMP packet
 						if(!(get_icmp_type((*it2).ipPayload.icmpHeader) == 8 || get_icmp_type((*it2).ipPayload.icmpHeader) == 13 ||get_icmp_type((*it2).ipPayload.icmpHeader) == 15)) {
-							scan_false_positive++;
-							cout << "ICMP Packet found which doesn't belong to class scan" << endl;
+							found = true;
 						}
 					}
+				}
+				if (found){
+					scan_false_positive++;
+					cout << "ICMP Flow found which doesn't belong to class scan" << endl;
+					found = false;
 				}
 			}
 			false_positives.push_back(scan_false_positive);
@@ -759,7 +764,7 @@ void write_pcap(CPersist & data){
 	}
 
 }
-void clear_hashedPacketlist(CPersist data)
+void clear_hashedPacketlist(CPersist & data)
 {
     for(int i = 0;i < data.c.get_rule_count();i++){
         delete data.hashedPacketlist[i];
