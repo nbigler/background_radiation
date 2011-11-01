@@ -323,24 +323,24 @@ vector<int> check_icmp_category(CPersist &data) {
 //	int benign_false_positive = 0;
 
 	//Check flows classified as scan for ICMP non-requests
-	bool found = false;
+	bool false_positive_flow_found = false;
 	for(int rule_no = 0; rule_no < 5; rule_no++) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == 1) { //ICMP packet
 						if(!(get_icmp_type((*it2).ipPayload.icmpHeader) == 8 || get_icmp_type((*it2).ipPayload.icmpHeader) == 13 ||get_icmp_type((*it2).ipPayload.icmpHeader) == 15)) {
-							found = true;
+							false_positive_flow_found = true;
 						}
 					}
 				}
-				if (found){
+				if (false_positive_flow_found){
 					scan_false_positive++;
 					cout << "ICMP Flow found which doesn't belong to class scan" << endl;
-					found = false;
+					false_positive_flow_found = false;
 				}
 			}
-			false_positives.push_back(scan_false_positive);
-		}
+	}
+	false_positives.push_back(scan_false_positive);
 
 
 	//Check flows classified as malign for ICMP packets
@@ -348,29 +348,35 @@ vector<int> check_icmp_category(CPersist &data) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == 1) { //ICMP packet
-							malign_false_positive++;
-							cout << "ICMP Packet found which doesn't belong to class malign" << endl;
+						false_positive_flow_found = true;
 					}
 				}
+				if(false_positive_flow_found) {
+					malign_false_positive++;
+					cout << "ICMP Flow found which doesn't belong to class malign" << endl;
+					false_positive_flow_found = false;
+				}
 			}
-			false_positives.push_back(malign_false_positive);
 	}
+	false_positives.push_back(malign_false_positive);
 
 	//Check flows classified as backscatter for requests (ICMP Type 8, ICMP Type 13 or ICMP Type 15)
 	for(int rule_no = 7; rule_no < 10; rule_no++) {
-
 		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 				if((*it2).protocol == 1) { //ICMP packet
 					if(get_icmp_type((*it2).ipPayload.icmpHeader) == 8 || get_icmp_type((*it2).ipPayload.icmpHeader) == 13 ||get_icmp_type((*it2).ipPayload.icmpHeader) == 15) {
-						backscatter_false_positive++;
-						cout << "ICMP Packet found which doesn't belong to class backscatter" << endl;
+						false_positive_flow_found = true;
 					}
 				}
 			}
+			if (false_positive_flow_found) {
+				backscatter_false_positive++;
+				cout << "ICMP Packet found which doesn't belong to class backscatter" << endl;
+			}
 		}
-		false_positives.push_back(backscatter_false_positive);
 	}
+	false_positives.push_back(backscatter_false_positive);
 
 	return false_positives;
 }
