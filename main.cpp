@@ -310,7 +310,47 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	}
 }
 
-vector<int> check_icmp_category(CPersist &data) {
+vector<int> get_tcp_false_negatives(CPersist &data) {
+	vector<int> false_negatives;
+
+		int scan_false_negative = 0;
+		//TODO : What are the exact criteria for the categories below?
+			//	int malign_false_negative = 0;
+			//	int backscatter_false_negative = 0;
+			//	int unreachable_false_negative = 0;
+			//	int p2p_false_negative = 0;
+			//	int benign_false_negative = 0;
+
+		bool false_negative_flow_found = false;
+		for(int rule_no = 0; rule_no <= data.c.get_rule_count(); rule_no++) {
+			if(!(rule_no == 0 || rule_no == 1 || rule_no == 2 || rule_no == 3 || rule_no == 4)) { //For all classes except Scan
+				for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+					if((*(*it).second.begin()).protocol == 6) { //TCP packet
+
+						//Stealth scans (Scans w/o preceding 3-way handshake)
+						if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x29) { //X-Mas Tree Scan (URG+PSH+FIN)
+							false_negative_flow_found = true;
+						}
+
+						if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x01) { //FIN Scan
+							false_negative_flow_found = true;
+						}
+
+						if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x00) { //Null Scan
+							false_negative_flow_found = true;
+						}
+					}
+				}
+			}
+			if (false_negative_flow_found){
+				scan_false_negative++;
+				cout << "TCP Flow found which should belong to class scan" << endl;
+				false_negative_flow_found = false;
+			}
+		}
+}
+
+vector<int> get_icmp_false_positives(CPersist &data) {
 
 	vector<int> false_positives;
 
@@ -917,7 +957,7 @@ int main(int argc, char **argv) {
 		in.push(file);
 		boost::iostreams::copy(in, out);
 		process_pcap(pcap_filename, data);
-		check_icmp_category(data);
+		get_icmp_false_positives(data);
 
 		remove(pcap_filename.c_str());
 		write_pcap(data);
