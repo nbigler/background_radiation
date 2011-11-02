@@ -44,18 +44,15 @@ struct packet {
 
 	uint8_t protocol;		///< protocl type
 
-	uint8_t flowtype;		///< flow direction: for values see enum flow_type_t
-
 	uint8_t tos_flags;		///< ToS flags
 	uint8_t magic;			///< Magic number (format version)
 
 	struct ipPayload ipPayload; ///< IP-payload of each packet in flow
 
-	void init(uint32_t localIP, uint32_t remoteIP, uint8_t protocol,  uint8_t direction) {
+	void init(uint32_t localIP, uint32_t remoteIP, uint8_t protocol) {
 		this->localIP = localIP;
 		this->remoteIP = remoteIP;
 		this->protocol = protocol;
-		this->flowtype = direction;
 	}
 
 };

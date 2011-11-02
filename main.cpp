@@ -578,19 +578,21 @@ void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int ru
 
 	typedef pair<HashKeyIPv4_6T, packet> hash_pair;
 	if (hashedFlowMap->end() != iter_in ){
-		p.flowtype = inflow;
 		(*data.hashedPacketlist[rule_pos])[mykey_in].push_back(p);
-		//cout << "--------- in ----------" << endl;
+		cout << "--------- in ----------" << endl;
+		static char local[16];
+		static char remote[16];
+		util::ipV4AddressToString(p.localIP, local, sizeof(local));
+		util::ipV4AddressToString(p.remoteIP, remote, sizeof(remote));
+		cout << "Source: " << local << ":" << p.localPort << ";\t Destination: " << remote << ":" << p.remotePort << endl;
 	}else if (hashedFlowMap->end() != iter_in_inverse) {
-		uint32_t localIP = p.localIP;
-		uint16_t localPort = p.localPort;
-		p.localIP = p.remoteIP;
-		p.remoteIP = localIP;
-		p.localPort = p.remotePort;
-		p.remotePort = localPort;
-		p.flowtype = inflow;
-		(*data.hashedPacketlist[rule_pos])[mykey_in].push_back(p);
-		//cout << "--------- in inverse ----------" << endl;
+		(*data.hashedPacketlist[rule_pos])[mykey_in_inverse].push_back(p);
+		static char local[16];
+                static char remote[16];
+                util::ipV4AddressToString(p.localIP, local, sizeof(local));
+                util::ipV4AddressToString(p.remoteIP, remote, sizeof(remote));
+		cout << "--------- in inverse ----------" << endl;
+		cout << "Source: " << local << ":" << p.localPort << ";\t Destination: " << remote << ":" << p.remotePort << endl;
 	}
 }
 void process_pcap(string pcap_filename, CPersist & data)
@@ -653,13 +655,14 @@ void process_pcap(string pcap_filename, CPersist & data)
 				struct icmphdr * icmp_hdr = NULL;
 
 				uint32_t netmask;
-				inet_pton(AF_INET, "10.0.0.2", &netmask);
+				inet_pton(AF_INET, "152.103.0.0", &netmask);
 				// Show transport layer protocol
-				if ((ip_hdr->saddr&netmask) == netmask){
+				/*if ((ip_hdr->saddr&netmask) == netmask){
 					packet.init(ip_hdr->saddr, ip_hdr->daddr, ip_hdr->protocol, outflow);
 				}else{
 					packet.init(ip_hdr->daddr, ip_hdr->saddr, ip_hdr->protocol, inflow);
-				}
+				}*/
+				packet.init(ip_hdr->saddr, ip_hdr->daddr, ip_hdr->protocol);
 				packet.tos_flags = ip_hdr->tos;
 				packet.ethHeader = *ether_hdr;
 				packet.ipHeader = *ip_hdr;
