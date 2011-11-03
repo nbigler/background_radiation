@@ -310,7 +310,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	}
 }
 
-vector<int> get_tcp_false_negatives(CPersist &data) {
+vector<int> get_tcp_false_negatives(CPersist &data, bool verbose) {
 	vector<int> false_negatives;
 
 		int scan_false_negative = 0;
@@ -325,32 +325,54 @@ vector<int> get_tcp_false_negatives(CPersist &data) {
 		for(int rule_no = 0; rule_no <= data.c.get_rule_count(); rule_no++) {
 			if(!(rule_no == 0 || rule_no == 1 || rule_no == 2 || rule_no == 3 || rule_no == 4)) { //For all classes except Scan
 				for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
-					if((*(*it).second.begin()).protocol == 6) { //TCP packet
 
+					if((*(*it).second.begin()).protocol == 6) { //TCP packet
 						//Stealth scans (Scans w/o preceding 3-way handshake)
 						if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x29) { //X-Mas Tree Scan (URG+PSH+FIN)
 							false_negative_flow_found = true;
+							if(verbose) {
+								cout << "False Negative: Flow assigned to Rule " << rule_no << " but is X-Mas Tree Scan" << endl;
+							}
 						}
 
 						if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x01) { //FIN Scan
 							false_negative_flow_found = true;
+							if(verbose) {
+								cout << "False Negative: Flow assigned to Rule " << rule_no << " but is FIN Scan" << endl;
+							}
 						}
 
 						if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x00) { //Null Scan
 							false_negative_flow_found = true;
+							if(verbose) {
+								cout << "False Negative: Flow assigned to Rule " << rule_no << " but is Null Scan" << endl;
+							}
 						}
 					}
 				}
 			}
 			if (false_negative_flow_found){
 				scan_false_negative++;
-				cout << "TCP Flow found which should belong to class scan" << endl;
+				if(verbose) {
+					cout << "TCP Flow found which should belong to class scan" << endl;
+				}
 				false_negative_flow_found = false;
 			}
 		}
 }
 
-vector<int> get_icmp_false_positives(CPersist &data) {
+void get_icmp_stats(CPersist &data) {
+	for(int rule_no = 0; rule_no <= data.c.get_rule_count(); rule_no++) {
+		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+			cout << "Rule " << rule_no << endl;
+			if((*(*it).second.begin()).protocol == 1) { //ICMP packet
+				cout << "ICMP packet processed: Type: " << get_icmp_type((*it).second.ipPayload.icmpHeader) << " Code: " << get_icmp_code((*it).second.ipPayload.icmpHeader) << endl;
+			}
+		}
+	}
+}
+
+vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 
 	vector<int> false_positives;
 
@@ -375,7 +397,9 @@ vector<int> get_icmp_false_positives(CPersist &data) {
 				}
 				if (false_positive_flow_found){
 					scan_false_positive++;
-					cout << "ICMP Flow found which doesn't belong to class scan" << endl;
+					if(verbose) {
+						cout << "ICMP Flow found which doesn't belong to class scan" << endl;
+					}
 					false_positive_flow_found = false;
 				}
 			}
@@ -393,7 +417,9 @@ vector<int> get_icmp_false_positives(CPersist &data) {
 				}
 				if(false_positive_flow_found) {
 					malign_false_positive++;
-					cout << "ICMP Flow found which doesn't belong to class malign" << endl;
+					if(verbose) {
+						cout << "ICMP Flow found which doesn't belong to class malign" << endl;
+					}
 					false_positive_flow_found = false;
 				}
 			}
@@ -412,7 +438,10 @@ vector<int> get_icmp_false_positives(CPersist &data) {
 			}
 			if (false_positive_flow_found) {
 				backscatter_false_positive++;
-				cout << "ICMP Packet found which doesn't belong to class backscatter" << endl;
+				if(verbose) {
+					cout << "ICMP Packet found which doesn't belong to class backscatter" << endl;
+				}
+				false_positive_flow_found = false;
 			}
 		}
 	}
@@ -1017,7 +1046,8 @@ int main(int argc, char **argv) {
 		in.push(file);
 		boost::iostreams::copy(in, out);
 		process_pcap(pcap_filename, data);
-		get_icmp_false_positives(data);
+		get_icmp_false_positives(data, true);
+		get_tcp_false_negatives(data, true);
 
 		remove(pcap_filename.c_str());
 		write_pcap(data);
