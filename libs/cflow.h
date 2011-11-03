@@ -202,7 +202,7 @@ inline proto_t map_protonum(uint8_t protonum)
 // uniflows
 
 
-enum flow_type_t { outflow=1, inflow=2, uniflow=3, biflow=4, unibiflow=8, allflow=7, okflow=12, 
+enum flow_type_t { outflow=1, inflow=2, uniflow=3, biflow=4, unibiflow=8, allflow=7, q_infl=10, q_outfl=11, okflow=12,
 	simpleflow=15, late=16, early=32, longstand=48 }; 
 
 //******************************************************************************************************
