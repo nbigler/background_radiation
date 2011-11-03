@@ -567,31 +567,48 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 
 void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int rule_pos){
 	uint8_t in = inflow;
+	uint8_t out = outflow;
 
-	FlowHashKey6 mykey_in_inverse(&(p.localIP), &(p.remoteIP), &(p.localPort),
+	FlowHashKey6 mykey_in(&(p.localIP), &(p.remoteIP), &(p.localPort),
 			&(p.remotePort), &(p.protocol), &(in));
-	FlowHashKey6 mykey_in(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+	FlowHashKey6 mykey_in_inverse(&(p.remoteIP), &(p.localIP), &(p.remotePort),
 			&(p.localPort), &(p.protocol), &(in));
+	FlowHashKey6 mykey_out(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+			&(p.localPort), &(p.protocol), &(out));
 
+	CFlowHashMap6::iterator iter_out = hashedFlowMap->find(mykey_out);
 	CFlowHashMap6::iterator iter_in = hashedFlowMap->find(mykey_in);
 	CFlowHashMap6::iterator iter_in_inverse = hashedFlowMap->find(mykey_in_inverse);
 
 	typedef pair<HashKeyIPv4_6T, packet> hash_pair;
-	if (hashedFlowMap->end() != iter_in ){
-		(*data.hashedPacketlist[rule_pos])[mykey_in].push_back(p);
-		cout << "--------- in ----------" << endl;
+	if (hashedFlowMap->end() != iter_in_inverse ){
+		cout << "--------- in to out transform ----------" << endl;
+		struct cflow pflow = (*hashedFlowMap)[mykey_in_inverse];
+		hashedFlowMap->erase(mykey_in_inverse);
+		pflow.flowtype = outflow;
+		FlowHashKey6 mykey_out_new(&(pflow.remoteIP),&(pflow.localIP),&(pflow.remotePort),&(pflow.localPort),&(pflow.prot),&(pflow.flowtype));
+		(*data.hashedPacketlist[rule_pos])[mykey_out_new].push_back(p);
+		(*hashedFlowMap)[mykey_out_new] = pflow;
 		static char local[16];
 		static char remote[16];
 		util::ipV4AddressToString(p.localIP, local, sizeof(local));
 		util::ipV4AddressToString(p.remoteIP, remote, sizeof(remote));
 		cout << "Source: " << local << ":" << p.localPort << ";\t Destination: " << remote << ":" << p.remotePort << endl;
-	}else if (hashedFlowMap->end() != iter_in_inverse) {
-		(*data.hashedPacketlist[rule_pos])[mykey_in_inverse].push_back(p);
+	}else if (hashedFlowMap->end() != iter_in) {
+		(*data.hashedPacketlist[rule_pos])[mykey_in].push_back(p);
 		static char local[16];
-                static char remote[16];
-                util::ipV4AddressToString(p.localIP, local, sizeof(local));
-                util::ipV4AddressToString(p.remoteIP, remote, sizeof(remote));
-		cout << "--------- in inverse ----------" << endl;
+		static char remote[16];
+		util::ipV4AddressToString(p.localIP, local, sizeof(local));
+		util::ipV4AddressToString(p.remoteIP, remote, sizeof(remote));
+		cout << "--------- in ----------" << endl;
+		cout << "Source: " << local << ":" << p.localPort << ";\t Destination: " << remote << ":" << p.remotePort << endl;
+	}else if (hashedFlowMap->end() != iter_out){
+		(*data.hashedPacketlist[rule_pos])[mykey_out].push_back(p);
+		static char local[16];
+		static char remote[16];
+		util::ipV4AddressToString(p.localIP, local, sizeof(local));
+		util::ipV4AddressToString(p.remoteIP, remote, sizeof(remote));
+		cout << "--------- out ----------" << endl;
 		cout << "Source: " << local << ":" << p.localPort << ";\t Destination: " << remote << ":" << p.remotePort << endl;
 	}
 }
