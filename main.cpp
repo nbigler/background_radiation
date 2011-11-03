@@ -359,15 +359,19 @@ vector<int> get_tcp_false_negatives(CPersist &data, bool verbose) {
 				false_negative_flow_found = false;
 			}
 		}
+		return false_negatives;
 }
 
 void get_icmp_stats(CPersist &data) {
 	for(int rule_no = 0; rule_no <= data.c.get_rule_count(); rule_no++) {
 		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			cout << "Rule " << rule_no << endl;
-			if((*(*it).second.begin()).protocol == 1) { //ICMP packet
-				cout << "ICMP packet processed: Type: " << get_icmp_type((*it).second.ipPayload.icmpHeader) << " Code: " << get_icmp_code((*it).second.ipPayload.icmpHeader) << endl;
+			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
+				if((*it2).protocol == 1) { //ICMP packet
+					cout << "ICMP packet processed: Type: " << get_icmp_type((*it2).ipPayload.icmpHeader) << " Code: " << get_icmp_code((*it2).ipPayload.icmpHeader) << endl;
+				}
 			}
+
 		}
 	}
 }
