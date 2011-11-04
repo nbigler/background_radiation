@@ -310,6 +310,95 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	}
 }
 
+bool valid_flag_sequence_check(const FlowHashKey6 &flowkey, CPersist &data, int rule_pos) {
+
+	packetHashMap6::iterator iter = data.hashedPacketlist[rule_pos]->find(flowkey);
+
+	int counter = 0;
+	uint8_t flag_sequence[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
+	uint8_t tcp_flags;
+
+	//Fill flag sequence with 5 first packets from flow
+	if (iter != data.hashedPacketlist[rule_pos]->end()){
+		for (vector<packet>::iterator it = (*iter).second.begin(); (it != (*iter).second.end()) && counter < 5; ++it){
+			tcp_flags = get_tcp_flags((*it).ipPayload.tcpHeader);
+
+			cout << "Packet of flow: " << counter << endl;
+			cout << "Current Flag Sequence: " << tcp_flags << endl;
+
+			flag_sequence[counter] = tcp_flags;
+			counter++;
+		}
+	}
+	//Check if flag sequence is valid
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x02) return true; // 5 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x00) return true; // 4 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 3 syn flags
+	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 2 syn flags
+//	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x00 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 1 syn flag equals SYN Scan! -> Probably no benign TCP behavior
+
+	return false;
+}
+
+vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
+	vector<int> false_positives;
+
+//	int scan_false_positive = 0;
+//	int malign_false_positive = 0;
+//	int backscatter_false_positive = 0;
+//TODO : What are the exact criteria for the categories below?
+//	int unreachable_false_positive = 0;
+	int p2p_false_positive = 0;
+	int benign_false_positive = 0;
+
+	false_positives.push_back(0);
+	false_positives.push_back(0);
+	false_positives.push_back(0);
+	false_positives.push_back(0);
+
+	bool false_positive_flow_found = false;
+	for(int rule_no = 11; rule_no < 12; rule_no++) {
+			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
+					if((*it2).protocol == 6) { //TCP packet
+						if(!(valid_flag_sequence_check((*it).first, data, rule_no))) {
+							false_positive_flow_found = true;
+						}
+					}
+				}
+				if (false_positive_flow_found){
+					p2p_false_positive++;
+					if(verbose) {
+						cout << "ICMP Flow found which doesn't belong to class P2P" << endl;
+					}
+					false_positive_flow_found = false;
+				}
+			}
+	}
+	false_positives.push_back(p2p_false_positive);
+
+	for(int rule_no = 12; rule_no < 15; rule_no++) {
+				for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+					for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
+						if((*it2).protocol == 6) { //TCP packet
+							if(!(valid_flag_sequence_check((*it).first, data, rule_no))) {
+								false_positive_flow_found = true;
+							}
+						}
+					}
+					if (false_positive_flow_found){
+						benign_false_positive++;
+						if(verbose) {
+							cout << "ICMP Flow found which doesn't belong to class Suspected Benign" << endl;
+						}
+						false_positive_flow_found = false;
+					}
+				}
+		}
+	false_positives.push_back(benign_false_positive);
+	return false_positives;
+}
+
 vector<int> get_tcp_false_negatives(CPersist &data, bool verbose) {
 	vector<int> false_negatives;
 
@@ -458,6 +547,10 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 	}
 	false_positives.push_back(backscatter_false_positive);
 
+	false_positives.push_back(0);
+	false_positives.push_back(0);
+	false_positives.push_back(0);
+
 	return false_positives;
 }
 
@@ -572,39 +665,6 @@ void usage(char * progname, ostream & outfs)
 	outfs << endl;
 }
 
-
-bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
-	FlowHashKey6 mykey(&(flow.localIP), &(flow.remoteIP), &(flow.localPort),
-			&(flow.remotePort), &(flow.prot), &(flow.flowtype));
-
-	packetHashMap6::iterator iter = data.hashedPacketlist[rule_pos]->find(mykey);
-
-	int counter = 0;
-	uint8_t flag_sequence[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
-	uint8_t tcp_flags;
-
-	//Fill flag sequence with 5 first packets from flow
-	if (iter != data.hashedPacketlist[rule_pos]->end()){
-		for (vector<packet>::iterator it = (*iter).second.begin(); (it != (*iter).second.end()) && counter < 5; ++it){
-			tcp_flags = get_tcp_flags((*it).ipPayload.tcpHeader);
-
-			cout << "Packet of flow: " << counter << endl;
-			cout << "Current Flag Sequence: " << tcp_flags << endl;
-
-			flag_sequence[counter] = tcp_flags;
-			counter++;
-		}
-	}
-	//Check if flag sequence is valid
-	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x02) return true; // 5 syn flags
-	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x00) return true; // 4 syn flags
-	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 3 syn flags
-	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 2 syn flags
-//	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x00 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 1 syn flag equals SYN Scan! -> Probably no benign TCP behavior
-
-	return false;
-}
-
 void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int rule_pos){
 	uint8_t in = inflow;
 	uint8_t out = outflow;
@@ -692,6 +752,7 @@ void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int ru
 		cout << "Source: " << local << ":" << p.localPort << ";\t Destination: " << remote << ":" << p.remotePort << endl;
 	}
 }
+
 void process_pcap(string pcap_filename, CPersist & data)
 {
     struct packet packet;
@@ -910,6 +971,7 @@ void write_pcap(CPersist & data){
 	}
 
 }
+
 void clear_hashedPacketlist(CPersist & data)
 {
     for(int i = 0;i < data.c.get_rule_count();i++){
