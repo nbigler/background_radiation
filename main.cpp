@@ -349,7 +349,7 @@ vector<int> get_tcp_false_negatives(CPersist &data, bool verbose) {
 							}
 						}
 
-						if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x00 && ++(*it).second.begin() == (*it).second.end()) { //SYN Scan
+						if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x02 && ++(*it).second.begin() == (*it).second.end()) { //SYN Scan
 							false_negative_flow_found = true;
 							if(verbose) {
 								cout << "False Negative: Flow assigned to Rule " << rule_no << " but is SYN Scan" << endl;
