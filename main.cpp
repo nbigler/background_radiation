@@ -368,7 +368,7 @@ void get_icmp_stats(CPersist &data) {
 			cout << "Rule " << rule_no << endl;
 			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 				if((*it2).protocol == 1) { //ICMP packet
-					cout << "ICMP packet processed: Type: " << get_icmp_type((*it2).ipPayload.icmpHeader) << " Code: " << get_icmp_code((*it2).ipPayload.icmpHeader) << endl;
+					cout << "ICMP packet processed: Type: " << static_cast<int>(get_icmp_type((*it2).ipPayload.icmpHeader)) << " Code: " << static_cast<int>(get_icmp_code((*it2).ipPayload.icmpHeader)) << endl;
 				}
 			}
 
