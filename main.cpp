@@ -348,6 +348,13 @@ vector<int> get_tcp_false_negatives(CPersist &data, bool verbose) {
 								cout << "False Negative: Flow assigned to Rule " << rule_no << " but is Null Scan" << endl;
 							}
 						}
+
+						if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x00 && ++(*it).second.begin() == (*it).second.end()) { //SYN Scan
+							false_negative_flow_found = true;
+							if(verbose) {
+								cout << "False Negative: Flow assigned to Rule " << rule_no << " but is SYN Scan" << endl;
+							}
+						}
 					}
 				}
 			}
@@ -593,7 +600,7 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02 && flag_sequence[4] == 0x00) return true; // 4 syn flags
 	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x02 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 3 syn flags
 	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 2 syn flags
-	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x00 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 1 syn flag
+//	if(flag_sequence[0] == 0x02 && flag_sequence[1] == 0x00 && flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00 && flag_sequence[4] == 0x00) return true; // 1 syn flag equals SYN Scan! -> Probably no benign TCP behavior
 
 	return false;
 }
