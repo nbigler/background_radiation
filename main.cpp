@@ -278,7 +278,6 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 			total_packets += pflow->dPkts;
 			total_bytes   += pflow->dOctets;
 			util::swap_endians(*pflow);
-
 			// Check signs against all rules and increment counters for matching ones
 			bool found = false;
 			for (int j=0; j<rule_count; j++) { // j is rule index
@@ -289,7 +288,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					/*data.flows[j]++;
 					data.packets[j] += pflow->dPkts;
 					data.bytes[j]   += pflow->dOctets;*/
-					FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->flowtype));
+					FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
 					(*data.hashedFlowlist[j])[flowkey] = *pflow;
 					found = true;
 				}
@@ -301,7 +300,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
                                 /*data.flows[rule_count]++;
                                 data.packets[rule_count] += pflow->dPkts;
                                 data.bytes[rule_count]   += pflow->dOctets;*/
-                                FlowHashKey6 flowkey(&(pflow->remoteIP),&(pflow->localIP),&(pflow->remotePort),&(pflow->localPort),&(pflow->prot),&(pflow->flowtype));
+                                FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
                                 (*data.hashedFlowlist[rule_count])[flowkey] = *pflow;
 			}
 		}
@@ -605,62 +604,47 @@ bool valid_flag_sequence_check(cflow &flow, CPersist &data, int rule_pos) {
 	return false;
 }
 
-void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int rule_pos){
-	uint8_t in = inflow;
-	uint8_t out = outflow;
-	uint8_t q_in = q_infl;
-	uint8_t q_out = q_outfl;
+void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int rule_pos, bool use_outflows){
+	if (use_outflows){
+		uint8_t out = outflow;
+        	uint8_t q_out = q_outfl;
 
-	FlowHashKey6 mykey_out(&(p.localIP), &(p.remoteIP), &(p.localPort),
-			&(p.remotePort), &(p.protocol), &(in));
-	FlowHashKey6 mykey_q_out(&(p.localIP), &(p.remoteIP), &(p.localPort),
-			&(p.remotePort), &(p.protocol), &(q_in));
-	FlowHashKey6 mykey_in(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-			&(p.localPort), &(p.protocol), &(out));
-	FlowHashKey6 mykey_q_in(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-			&(p.localPort), &(p.protocol), &(q_out));
+		FlowHashKey6 mykey(&(p.localIP), &(p.remoteIP), &(p.localPort),
+                        &(p.remotePort), &(p.protocol), &(out));
+		FlowHashKey6 mykey_q(&(p.localIP), &(p.remoteIP), &(p.localPort),
+                        &(p.remotePort), &(p.protocol), &(q_out));
 
-	CFlowHashMap6::iterator iter_in = hashedFlowMap->find(mykey_in);
-	CFlowHashMap6::iterator iter_q_in = hashedFlowMap->find(mykey_q_in);
-	CFlowHashMap6::iterator iter_out = hashedFlowMap->find(mykey_out);
-	CFlowHashMap6::iterator iter_q_out = hashedFlowMap->find(mykey_q_out);
+		CFlowHashMap6::iterator iter = hashedFlowMap->find(mykey);
+        	CFlowHashMap6::iterator iter_q = hashedFlowMap->find(mykey_q);
+		
+		if (hashedFlowMap->end() != iter) {
+         	       (*data.hashedPacketlist[rule_pos])[mykey].push_back(p);
+        	}else if (hashedFlowMap->end() != iter_q) {
+                	(*data.hashedPacketlist[rule_pos])[mykey_q].push_back(p);
+        	}
+		
+	}else{
+		uint8_t in = inflow;
+        	uint8_t q_in = q_infl;
 
-	typedef pair<HashKeyIPv4_6T, packet> hash_pair;
-	if (hashedFlowMap->end() != iter_in) {
-		(*data.hashedPacketlist[rule_pos])[mykey_in].push_back(p);
-		static char local[16];
-		static char remote[16];
-		util::ipV4AddressToString(p.localIP, local, sizeof(local));
-		util::ipV4AddressToString(p.remoteIP, remote, sizeof(remote));
-		cout << "--------- in ----------" << endl;
-		cout << "Source: " << local << ":" << p.localPort << ";\t Destination: " << remote << ":" << p.remotePort << endl;
-	}else if (hashedFlowMap->end() != iter_q_in) {
-		(*data.hashedPacketlist[rule_pos])[mykey_q_in].push_back(p);
-		static char local[16];
-		static char remote[16];
-		util::ipV4AddressToString(p.localIP, local, sizeof(local));
-		util::ipV4AddressToString(p.remoteIP, remote, sizeof(remote));
-		cout << "--------- q_in ----------" << endl;
-		cout << "Source: " << local << ":" << p.localPort << ";\t Destination: " << remote << ":" << p.remotePort << endl;
-	}else if (hashedFlowMap->end() != iter_out){
-		(*data.hashedPacketlist[rule_pos])[mykey_out].push_back(p);
-		static char local[16];
-		static char remote[16];
-		util::ipV4AddressToString(p.localIP, local, sizeof(local));
-		util::ipV4AddressToString(p.remoteIP, remote, sizeof(remote));
-		cout << "--------- out ----------" << endl;
-		cout << "Source: " << local << ":" << p.localPort << ";\t Destination: " << remote << ":" << p.remotePort << endl;
-	}else if (hashedFlowMap->end() != iter_q_out){
-		(*data.hashedPacketlist[rule_pos])[mykey_q_out].push_back(p);
-		static char local[16];
-		static char remote[16];
-		util::ipV4AddressToString(p.localIP, local, sizeof(local));
-		util::ipV4AddressToString(p.remoteIP, remote, sizeof(remote));
-		cout << "--------- q_out ----------" << endl;
-		cout << "Source: " << local << ":" << p.localPort << ";\t Destination: " << remote << ":" << p.remotePort << endl;
+		FlowHashKey6 mykey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+                        &(p.localPort), &(p.protocol), &(in));
+        	FlowHashKey6 mykey_q(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+                        &(p.localPort), &(p.protocol), &(q_in));
+		CFlowHashMap6::iterator iter = hashedFlowMap->find(mykey);
+        	CFlowHashMap6::iterator iter_q = hashedFlowMap->find(mykey_q);
+
+		if (hashedFlowMap->end() != iter) {
+         	       (*data.hashedPacketlist[rule_pos])[mykey].push_back(p);
+        	}else if (hashedFlowMap->end() != iter_q) {
+                	(*data.hashedPacketlist[rule_pos])[mykey_q].push_back(p);
+        	}
 	}
+
+
+//	typedef pair<HashKeyIPv4_6T, packet> hash_pair;
 }
-void process_pcap(string pcap_filename, CPersist & data)
+void process_pcap(string pcap_filename, CPersist & data, bool use_outflows)
 {
     struct packet packet;
     memset((void*)(&packet), 0, sizeof (packet));
@@ -769,7 +753,7 @@ void process_pcap(string pcap_filename, CPersist & data)
 
 				for (int i = 0; i <= data.c.get_rule_count(); i++){
 					//cout << "---------------Rule position: " << i << "-----------------" << endl;
-					find_match(packet, data.hashedFlowlist[i], data, i);
+					find_match(packet, data.hashedFlowlist[i], data, i, use_outflows);
 				}
 
 			}
@@ -785,7 +769,7 @@ void process_pcap(string pcap_filename, CPersist & data)
 }
 
 
-void write_pcap(CPersist & data){
+void write_pcap(CPersist & data, bool use_outflows){
 
 
 	struct pcapFileHeader {
@@ -838,7 +822,11 @@ void write_pcap(CPersist & data){
 		}else {
 			data.c.get_rule_name(i, rulename);
 		}
-		filename = "temppcap/rule_" + rulename + "_" + data.date + ".pcap";
+		if (use_outflows){
+			filename = "rule_" + rulename + "_" + data.date + "_O.pcap";		
+		}else{
+			filename = "rule_" + rulename + "_" + data.date + ".pcap";
+		}
 		if (fopen(filename.c_str(),"r")==0){
 			fileout.open(filename.c_str(), ios::trunc | ios::binary);
 			fileout.write(reinterpret_cast<const char*>(&fileHeader),
@@ -1024,12 +1012,12 @@ int main(int argc, char **argv) {
 		in.push(boost::iostreams::gzip_decompressor());
 		in.push(file);
 		boost::iostreams::copy(in, out);
-		process_pcap(pcap_filename, data);
-		get_icmp_false_positives(data, true);
-		get_tcp_false_negatives(data, true);
+		process_pcap(pcap_filename, data, use_outflows);
+		//get_icmp_false_positives(data, true);
+		//get_tcp_false_negatives(data, true);
 
 		remove(pcap_filename.c_str());
-		write_pcap(data);
+		write_pcap(data, use_outflows);
 
 		clear_hashedPacketlist(data);
 
