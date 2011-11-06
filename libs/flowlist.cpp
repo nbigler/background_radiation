@@ -247,11 +247,6 @@ bool CFlowlist::read_flow(boost::iostreams::filtering_istream & infs, struct cfl
 			cout << text << endl;
 			return false;
 		}
-		if ((cf->dir&outflow) == outflow){
-			cout << "---- Outflow --- " << endl;
-		}else if ((cf->dir&inflow) == inflow){
-			cout << "---- Inflow ---- " << endl;
-		}
 	} else {
 		cerr << "\nERROR: read " << num_read << " byte instead of " << sizeof(struct cflow);
 		cerr << ". Possibly incomplete flow read from file.\n\n";
