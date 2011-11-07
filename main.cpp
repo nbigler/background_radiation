@@ -54,8 +54,6 @@ using namespace pcappp;
 //
 typedef HashKeyIPv4_6T FlowHashKey6;
 
-uint8_t get_icmp_type(packet const &packet);
-uint8_t get_icmp_code(packet const &packet);
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
 
 /**
@@ -309,6 +307,14 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	}
 }
 
+int get_icmp_type(packet p) {
+	return p.ipPayload.icmpHeader.type;
+}
+
+int get_icmp_code(packet p) {
+	return p.ipPayload.icmpHeader.code;
+}
+
 bool valid_flag_sequence_check(const FlowHashKey6 &flowkey, CPersist &data, int rule_pos) {
 
 	packetHashMap6::iterator iter = data.hashedPacketlist[rule_pos]->find(flowkey);
@@ -322,8 +328,8 @@ bool valid_flag_sequence_check(const FlowHashKey6 &flowkey, CPersist &data, int 
 		for (vector<packet>::iterator it = (*iter).second.begin(); (it != (*iter).second.end()) && counter < 5; ++it){
 			tcp_flags = get_tcp_flags((*it).ipPayload.tcpHeader);
 
-			cout << "Packet of flow: " << counter << endl;
-			cout << "Current Flag Sequence: " << tcp_flags << endl;
+			//cout << "Packet of flow: " << counter << endl;
+			//cout << "Current Flag Sequence: " << tcp_flags << endl;
 
 			flag_sequence[counter] = tcp_flags;
 			counter++;
@@ -338,8 +344,36 @@ bool valid_flag_sequence_check(const FlowHashKey6 &flowkey, CPersist &data, int 
 
 	return false;
 }
+void write_stats_fp(CPersist & data){
+	ofstream out;
 
-vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
+	string filename = "tcp_false_positives.csv";
+	util::open_outfile(out, filename);
+	out << "Class; Count" << endl;
+	map<string, int>::iterator iter;
+	for (iter = data.tcp_false_positives.begin(); iter != data.tcp_false_positives.end(); iter++){
+		out << (*iter).first << ";" << (*iter).second << endl;
+	}
+	out.close();
+
+	filename = "tcp_false_negatives.csv";
+	util::open_outfile(out, filename);
+	out << "Class; Count" << endl;
+	for (iter = data.tcp_false_negatives.begin(); iter != data.tcp_false_negatives.end(); iter++){
+		out << (*iter).first << ";" << (*iter).second << endl;
+	}
+	out.close();
+
+	filename = "icmp_false_positives.csv";
+	util::open_outfile(out, filename);
+	out << "Class; Count" << endl;
+	for (iter = data.icmp_false_positives.begin(); iter != data.icmp_false_positives.end(); iter++){
+		out << (*iter).first << ";" << (*iter).second << endl;
+	}
+	out.close();
+}
+
+void get_tcp_false_positives(CPersist &data, bool verbose) {
 	vector<int> false_positives;
 
 //	int scan_false_positive = 0;
@@ -356,7 +390,7 @@ vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
 	false_positives.push_back(0);
 
 	bool false_positive_flow_found = false;
-	for(int rule_no = 11; rule_no < 12; rule_no++) {
+	for(int rule_no = 12; rule_no < 13; rule_no++) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == IPPROTO_TCP) {
@@ -366,7 +400,7 @@ vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
 					}
 				}
 				if (false_positive_flow_found){
-					p2p_false_positive++;
+					data.tcp_false_positives["BenignP2P"]++;
 					if(verbose) {
 						cout << "ICMP Flow found which doesn't belong to class P2P" << endl;
 					}
@@ -374,9 +408,8 @@ vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
 				}
 			}
 	}
-	false_positives.push_back(p2p_false_positive);
 
-	for(int rule_no = 12; rule_no < 15; rule_no++) {
+	for(int rule_no = 13; rule_no < 16; rule_no++) {
 				for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 					for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 						if((*it2).protocol == IPPROTO_TCP) {
@@ -386,7 +419,7 @@ vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
 						}
 					}
 					if (false_positive_flow_found){
-						benign_false_positive++;
+						data.tcp_false_positives["SuspBenign"]++;
 						if(verbose) {
 							cout << "ICMP Flow found which doesn't belong to class Suspected Benign" << endl;
 						}
@@ -394,11 +427,9 @@ vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
 					}
 				}
 		}
-	false_positives.push_back(benign_false_positive);
-	return false_positives;
 }
 
-vector<int> get_tcp_false_negatives(CPersist &data, bool verbose) {
+void get_tcp_false_negatives(CPersist &data, bool verbose) {
 	vector<int> false_negatives;
 
 		int scan_false_negative = 0;
@@ -447,17 +478,16 @@ vector<int> get_tcp_false_negatives(CPersist &data, bool verbose) {
 				}
 			}
 			if (false_negative_flow_found){
-				scan_false_negative++;
+				data.tcp_false_negatives["MalScan"]++;
 				if(verbose) {
 					cout << "TCP Flow found which should belong to class scan" << endl;
 				}
 				false_negative_flow_found = false;
 			}
 		}
-		return false_negatives;
 }
 
-vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
+void get_icmp_false_positives(CPersist &data, bool verbose) {
 
 	vector<int> false_positives;
 
@@ -481,7 +511,7 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 					}
 				}
 				if (false_positive_flow_found){
-					scan_false_positive++;
+					data.icmp_false_positives["MalScan"]++;
 					if(verbose) {
 						cout << "ICMP Flow found which doesn't belong to class scan" << endl;
 					}
@@ -489,11 +519,10 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 				}
 			}
 	}
-	false_positives.push_back(scan_false_positive);
 
 
 	//Check flows classified as malign for ICMP packets
-	for(int rule_no = 5; rule_no < 7; rule_no++) {
+	for(int rule_no = 5; rule_no < 8; rule_no++) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == IPPROTO_ICMP) {
@@ -501,7 +530,7 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 					}
 				}
 				if(false_positive_flow_found) {
-					malign_false_positive++;
+					data.icmp_false_positives["OtherMal"]++;
 					if(verbose) {
 						cout << "ICMP Flow found which doesn't belong to class malign" << endl;
 					}
@@ -512,7 +541,7 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 	false_positives.push_back(malign_false_positive);
 
 	//Check flows classified as backscatter for requests (ICMP Type 8, ICMP Type 13 or ICMP Type 15, ...)
-	for(int rule_no = 7; rule_no < 10; rule_no++) {
+	for(int rule_no = 8; rule_no < 11; rule_no++) {
 		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 				if((*it2).protocol == IPPROTO_ICMP) {
@@ -522,7 +551,7 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 				}
 			}
 			if (false_positive_flow_found) {
-				backscatter_false_positive++;
+				data.icmp_false_positives["Backscat"]++;
 				if(verbose) {
 					cout << "ICMP Packet found which doesn't belong to class backscatter" << endl;
 				}
@@ -530,15 +559,66 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 			}
 		}
 	}
-	false_positives.push_back(backscatter_false_positive);
-
-	false_positives.push_back(0);
-	false_positives.push_back(0);
-	false_positives.push_back(0);
-
-	return false_positives;
 }
 
+void get_stats(CPersist &data) {
+	for (int i=0; i <= data.c.get_rule_count(); i++){
+
+        for(packetHashMap6::iterator it = data.hashedPacketlist[i]->begin(); it != data.hashedPacketlist[i]->end(); ++it) {
+			if (((*it).second.begin()->protocol == IPPROTO_TCP) || ((*it).second.begin()->protocol == IPPROTO_UDP)){
+					++data.portlist_local[(*it).second[0].localPort];
+					++data.portlist_remote[(*it).second[0].remotePort];
+			}
+			if ((*it).second.begin()->protocol == IPPROTO_ICMP){
+					++data.itc[get_icmp_type((*it).second[0])][get_icmp_code((*it).second[0])];
+			}
+        }
+
+	}
+}
+
+void get_flow_count(CPersist &data){
+	ofstream out;
+	string statfile_flowcount = "flowcount.csv";
+	util::open_outfile(out, statfile_flowcount);
+	out << "Rule; Count" << endl;
+	long totalflows = 0;
+	for (int i=0; i <= data.c.get_rule_count(); i++){
+		long flowcount = 0;
+		for (CFlowHashMap6::iterator it = data.hashedFlowlist[i]->begin(); it != data.hashedFlowlist[i]->end(); i++){
+			++flowcount;
+		}
+		string rulename;
+		data.c.get_rule_name(i, rulename);
+		out << rulename << ";" << flowcount << endl;
+		totalflows += flowcount;
+	}
+
+	out.close();
+	cout << "Total Flows: " << totalflows << endl;
+}
+
+void print_stats(CPersist & data, string filename){
+	string statfile_icmp = "icmp_" + filename.substr(0,filename.find(".pcap")) + ".csv";
+	string statfile_ports = "ports_" + filename.substr(0,filename.find(".pcap")) + ".csv";
+	ofstream out;
+	util::open_outfile(out, statfile_icmp);
+	out << "Type; Code; Count" << endl;
+	for (int i = 0; i < data.TYPE_COUNT; i++){
+			for (int j = 0; j < data.CODE_COUNT; j++){
+					if (data.itc[i][j] > 0){
+							out << i << ";" << j << ";" << data.itc[i][j] << endl;
+					}
+			}
+	}
+	out.close();
+	util::open_outfile(out, statfile_ports);
+	out << "Port; Port; Local Count; Remote Count" << endl;
+	for (int i=0; i < data.PORT_COUNT; i++){
+			out << i << ";" << data.portlist_local[i] << ";" << data.portlist_remote[i] << endl;
+	}
+
+}
 void check_file_status(string & sign_filename)
 {
     struct stat fileStatus;
@@ -943,11 +1023,12 @@ int main(int argc, char **argv) {
 	bool verbose = false;
 	bool verbose2 = false;
 	bool use_outflows = false;
+	bool analysis = false;
 
 	string date("");
 
 	int i;
-	while ((i = getopt(argc, argv, "f:r:c:p:tOhd:vV")) != -1) {
+	while ((i = getopt(argc, argv, "f:r:c:p:taOhd:vV")) != -1) {
 		switch (i) {
 			case 'f':
 				list_filename = optarg;
@@ -960,6 +1041,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'p':
 				pcap_filelist = optarg;
+				break;
+			case 'a':
+				analysis = true;
 				break;
 			case 't':
 				test = true;
@@ -1060,23 +1144,30 @@ int main(int argc, char **argv) {
 		in.push(file);
 		boost::iostreams::copy(in, out);
 		process_pcap(pcap_filename, data, use_outflows);
-		//get_icmp_false_positives(data, true);
-		//get_tcp_false_negatives(data, true);
+
+		if (analysis){
+			memset(data.itc,0,sizeof(long) * data.TYPE_COUNT * data.CODE_COUNT);
+			memset(data.portlist_local,0,sizeof(long) * data.PORT_COUNT);
+			memset(data.portlist_remote,0,sizeof(long) * data.PORT_COUNT);
+			get_stats(data);
+			get_icmp_false_positives(data, verbose);
+			get_tcp_false_negatives(data, verbose);
+			get_tcp_false_positives(data, verbose);
+			print_stats(data, pcap_filename);
+		}
 
 		remove(pcap_filename.c_str());
-		write_pcap(data, use_outflows);
+		if (!analysis){
+			write_pcap(data, use_outflows);
+		}
 
 		clear_hashedPacketlist(data);
 
 	}
-}
-
-uint8_t get_icmp_type(packet const &packet) {
-	return packet.ipPayload.icmpHeader.type;
-}
-
-uint8_t get_icmp_code(packet const &packet) {
-	return packet.ipPayload.icmpHeader.code;
+	if (analysis){
+		write_stats_fp(data);
+		get_flow_count(data);
+	}
 }
 
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr) {

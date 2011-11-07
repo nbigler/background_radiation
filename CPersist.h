@@ -11,6 +11,7 @@
 #include <string>
 #include <stdint.h>
 #include <iosfwd>
+#include <map>
 
 #include "category.h"
 #include "libs/HashMap.h"
@@ -39,6 +40,20 @@ public:
 	uint64_t * bytes;			///< Byte count per rule (rule number is index)*/
 	string date;
 
+	static const int TYPE_COUNT = 255;
+	static const int CODE_COUNT = 255;
+	static const int PORT_COUNT = 65536;
+
+	long itc[TYPE_COUNT][CODE_COUNT];
+
+	long portlist_local[PORT_COUNT];
+	long portlist_remote[PORT_COUNT];
+
+	map<string, int> icmp_false_positives;
+
+
+	map<string, int> tcp_false_positives;
+	map<string, int> tcp_false_negatives;
 
 	vector<CFlowHashMap6*> hashedFlowlist;
 	vector<packetHashMap6*> hashedPacketlist;
