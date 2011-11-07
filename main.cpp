@@ -356,7 +356,7 @@ vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
 	false_positives.push_back(0);
 
 	bool false_positive_flow_found = false;
-	for(int rule_no = 11; rule_no < 12; rule_no++) {
+	for(int rule_no = 13; rule_no < 14; rule_no++) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == IPPROTO_TCP) {
@@ -376,7 +376,7 @@ vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
 	}
 	false_positives.push_back(p2p_false_positive);
 
-	for(int rule_no = 12; rule_no < 15; rule_no++) {
+	for(int rule_no = 14; rule_no < 17; rule_no++) {
 				for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 					for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 						if((*it2).protocol == IPPROTO_TCP) {
@@ -493,7 +493,7 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 
 
 	//Check flows classified as malign for ICMP packets
-	for(int rule_no = 5; rule_no < 7; rule_no++) {
+	for(int rule_no = 5; rule_no < 8; rule_no++) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == IPPROTO_ICMP) {
@@ -512,7 +512,7 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 	false_positives.push_back(malign_false_positive);
 
 	//Check flows classified as backscatter for requests (ICMP Type 8, ICMP Type 13 or ICMP Type 15, ...)
-	for(int rule_no = 7; rule_no < 10; rule_no++) {
+	for(int rule_no = 9; rule_no < 12; rule_no++) {
 		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 				if((*it2).protocol == IPPROTO_ICMP) {
