@@ -457,20 +457,6 @@ vector<int> get_tcp_false_negatives(CPersist &data, bool verbose) {
 		return false_negatives;
 }
 
-void get_icmp_stats(CPersist &data) {
-	for(int rule_no = 0; rule_no <= data.c.get_rule_count(); rule_no++) {
-		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
-			cout << "Rule " << rule_no << endl;
-			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
-				if((*it2).protocol == IPPROTO_ICMP) {
-					cout << "ICMP packet processed: Type: " << static_cast<int>(get_icmp_type(*it2)) << " Code: " << static_cast<int>(get_icmp_code(*it2)) << endl;
-				}
-			}
-
-		}
-	}
-}
-
 vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 
 	vector<int> false_positives;
@@ -489,7 +475,7 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == IPPROTO_ICMP) {
-						if(!(get_icmp_type(*it2) == 8 || get_icmp_type(*it2) == 13 ||get_icmp_type(*it2) == 15)) {
+						if(!(get_icmp_type(*it2) == 8 || get_icmp_type(*it2) == 13 ||get_icmp_type(*it2) == 15 || get_icmp_type(*it2) == 17 || get_icmp_type(*it2) == 35|| get_icmp_type(*it2) == 37)) {
 							false_positive_flow_found = true;
 						}
 					}
@@ -525,12 +511,12 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 	}
 	false_positives.push_back(malign_false_positive);
 
-	//Check flows classified as backscatter for requests (ICMP Type 8, ICMP Type 13 or ICMP Type 15)
+	//Check flows classified as backscatter for requests (ICMP Type 8, ICMP Type 13 or ICMP Type 15, ...)
 	for(int rule_no = 7; rule_no < 10; rule_no++) {
 		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 				if((*it2).protocol == IPPROTO_ICMP) {
-					if(get_icmp_type(*it2) == 8 || get_icmp_type(*it2) == 13 ||get_icmp_type(*it2) == 15) {
+					if(get_icmp_type(*it2) == 8 || get_icmp_type(*it2) == 13 || get_icmp_type(*it2) == 15 || get_icmp_type(*it2) == 17|| get_icmp_type(*it2) == 35|| get_icmp_type(*it2) == 37) {
 						false_positive_flow_found = true;
 					}
 				}
@@ -1083,17 +1069,6 @@ int main(int argc, char **argv) {
 		clear_hashedPacketlist(data);
 
 	}
-
-//TODO: Inefficient? Do only for TCP and for applicable Category.
-	//for (vector<CFlowHashMap6*>::iterator it = data.hashedFlowlist.begin(); it != data.hashedFlowlist.end(); ++it){
-	/*bool valid_sequence;
-	for (int i = 0; i < data.c.get_rule_count(); i++){
-		for (CFlowHashMap6::iterator iter = data.hashedFlowlist[i]->begin(); iter != data.hashedFlowlist[i]->end(); ++iter){
-			valid_sequence = valid_flag_sequence_check(iter->second, data, i);
-			cout << "---------- Valid sequence: " << valid_sequence << "----------" << endl;
-		}
-	}*/
-
 }
 
 uint8_t get_icmp_type(packet const &packet) {
