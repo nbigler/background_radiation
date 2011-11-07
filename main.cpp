@@ -54,8 +54,8 @@ using namespace pcappp;
 //
 typedef HashKeyIPv4_6T FlowHashKey6;
 
-uint8_t get_icmp_type(icmphdr const &icmp_hdr);
-uint8_t get_icmp_code(icmphdr const &icmp_hdr);
+uint8_t get_icmp_type(packet const &packet);
+uint8_t get_icmp_code(packet const &packet);
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
 
 /**
@@ -360,7 +360,7 @@ vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
 	for(int rule_no = 11; rule_no < 12; rule_no++) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
-					if((*it2).protocol == 6) { //TCP packet
+					if((*it2).protocol == IPPROTO_TCP) {
 						if(!(valid_flag_sequence_check((*it).first, data, rule_no))) {
 							false_positive_flow_found = true;
 						}
@@ -380,7 +380,7 @@ vector<int> get_tcp_false_positives(CPersist &data, bool verbose) {
 	for(int rule_no = 12; rule_no < 15; rule_no++) {
 				for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 					for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
-						if((*it2).protocol == 6) { //TCP packet
+						if((*it2).protocol == IPPROTO_TCP) {
 							if(!(valid_flag_sequence_check((*it).first, data, rule_no))) {
 								false_positive_flow_found = true;
 							}
@@ -415,7 +415,7 @@ vector<int> get_tcp_false_negatives(CPersist &data, bool verbose) {
 			if(!(rule_no == 0 || rule_no == 1 || rule_no == 2 || rule_no == 3 || rule_no == 4)) { //For all classes except Scan
 				for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 
-					if((*(*it).second.begin()).protocol == 6) { //TCP packet
+					if((*(*it).second.begin()).protocol == IPPROTO_TCP) {
 						//Stealth scans (Scans w/o preceding 3-way handshake)
 						if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x29) { //X-Mas Tree Scan (URG+PSH+FIN)
 							false_negative_flow_found = true;
@@ -463,8 +463,8 @@ void get_icmp_stats(CPersist &data) {
 		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			cout << "Rule " << rule_no << endl;
 			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
-				if((*it2).protocol == 1) { //ICMP packet
-					cout << "ICMP packet processed: Type: " << static_cast<int>(get_icmp_type((*it2).ipPayload.icmpHeader)) << " Code: " << static_cast<int>(get_icmp_code((*it2).ipPayload.icmpHeader)) << endl;
+				if((*it2).protocol == IPPROTO_ICMP) {
+					cout << "ICMP packet processed: Type: " << static_cast<int>(get_icmp_type(*it2)) << " Code: " << static_cast<int>(get_icmp_code(*it2)) << endl;
 				}
 			}
 
@@ -489,8 +489,8 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 	for(int rule_no = 0; rule_no < 5; rule_no++) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
-					if((*it2).protocol == 1) { //ICMP packet
-						if(!(get_icmp_type((*it2).ipPayload.icmpHeader) == 8 || get_icmp_type((*it2).ipPayload.icmpHeader) == 13 ||get_icmp_type((*it2).ipPayload.icmpHeader) == 15)) {
+					if((*it2).protocol == IPPROTO_ICMP) {
+						if(!(get_icmp_type(*it2) == 8 || get_icmp_type(*it2) == 13 ||get_icmp_type(*it2) == 15)) {
 							false_positive_flow_found = true;
 						}
 					}
@@ -511,7 +511,7 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 	for(int rule_no = 5; rule_no < 7; rule_no++) {
 			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
-					if((*it2).protocol == 1) { //ICMP packet
+					if((*it2).protocol == IPPROTO_ICMP) {
 						false_positive_flow_found = true;
 					}
 				}
@@ -530,8 +530,8 @@ vector<int> get_icmp_false_positives(CPersist &data, bool verbose) {
 	for(int rule_no = 7; rule_no < 10; rule_no++) {
 		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
-				if((*it2).protocol == 1) { //ICMP packet
-					if(get_icmp_type((*it2).ipPayload.icmpHeader) == 8 || get_icmp_type((*it2).ipPayload.icmpHeader) == 13 ||get_icmp_type((*it2).ipPayload.icmpHeader) == 15) {
+				if((*it2).protocol == IPPROTO_ICMP) {
+					if(get_icmp_type(*it2) == 8 || get_icmp_type(*it2) == 13 ||get_icmp_type(*it2) == 15) {
 						false_positive_flow_found = true;
 					}
 				}
@@ -1109,12 +1109,12 @@ int main(int argc, char **argv) {
 
 }
 
-uint8_t get_icmp_type(icmphdr const &icmp_hdr) {
-	return *((uint8_t *)&(icmp_hdr.code));
+uint8_t get_icmp_type(packet const &packet) {
+	return packet.ipPayload.icmpHeader.type;
 }
 
-uint8_t get_icmp_code(icmphdr const &icmp_hdr) {
-	return *((uint8_t *)&(icmp_hdr.type));
+uint8_t get_icmp_code(packet const &packet) {
+	return packet.ipPayload.icmpHeader.code;
 }
 
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr) {
