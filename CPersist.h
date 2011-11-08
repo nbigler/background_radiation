@@ -55,6 +55,8 @@ public:
 	map<string, int> tcp_false_positives;
 	map<string, int> tcp_false_negatives;
 
+	map<int, int> scan5_aff_flow_count;
+
 	vector<CFlowHashMap6*> hashedFlowlist;
 	vector<packetHashMap6*> hashedPacketlist;
 
