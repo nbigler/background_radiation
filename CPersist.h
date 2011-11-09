@@ -22,8 +22,8 @@
 using namespace std;
 
 typedef hash_map<HashKeyIPv4, uint32_t , HashFunction<HashKeyIPv4>,HashFunction<HashKeyIPv4> > HashMap;
-typedef hash_map<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
-typedef hash_map<HashKeyIPv4_6T, vector<struct packet>, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > packetHashMap6;
+typedef hash_multimap<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
+typedef hash_map<HashKeyIPv4_7T, vector<struct packet>, HashFunction<HashKeyIPv4_7T>, HashFunction<HashKeyIPv4_7T> > packetHashMap7;
 
 class CPersist {
 public:
@@ -61,7 +61,7 @@ public:
 	map<string, int> sbenign_aff_flow_count;
 
 	vector<CFlowHashMap6*> hashedFlowlist;
-	vector<packetHashMap6*> hashedPacketlist;
+	vector<packetHashMap7*> hashedPacketlist;
 
 
 	CPersist(string & date_time, bool verbose, bool verbose2, bool test,

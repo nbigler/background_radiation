@@ -532,7 +532,7 @@ int count_occurrence_of_char(const char c, const string s) {
 
 using namespace boost::posix_time;
 
-uint64_t snort_date_time_to_epoch(string snort_date_time) {
+/*uint64_t snort_date_time_to_epoch(string snort_date_time) {
 	//Format of the Snort Date-Time String: 10/18-17:16:04.231133 (10-18-2011; 17h16m04.231133s)
 	if(count_occurrence_of_char('/', snort_date_time) < 1) return 0.0;
 	if(count_occurrence_of_char('/', snort_date_time) >= 1 && count_occurrence_of_char('/', snort_date_time) <=2) {
@@ -549,7 +549,7 @@ uint64_t snort_date_time_to_epoch(string snort_date_time) {
 	time_t epoch = dur.total_microseconds();
 
 	return static_cast<uint64_t>(epoch);
-}
+}*/
 
 } // Namespace util
 
