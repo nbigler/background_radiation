@@ -1032,6 +1032,15 @@ void write_pcap(CPersist & data, bool use_outflows){
 	    	snaplen = max_packlen;
 	    	network = dl_type;
 	    }
+	    pcapFileHeader(){
+	    	magic_number = 0xa1b2c3d4;
+			version_major = 2;
+			version_minor = 4;
+			thiszone = 0;
+			sigfigs = 0;
+			snaplen = 65535;
+			network = 1;
+	    }
 	};
 
 	struct pcapPacketHeader {
@@ -1048,7 +1057,8 @@ void write_pcap(CPersist & data, bool use_outflows){
 	    }
 	};
 
-	pcapFileHeader fileHeader(0xa1b2c3d4, 2, 4, 0, 0, 65535, 1);
+	//pcapFileHeader fileHeader(0xa1b2c3d4, 2, 4, 0, 0, 65535, 1);
+	pcapFileHeader fileHeader;
 
 	pcapPacketHeader packetHeader;
 	ofstream fileout;
@@ -1083,7 +1093,7 @@ void write_pcap(CPersist & data, bool use_outflows){
 				fileout.write(reinterpret_cast<const char*>(&packetHeader), sizeof fileHeader);
 				//fileout.write(reinterpret_cast<const char*>(&it->ethHeader), sizeof(struct ethhdr));
 				//fileout.write(reinterpret_cast<const char*>(&it->ipHeader), sizeof(struct iphdr));
-
+				cout << "Test" << endl;
 				switch (it->protocol) {
 					case IPPROTO_TCP:
 						fileout.write(reinterpret_cast<const char*>(&it->ipPayload.tcpHeader), sizeof(struct tcphdr));
