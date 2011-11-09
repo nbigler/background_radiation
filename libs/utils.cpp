@@ -17,6 +17,8 @@
 
 #include <sstream>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "utils.h"
 #include "cflow.h"	// For magic codes (struct cflow)
 
@@ -518,6 +520,35 @@ int getSamples(string filename, vector<string> & files)
 	}
 
 	return 0;
+}
+
+int count_occurrence_of_char(const char c, const string s) {
+	int count = 0;
+	for(int i=0; i < s.size(); i++) {
+		if(s.at(i) == c) ++count;
+	}
+	return count;
+}
+
+using namespace boost::posix_time;
+
+uint64_t snort_date_time_to_epoch(string snort_date_time) {
+	//Format of the Snort Date-Time String: 10/18-17:16:04.231133 (10-18-2011; 17h16m04.231133s)
+	if(count_occurrence_of_char('/', snort_date_time) < 1) return 0.0;
+	if(count_occurrence_of_char('/', snort_date_time) >= 1 && count_occurrence_of_char('/', snort_date_time) <=2) {
+		for(string::iterator it = snort_date_time.begin(); it != snort_date_time.end(); ++it) {
+			if(snort_date_time.at(it) == '/') snort_date_time.replace(snort_date_time.at(it), 1, '-');
+		}
+		if(count_occurrence_of_char('/', snort_date_time) == 1) {
+			snort_date_time.insert(snort_date_time.begin(), "2011-"); //Assume Year is 2011 if not present
+		}
+	}
+	ptime t = time_from_string(snort_date_time);
+	ptime start = time_from_string("1979-01-01 00:00:00.0");
+	time_duration dur = t - start;
+	time_t epoch = dur.total_microseconds();
+
+	return static_cast<uint64_t>(epoch);
 }
 
 } // Namespace util
