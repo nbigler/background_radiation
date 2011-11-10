@@ -379,7 +379,7 @@ void write_aff_stats(CPersist & data){
 	string filename = "scan5_aff_stats.csv";
 	util::open_outfile(out, filename);
 	out << "Aff; Count" << endl;
-	map<int, int>::iterator iter;
+	map<string, int>::iterator iter;
 	for (iter = data.scan5_aff_flow_count.begin(); iter != data.scan5_aff_flow_count.end(); iter++){
 		out << (*iter).first << ";" << (*iter).second << endl;
 	}
@@ -596,37 +596,46 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 		if((*(*it).second.begin()).protocol == IPPROTO_TCP) {
 			//Stealth scans (Scans w/o preceding 3-way handshake)
 			if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x29) { //X-Mas Tree Scan (URG+PSH+FIN)
-				data.scan5_aff_flow_count[1]++;
+				data.scan5_aff_flow_count["X-Mas Tree Scan"]++;
 				if(verbose) {
 					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is X-Mas Tree Scan" << endl;
 				}
 			}else if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x01) { //FIN Scan
-				data.scan5_aff_flow_count[1]++;
+				data.scan5_aff_flow_count["Fin Scan"]++;
 				if(verbose) {
 					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is FIN Scan" << endl;
 				}
 			}else if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x00) { //Null Scan
-				data.scan5_aff_flow_count[1]++;
+				data.scan5_aff_flow_count["Null Scan"]++;
 				if(verbose) {
 					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is Null Scan" << endl;
 				}
 			}else if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x02 && ++(*it).second.begin() == (*it).second.end()) { //SYN Scan
-				data.scan5_aff_flow_count[1]++;
+				data.scan5_aff_flow_count["SYN Scan"]++;
 				if(verbose) {
 					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is SYN Scan" << endl;
 				}
 			}else{
-				data.scan5_aff_flow_count[0]++;
+				data.scan5_aff_flow_count["Unknown"]++;
 			}
 		}else if((*(*it).second.begin()).protocol == IPPROTO_UDP) {
 			if ((*(*it).second.begin()).ipPayload.actualsize == (*(*it).second.begin()).ipPayload.packetsize){
 				// UDP Packet has no payload
-				data.scan5_aff_flow_count[3]++;
+				data.scan5_aff_flow_count["Empty UDP Packet"]++;
 			}else {
-				data.scan5_aff_flow_count[2]++;
+				data.scan5_aff_flow_count["Unknown"]++;
 			}
 		}
 	}
+	//Backscatter
+	rule_no = 8;
+//	for(rule_no; rule_no < 11; rule_no++) {
+//		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+//			if((*(*it).second.begin()).protocol == IPPROTO_ICMP) {
+//				if(!(get_icmp_type(*it) == 8 || get_icmp_type(*it) == 13 ||get_icmp_type(*it) == 15 || get_icmp_type(*it) == 17 || get_icmp_type(*it) == 35|| get_icmp_type(*it) == 37))
+//			}
+//		}
+//	}
 }
 
 
@@ -1091,6 +1100,7 @@ int main(int argc, char **argv) {
 	string rules_filename;
 	string classes_filename;
 	string pcap_filelist;
+	string snort_filelist;
 
 	bool test = false;
 	bool verbose = false;
@@ -1117,6 +1127,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'a':
 				analysis = true;
+				break;
+			case 's':
+				snort_filelist = optarg;
 				break;
 			case 't':
 				test = true;
@@ -1244,6 +1257,65 @@ int main(int argc, char **argv) {
 		//write_stats_fp(data);
 		write_aff_stats(data);
 		//get_flow_count(data);
+	}
+
+	//TODO: Snort File Handling
+	vector<string> snortfiles;
+
+	if (list_filename.size() > 0) {
+		if (util::getSamples(snort_filelist, snortfiles)!=0) {
+			cerr << "\ERROR: could not read files in " + list_filename << endl;
+			exit(1);
+		}
+	}  else {
+			cerr << "\nERROR: missing input file name.\n";
+			usage(argv[0], cerr);
+	}
+
+	string snort_filename;
+	for (size_t i = 0; i< snortfiles.size(); i++) {
+		if (snortfiles.size() > 1) { cout << snortfiles[i] << endl; }
+		ifstream file(snortfiles[i].c_str(), ios_base::in | ios_base::binary);
+		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+		snort_filename = snortfiles[i].substr(0,snortfiles[i].find(".gz")).substr(snortfiles[i].find_last_of("/")+1);
+		ofstream out(snort_filename.c_str());
+		in.push(boost::iostreams::gzip_decompressor());
+		in.push(file);
+		cout << "Processing snort file: " << snort_filename << endl;
+		//Processing Snort File
+		string tmp;
+		file.exceptions(ifstream::eofbit | ifstream::failbit | ifstream::badbit);
+		try {
+			file.open(snort_filename.c_str(), ios::in | ios_base::binary);
+		}
+		catch (ifstream::failure & e) {
+			cout << "Exception opening file " << snort_filename << endl;
+			if (file.fail()) cout << "failbit set\n";
+			if (file.eof())  cout << "eofbit set\n";
+			if (file.bad())  cout << "badbit set\n";
+			if (file.good()) cout << "goodbit set\n";
+			throw;
+		}
+		catch (...) {
+			cout << "\n\nERROR: unknown error while opening input file " << snort_filename << "\n\n";
+			throw;
+		}
+		file.exceptions(ios::goodbit);
+
+		// Fetch names from list
+		do {
+			char buf[256];
+			file.getline(buf, 256);
+			if (file.good() && strlen(buf)>0) {
+				// Put file name into appropriate list
+				string tmp = static_cast<string>(buf);
+				if(tmp.find("ICMP")==string::npos) { //Don't save snort messages containing ICMP
+					data.snortalerts.push_back(tmp);
+				}
+			}
+		} while (file.good());
+
+		remove(snort_filename.c_str());
 	}
 }
 

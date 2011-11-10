@@ -63,6 +63,8 @@ public:
 	vector<CFlowHashMap6*> hashedFlowlist;
 	vector<packetHashMap6*> hashedPacketlist;
 
+	vector<string> snortalerts;
+
 
 	CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		string & rules_filename, string & classes_filename, bool use_outflows);
