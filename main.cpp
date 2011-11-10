@@ -43,6 +43,10 @@
 
 
 bool debug = false;
+unsigned long usflows = 0;
+unsigned long sflows = 0;
+unsigned long totalflows = 0;
+unsigned long doubleflows = 0;
 
 using namespace std;
 using namespace pcappp;
@@ -53,6 +57,7 @@ using namespace pcappp;
 // data = references to flowlist records
 //
 typedef HashKeyIPv4_6T FlowHashKey6;
+typedef HashKeyIPv4_7T PacketHashKey7;
 
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
 
@@ -264,14 +269,16 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	for (int j=0; j <= rule_count; j++) {
 		flow_per_rule_counter[j] = 0;
 		data.hashedFlowlist.push_back(new CFlowHashMap6());
-		data.hashedPacketlist.push_back(new packetHashMap6());
+		data.hashedPacketlist.push_back(new packetHashMap7());
 	}
 
 	// Loop over all sign sets (i.e. all flows)
 	int i = 0;
 	struct cflow * pflow = fl->get_first_flow();
 	while (pflow != NULL) {
+		totalflows++;
 		if (fl_ref[i] != 0) { // Ignore empty sign sets
+			sflows++;
 			total_flows++;
 			total_packets += pflow->dPkts;
 			total_bytes   += pflow->dOctets;
@@ -287,20 +294,31 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					data.packets[j] += pflow->dPkts;
 					data.bytes[j]   += pflow->dOctets;*/
 					FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
-					(*data.hashedFlowlist[j])[flowkey] = *pflow;
+
+					CFlowHashMap6::iterator iter = (*data.hashedFlowlist[j]).find(flowkey);
+					if ((*data.hashedFlowlist[j]).end() != iter){
+						doubleflows++;
+					}
+					(*data.hashedFlowlist[j]).insert(CFlowHashMap6::value_type (flowkey, *pflow));
 					found = true;
 				}
 			}
 			if (found == false) {
 				flow_per_rule_counter[rule_count]++;
-                                // Update sign set of current rule
-                                data.rc.increment(rule_count, fl_ref[i]);
-                                /*data.flows[rule_count]++;
-                                data.packets[rule_count] += pflow->dPkts;
-                                data.bytes[rule_count]   += pflow->dOctets;*/
-                                FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
-                                (*data.hashedFlowlist[rule_count])[flowkey] = *pflow;
+				// Update sign set of current rule
+				data.rc.increment(rule_count, fl_ref[i]);
+				/*data.flows[rule_count]++;
+				data.packets[rule_count] += pflow->dPkts;
+				data.bytes[rule_count]   += pflow->dOctets;*/
+				FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
+				CFlowHashMap6::iterator iter = (*data.hashedFlowlist[rule_count]).find(flowkey);
+				if ((*data.hashedFlowlist[rule_count]).end() != iter){
+					doubleflows++;
+				}
+				(*data.hashedFlowlist[rule_count]).insert(CFlowHashMap6::value_type (flowkey, *pflow));
 			}
+		}else {
+			usflows++;
 		}
 		pflow = fl->get_next_flow();
 		i++;
@@ -315,9 +333,9 @@ int get_icmp_code(packet p) {
 	return p.ipPayload.icmpHeader.code;
 }
 
-bool valid_flag_sequence_check(const FlowHashKey6 &flowkey, CPersist &data, int rule_pos) {
+bool valid_flag_sequence_check(const PacketHashKey7 &paketkey, CPersist &data, int rule_pos) {
 
-	packetHashMap6::iterator iter = data.hashedPacketlist[rule_pos]->find(flowkey);
+	packetHashMap7::iterator iter = data.hashedPacketlist[rule_pos]->find(paketkey);
 
 	int counter = 0;
 	uint8_t flag_sequence[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
@@ -395,8 +413,8 @@ void get_tcp_false_positives(CPersist &data, bool verbose) {
 //	int backscatter_false_positive = 0;
 //TODO : What are the exact criteria for the categories below?
 //	int unreachable_false_positive = 0;
-	int p2p_false_positive = 0;
-	int benign_false_positive = 0;
+//	int p2p_false_positive = 0;
+//	int benign_false_positive = 0;
 
 	false_positives.push_back(0);
 	false_positives.push_back(0);
@@ -405,7 +423,7 @@ void get_tcp_false_positives(CPersist &data, bool verbose) {
 
 	bool false_positive_flow_found = false;
 	for(int rule_no = 12; rule_no < 13; rule_no++) {
-			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+			for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == IPPROTO_TCP) {
 						if(!(valid_flag_sequence_check((*it).first, data, rule_no))) {
@@ -425,7 +443,7 @@ void get_tcp_false_positives(CPersist &data, bool verbose) {
 
 
 	for(int rule_no = 13; rule_no < 16; rule_no++) {
-				for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+				for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 					for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 						if((*it2).protocol == IPPROTO_TCP) {
 							if(!(valid_flag_sequence_check((*it).first, data, rule_no))) {
@@ -447,7 +465,7 @@ void get_tcp_false_positives(CPersist &data, bool verbose) {
 void get_tcp_false_negatives(CPersist &data, bool verbose) {
 	vector<int> false_negatives;
 
-		int scan_false_negative = 0;
+//		int scan_false_negative = 0;
 		//TODO : What are the exact criteria for the categories below?
 			//	int malign_false_negative = 0;
 			//	int backscatter_false_negative = 0;
@@ -458,7 +476,7 @@ void get_tcp_false_negatives(CPersist &data, bool verbose) {
 		bool false_negative_flow_found = false;
 		for(int rule_no = 0; rule_no <= data.c.get_rule_count(); rule_no++) {
 			if(!(rule_no == 0 || rule_no == 1 || rule_no == 2 || rule_no == 3 || rule_no == 4)) { //For all classes except Scan
-				for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+				for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 
 					if((*(*it).second.begin()).protocol == IPPROTO_TCP) {
 						//Stealth scans (Scans w/o preceding 3-way handshake)
@@ -514,7 +532,7 @@ void get_icmp_false_positives(CPersist &data, bool verbose) {
 	//Check flows classified as scan for ICMP non-requests
 	bool false_positive_flow_found = false;
 	for(int rule_no = 0; rule_no < 5; rule_no++) {
-			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+			for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == IPPROTO_ICMP) {
 						if(!(get_icmp_type(*it2) == 8 || get_icmp_type(*it2) == 13 ||get_icmp_type(*it2) == 15 || get_icmp_type(*it2) == 17 || get_icmp_type(*it2) == 35|| get_icmp_type(*it2) == 37)) {
@@ -535,7 +553,7 @@ void get_icmp_false_positives(CPersist &data, bool verbose) {
 
 	//Check flows classified as malign for ICMP packets
 	for(int rule_no = 5; rule_no < 8; rule_no++) {
-			for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+			for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 					if((*it2).protocol == IPPROTO_ICMP) {
 						false_positive_flow_found = true;
@@ -553,7 +571,7 @@ void get_icmp_false_positives(CPersist &data, bool verbose) {
 
 	//Check flows classified as backscatter for requests (ICMP Type 8, ICMP Type 13 or ICMP Type 15, ...)
 	for(int rule_no = 8; rule_no < 11; rule_no++) {
-		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+		for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2) {
 				if((*it2).protocol == IPPROTO_ICMP) {
 					if(get_icmp_type(*it2) == 8 || get_icmp_type(*it2) == 13 || get_icmp_type(*it2) == 15 || get_icmp_type(*it2) == 17|| get_icmp_type(*it2) == 35|| get_icmp_type(*it2) == 37) {
@@ -575,7 +593,7 @@ void get_icmp_false_positives(CPersist &data, bool verbose) {
 void get_stats(CPersist &data) {
 	for (int i=0; i <= data.c.get_rule_count(); i++){
 
-        for(packetHashMap6::iterator it = data.hashedPacketlist[i]->begin(); it != data.hashedPacketlist[i]->end(); ++it) {
+        for(packetHashMap7::iterator it = data.hashedPacketlist[i]->begin(); it != data.hashedPacketlist[i]->end(); ++it) {
 			if (((*it).second.begin()->protocol == IPPROTO_TCP) || ((*it).second.begin()->protocol == IPPROTO_UDP)){
 					++data.portlist_local[(*it).second[0].localPort];
 					++data.portlist_remote[(*it).second[0].remotePort];
@@ -591,32 +609,42 @@ void get_stats(CPersist &data) {
 void get_affirmative_flow_count(CPersist & data, bool verbose){
 	// Scan 5
 	int rule_no = 4;
-	for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+	for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 
 		if((*(*it).second.begin()).protocol == IPPROTO_TCP) {
 			//Stealth scans (Scans w/o preceding 3-way handshake)
 			if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x29) { //X-Mas Tree Scan (URG+PSH+FIN)
+
 				data.scan5_aff_flow_count["X-Mas Tree Scan"]++;
+
 				if(verbose) {
 					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is X-Mas Tree Scan" << endl;
 				}
 			}else if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x01) { //FIN Scan
+
 				data.scan5_aff_flow_count["Fin Scan"]++;
+
 				if(verbose) {
 					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is FIN Scan" << endl;
 				}
 			}else if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x00) { //Null Scan
+
 				data.scan5_aff_flow_count["Null Scan"]++;
+
 				if(verbose) {
 					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is Null Scan" << endl;
 				}
 			}else if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x02 && ++(*it).second.begin() == (*it).second.end()) { //SYN Scan
+
 				data.scan5_aff_flow_count["SYN Scan"]++;
+
 				if(verbose) {
 					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is SYN Scan" << endl;
 				}
 			}else{
+
 				data.scan5_aff_flow_count["Unknown"]++;
+
 			}
 		}else if((*(*it).second.begin()).protocol == IPPROTO_UDP) {
 			if ((*(*it).second.begin()).ipPayload.actualsize == (*(*it).second.begin()).ipPayload.packetsize){
@@ -628,14 +656,32 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 		}
 	}
 	//Backscatter
-	rule_no = 8;
-//	for(rule_no; rule_no < 11; rule_no++) {
+
+//	for(int rule_no = 8;; rule_no < 11; rule_no++) {
 //		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 //			if((*(*it).second.begin()).protocol == IPPROTO_ICMP) {
 //				if(!(get_icmp_type(*it) == 8 || get_icmp_type(*it) == 13 ||get_icmp_type(*it) == 15 || get_icmp_type(*it) == 17 || get_icmp_type(*it) == 35|| get_icmp_type(*it) == 37))
 //			}
 //		}
 //	}
+
+	//Other Malign
+	 // TODO check number!!
+	for(int rule_no = 5; rule_no < 8; rule_no++) {
+		for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+			bool snortalert_found = false;
+			for(vector<string>::iterator it2 = data.snortalerts.begin(); it2 != data.snortalerts.end(); ++it2) {
+				if((*(*it).second.begin()).ipPayload.timestamp == util::snort_date_time_to_epoch((*it2).substr(0,(*it2).find_first_of(".")+6))) {
+					snortalert_found = true;
+				}
+			}
+			if(!snortalert_found) {
+				data.othermal_aff_flow_count["No Snort Alert"]++;
+			} else {
+				data.othermal_aff_flow_count["Unknown"]++;
+			}
+		}
+	}
 }
 
 
@@ -644,24 +690,25 @@ void get_flow_count(CPersist &data){
 	string statfile_flowcount = "flowcount.csv";
 	util::open_outfile(out, statfile_flowcount);
 	out << "Rule; Count" << endl;
-	long totalflows = 0;
+	long total_rflows = 0;
 	for (int i=0; i <= data.c.get_rule_count(); i++){
-		long flowcount = 0;
+		int flowcount = 0;
 		cout << "Rule: " << i << endl;
 		for (CFlowHashMap6::iterator it = data.hashedFlowlist[i]->begin(); it != data.hashedFlowlist[i]->end(); it++){
 			++flowcount;
 		}
-		cout << "Test1" << endl;
 		string rulename;
 		data.c.get_rule_name(i, rulename);
-		cout << "Test2" << endl;
 		out << rulename << ";" << flowcount << endl;
-		cout << "Test3" << endl;
-		totalflows += flowcount;
-		cout << "Test4" << endl;
+		total_rflows += flowcount;
 	}
 
 	out.close();
+	cout << "Total Flows in all rules: " << total_rflows << endl;
+	cout << "--------------" << endl;
+	cout << "Total Flows with same key: " << doubleflows << endl;
+	cout << "Total Flows with signes: " << sflows << endl;
+	cout << "Total Flows without signes: " << usflows << endl;
 	cout << "Total Flows: " << totalflows << endl;
 }
 
@@ -801,38 +848,75 @@ void usage(char * progname, ostream & outfs)
 void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int rule_pos, bool use_outflows){
 	if (use_outflows){
 		uint8_t out = outflow;
-        	uint8_t q_out = q_outfl;
+        uint8_t q_out = q_outfl;
 
-		FlowHashKey6 mykey(&(p.localIP), &(p.remoteIP), &(p.localPort),
-                        &(p.remotePort), &(p.protocol), &(out));
-		FlowHashKey6 mykey_q(&(p.localIP), &(p.remoteIP), &(p.localPort),
-                        &(p.remotePort), &(p.protocol), &(q_out));
+		FlowHashKey6 mykey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+						&(p.localPort), &(p.protocol), &(out));
+		FlowHashKey6 mykey_q(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+						&(p.localPort), &(p.protocol), &(q_out));
 
-		CFlowHashMap6::iterator iter = hashedFlowMap->find(mykey);
-        	CFlowHashMap6::iterator iter_q = hashedFlowMap->find(mykey_q);
+		CFlowHashMap6::iterator iter;
 
-		if (hashedFlowMap->end() != iter) {
-			(*data.hashedPacketlist[rule_pos])[mykey].push_back(p);
-		}else if (hashedFlowMap->end() != iter_q) {
-			(*data.hashedPacketlist[rule_pos])[mykey_q].push_back(p);
+		pair<CFlowHashMap6::iterator,CFlowHashMap6::iterator > cf_range;
+		pair<CFlowHashMap6::iterator,CFlowHashMap6::iterator > cf_range_q;
+
+		cf_range = hashedFlowMap->equal_range(mykey);
+		cf_range_q = hashedFlowMap->equal_range(mykey);
+
+		for (iter = cf_range.first; iter != cf_range.second; ++iter){
+			if (((*iter).second.startMs <= p.ipPayload.timestamp/1000) && (p.ipPayload.timestamp/1000 <= ((*iter).second.startMs+(*iter).second.durationMs))){
+				uint64_t packetTime = p.ipPayload.timestamp/1000;
+				PacketHashKey7 pkey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+							&(p.localPort), &(p.protocol), &(out), &(packetTime));
+				(*data.hashedPacketlist[rule_pos])[pkey].push_back(p);
+			}
+
 		}
+		for (iter = cf_range_q.first; iter != cf_range_q.second; ++iter){
+			if (((*iter).second.startMs <= p.ipPayload.timestamp/1000) && (p.ipPayload.timestamp/1000 <= ((*iter).second.startMs+(*iter).second.durationMs))){
+				uint64_t packetTime = p.ipPayload.timestamp/1000;
+				PacketHashKey7 pkey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+						&(p.localPort), &(p.protocol), &(q_out), &(packetTime));
+				(*data.hashedPacketlist[rule_pos])[pkey].push_back(p);
+			}
 
+		}
 	}else{
 		uint8_t in = inflow;
         uint8_t q_in = q_infl;
 
+
 		FlowHashKey6 mykey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
                         &(p.localPort), &(p.protocol), &(in));
-        	FlowHashKey6 mykey_q(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+        FlowHashKey6 mykey_q(&(p.remoteIP), &(p.localIP), &(p.remotePort),
                         &(p.localPort), &(p.protocol), &(q_in));
-		CFlowHashMap6::iterator iter = hashedFlowMap->find(mykey);
-        	CFlowHashMap6::iterator iter_q = hashedFlowMap->find(mykey_q);
 
-		if (hashedFlowMap->end() != iter) {
-			(*data.hashedPacketlist[rule_pos])[mykey].push_back(p);
-		}else if (hashedFlowMap->end() != iter_q) {
-			(*data.hashedPacketlist[rule_pos])[mykey_q].push_back(p);
-		}
+        CFlowHashMap6::iterator iter;
+
+        pair<CFlowHashMap6::iterator,CFlowHashMap6::iterator > cf_range;
+
+        cf_range = hashedFlowMap->equal_range(mykey);
+
+        for (iter = cf_range.first; iter != cf_range.second; ++iter){
+        	if (((*iter).second.startMs <= p.ipPayload.timestamp/1000) && (p.ipPayload.timestamp/1000 <= ((*iter).second.startMs+(*iter).second.durationMs))){
+        		uint64_t packetTime = p.ipPayload.timestamp/1000;
+        		PacketHashKey7 pkey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+							&(p.localPort), &(p.protocol), &(in), &(packetTime));
+				(*data.hashedPacketlist[rule_pos])[pkey].push_back(p);
+        	}
+
+        }
+
+        cf_range = hashedFlowMap->equal_range(mykey_q);
+        for (iter = cf_range.first; iter != cf_range.second; ++iter){
+        	if (((*iter).second.startMs <= p.ipPayload.timestamp/1000) && (p.ipPayload.timestamp/1000 <= ((*iter).second.startMs+(*iter).second.durationMs))){
+        		uint64_t packetTime = p.ipPayload.timestamp/1000;
+        		PacketHashKey7 pkey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
+						&(p.localPort), &(p.protocol), &(q_in), &(packetTime));
+				(*data.hashedPacketlist[rule_pos])[pkey].push_back(p);
+        	}
+
+        }
 	}
 
 
@@ -985,6 +1069,15 @@ void write_pcap(CPersist & data, bool use_outflows){
 	    	snaplen = max_packlen;
 	    	network = dl_type;
 	    }
+	    pcapFileHeader(){
+	    	magic_number = 0xa1b2c3d4;
+			version_major = 2;
+			version_minor = 4;
+			thiszone = 0;
+			sigfigs = 0;
+			snaplen = 65535;
+			network = 1;
+	    }
 	};
 
 	struct pcapPacketHeader {
@@ -1001,7 +1094,8 @@ void write_pcap(CPersist & data, bool use_outflows){
 	    }
 	};
 
-	pcapFileHeader fileHeader(0xa1b2c3d4, 2, 4, 0, 0, 65535, 1);
+	//pcapFileHeader fileHeader(0xa1b2c3d4, 2, 4, 0, 0, 65535, 1);
+	pcapFileHeader fileHeader;
 
 	pcapPacketHeader packetHeader;
 	ofstream fileout;
@@ -1028,7 +1122,7 @@ void write_pcap(CPersist & data, bool use_outflows){
 		}else{
 			fileout.open(filename.c_str(), ios::app | ios::binary);
 		}
-		packetHashMap6::iterator iter;
+		packetHashMap7::iterator iter;
 		vector<packet>::iterator it;
 		for (iter = data.hashedPacketlist[i]->begin(); iter != data.hashedPacketlist[i]->end(); iter++){
 			for (it = (*iter).second.begin(); it != (*iter).second.end(); ++it){
@@ -1036,7 +1130,7 @@ void write_pcap(CPersist & data, bool use_outflows){
 				fileout.write(reinterpret_cast<const char*>(&packetHeader), sizeof fileHeader);
 				//fileout.write(reinterpret_cast<const char*>(&it->ethHeader), sizeof(struct ethhdr));
 				//fileout.write(reinterpret_cast<const char*>(&it->ipHeader), sizeof(struct iphdr));
-
+				cout << "Test" << endl;
 				switch (it->protocol) {
 					case IPPROTO_TCP:
 						fileout.write(reinterpret_cast<const char*>(&it->ipPayload.tcpHeader), sizeof(struct tcphdr));
@@ -1082,7 +1176,7 @@ void clear_hashedPacketlist(CPersist & data)
     }
     data.hashedPacketlist.clear();
     for(int i = 0;i < data.c.get_rule_count();i++){
-        data.hashedPacketlist.push_back(new packetHashMap6());
+        data.hashedPacketlist.push_back(new packetHashMap7());
     }
 }
 
@@ -1235,12 +1329,12 @@ int main(int argc, char **argv) {
 			cout << "Clearing stats variables" << endl;
 			clear_stats_variables(data);
 			cout << "Generating stats" << endl;
-			/*get_stats(data);
+			get_stats(data);
 			get_icmp_false_positives(data, verbose);
 			get_tcp_false_negatives(data, verbose);
 			get_tcp_false_positives(data, verbose);
 			cout << "Creating csv for stats"  << endl;
-			print_stats(data, pcap_filename);*/
+			print_stats(data, pcap_filename);
 			get_affirmative_flow_count(data, verbose);
 		}
 
@@ -1255,8 +1349,8 @@ int main(int argc, char **argv) {
 	if (analysis){
 		cout << "Creating csv for fp and fn." << endl;
 		//write_stats_fp(data);
-		write_aff_stats(data);
-		//get_flow_count(data);
+		//write_aff_stats(data);
+		get_flow_count(data);
 	}
 
 	//TODO: Snort File Handling

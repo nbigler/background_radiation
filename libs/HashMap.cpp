@@ -302,14 +302,14 @@ std::string HashKeyIPv4_6T::printkey() const{
  * *************************************************************/
 
 HashKeyIPv4_7T::HashKeyIPv4_7T(uint32_t * srcIP,
-		uint32_t * dstIP, uint16_t * srcPort,uint16_t * dstPort, uint8_t * protocol, uint8_t * tos, uint8_t * dir){
+		uint32_t * dstIP, uint16_t * srcPort,uint16_t * dstPort, uint8_t * protocol, uint8_t * dir, uint64_t * ts){
 	*((uint32_t *)(&(key[0]))) = *srcIP;
 	*((uint32_t *)(&(key[4]))) = *dstIP;
 	*((uint16_t *)(&(key[8]))) = *srcPort;
 	*((uint16_t *)(&(key[10]))) = *dstPort;
 	*((uint8_t *)(&(key[12]))) = *protocol;
-	*((uint8_t *)(&(key[13]))) = *tos;
-	*((uint8_t *)(&(key[14]))) = *dir;
+	*((uint8_t *)(&(key[13]))) = *dir;
+	*((uint8_t *)(&(key[14]))) = *ts;
 }
 
 HashKeyIPv4_7T::~HashKeyIPv4_7T(){
@@ -317,12 +317,12 @@ HashKeyIPv4_7T::~HashKeyIPv4_7T(){
 }
 
 size_t HashKeyIPv4_7T::size() const{
-	return 15;
+	return 22;
 }
 
 
 HashKeyIPv4_7T::HashKeyIPv4_7T(const HashKeyIPv4_7T &b){
-	memcpy(key, b.key, 15);
+	memcpy(key, b.key, 22);
 }
 
 std::string HashKeyIPv4_7T::printkey() const{
