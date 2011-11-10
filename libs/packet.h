@@ -28,8 +28,8 @@ struct ipPayload {
 
 
 struct packet {
-	//struct ethhdr ethHeader;
-	//struct iphdr ipHeader;
+	struct ethhdr ethHeader;
+	struct iphdr ipHeader;
 	uint32_t localIP;		///< Numeric ip address of source vertex (host byte order)
 	uint32_t remoteIP;		///< Numeric ip address of destination vertex (host byte order)
 

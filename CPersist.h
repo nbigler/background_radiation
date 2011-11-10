@@ -24,6 +24,7 @@ using namespace std;
 typedef hash_map<HashKeyIPv4, uint32_t , HashFunction<HashKeyIPv4>,HashFunction<HashKeyIPv4> > HashMap;
 typedef hash_multimap<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
 typedef hash_map<HashKeyIPv4_7T, vector<struct packet>, HashFunction<HashKeyIPv4_7T>, HashFunction<HashKeyIPv4_7T> > packetHashMap7;
+typedef vector<packet> PACKET_LIST;
 
 class CPersist {
 public:
@@ -63,7 +64,7 @@ public:
 	vector<CFlowHashMap6*> hashedFlowlist;
 	vector<packetHashMap7*> hashedPacketlist;
 
-
+	vector<PACKET_LIST*> packetlist;
 	CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		string & rules_filename, string & classes_filename, bool use_outflows);
 
