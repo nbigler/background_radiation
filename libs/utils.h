@@ -31,6 +31,8 @@ namespace util {
 	std::string & flowtype2string(flow_type_t flowtype);
 
 	int getSamples(std::string filename, std::vector<std::string> & files);
+
+	uint64_t snort_date_time_to_epoch(std::string snort_date_time);
 };
 
 

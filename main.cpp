@@ -1353,7 +1353,6 @@ int main(int argc, char **argv) {
 		get_flow_count(data);
 	}
 
-	//TODO: Snort File Handling
 	vector<string> snortfiles;
 
 	if (list_filename.size() > 0) {

@@ -530,9 +530,9 @@ int count_occurrence_of_char(const char c, const string s) {
 	return count;
 }
 
-using namespace boost::posix_time;
 
 uint64_t snort_date_time_to_epoch(string snort_date_time) {
+
 	//Format of the Snort Date-Time String: 10/18-17:16:04.231133 (10-18-2011; 17h16m04.231133s)
 	if(count_occurrence_of_char('/', snort_date_time) < 1) return 0.0;
 	if(count_occurrence_of_char('/', snort_date_time) >= 1 && count_occurrence_of_char('/', snort_date_time) <=2) {
@@ -543,6 +543,7 @@ uint64_t snort_date_time_to_epoch(string snort_date_time) {
 			if(*it == '/') snort_date_time.replace(it, it+1, "-");
 		}
 	}
+	using namespace boost::posix_time;
 	ptime t = time_from_string(snort_date_time);
 	ptime start = time_from_string("1979-01-01 00:00:00.0");
 	time_duration dur = t - start;
