@@ -471,7 +471,7 @@ class HashKeyIPv4_6T {
  * *************************************************************/
 
 /**
- * Hash Key for 7-tuples [srcIP, dstIP, srcPort, dstPort, protocol, TOS, direction]. IP addresses are v4 (32 bits). The
+ * Hash Key for 7-tuples [srcIP, dstIP, srcPort, dstPort, protocol, direction, segstart]. IP addresses are v4 (32 bits). The
  * size of the key amounts to 15 bytes.
  */
 class HashKeyIPv4_7T {
@@ -488,10 +488,10 @@ class HashKeyIPv4_7T {
 	 * \param srcPort source port
 	 * \param dstPort destination port
 	 * \param protocol protocol number (e.g. 6=tcp, 17=UDP)
-	 * \param tos TOS field (Type Of Service)
 	 * \param dir Direction field
+	 * \param start of flow segment
 	 */
-	HashKeyIPv4_7T(uint32_t * srcIP,uint32_t * dstIP, uint16_t * srcPort,uint16_t * dstPort, uint8_t * protocol, uint8_t * dir, uint64_t * ts);
+	HashKeyIPv4_7T(uint32_t * srcIP,uint32_t * dstIP, uint16_t * srcPort, uint16_t * dstPort, uint8_t * protocol, uint8_t * dir, uint64_t * segstart);
 	~HashKeyIPv4_7T();
 	size_t size() const;
     HashKeyIPv4_7T(const HashKeyIPv4_7T &b);

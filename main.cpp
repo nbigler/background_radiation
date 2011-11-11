@@ -53,11 +53,12 @@ using namespace pcappp;
 
 // Hash key & map for storing flows
 // ********************************
-// key = 6-tuple (5-tuple + direction)
+// key = 7-tuple (5-tuple + direction + interval start time)
 // data = references to flowlist records
 //
-typedef HashKeyIPv4_6T FlowHashKey6;
+//typedef HashKeyIPv4_6T FlowHashKey6;
 typedef HashKeyIPv4_7T PacketHashKey7;
+typedef HashKeyIPv4_7T FlowHashKey7;
 
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr);
 
@@ -268,7 +269,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	//cout << "Rule count: " << rule_count << endl;
 	for (int j=0; j <= rule_count; j++) {
 		flow_per_rule_counter[j] = 0;
-		data.hashedFlowlist.push_back(new CFlowHashMap6());
+		data.hashedFlowlist.push_back(new CFlowHashMap7());
 		data.hashedPacketlist.push_back(new packetHashMap7());
 	}
 
@@ -277,6 +278,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	struct cflow * pflow = fl->get_first_flow();
 	while (pflow != NULL) {
 		totalflows++;
+		uint64_t interval_start = get_interval_start(&pflow);
 		if (fl_ref[i] != 0) { // Ignore empty sign sets
 			sflows++;
 			total_flows++;
@@ -293,13 +295,13 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					/*data.flows[j]++;
 					data.packets[j] += pflow->dPkts;
 					data.bytes[j]   += pflow->dOctets;*/
-					FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
+					FlowHashKey7 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype), &interval_start);
 
-					CFlowHashMap6::iterator iter = (*data.hashedFlowlist[j]).find(flowkey);
+					CFlowHashMap7::iterator iter = (*data.hashedFlowlist[j]).find(flowkey);
 					if ((*data.hashedFlowlist[j]).end() != iter){
 						doubleflows++;
 					}
-					(*data.hashedFlowlist[j]).insert(CFlowHashMap6::value_type (flowkey, *pflow));
+					(*data.hashedFlowlist[j]).insert(CFlowHashMap7::value_type (flowkey, *pflow));
 					found = true;
 				}
 			}
@@ -310,12 +312,12 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 				/*data.flows[rule_count]++;
 				data.packets[rule_count] += pflow->dPkts;
 				data.bytes[rule_count]   += pflow->dOctets;*/
-				FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
-				CFlowHashMap6::iterator iter = (*data.hashedFlowlist[rule_count]).find(flowkey);
+				FlowHashKey7 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype), &interval_start);
+				CFlowHashMap7::iterator iter = (*data.hashedFlowlist[rule_count]).find(flowkey);
 				if ((*data.hashedFlowlist[rule_count]).end() != iter){
 					doubleflows++;
 				}
-				(*data.hashedFlowlist[rule_count]).insert(CFlowHashMap6::value_type (flowkey, *pflow));
+				(*data.hashedFlowlist[rule_count]).insert(CFlowHashMap7::value_type (flowkey, *pflow));
 			}
 		}else {
 			usflows++;
@@ -580,7 +582,7 @@ void get_icmp_false_positives(CPersist &data, bool verbose) {
 				}
 			}
 			if (false_positive_flow_found) {
-				data.icmp_false_positives["Backscat"]++;
+				data.icmp_false_positives["Backscatter"]++;
 				if(verbose) {
 					cout << "ICMP Packet found which doesn't belong to class backscatter" << endl;
 				}
@@ -657,13 +659,25 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 	}
 	//Backscatter
 
-//	for(int rule_no = 8;; rule_no < 11; rule_no++) {
-//		for(packetHashMap6::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
-//			if((*(*it).second.begin()).protocol == IPPROTO_ICMP) {
-//				if(!(get_icmp_type(*it) == 8 || get_icmp_type(*it) == 13 ||get_icmp_type(*it) == 15 || get_icmp_type(*it) == 17 || get_icmp_type(*it) == 35|| get_icmp_type(*it) == 37))
-//			}
-//		}
-//	}
+	for(int rule_no = 8; rule_no < 11; rule_no++) {
+		for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
+			if((*(*it).second.begin()).protocol == IPPROTO_ICMP) {
+				if((get_icmp_type(*it) == 8 || get_icmp_type(*it) == 13 ||get_icmp_type(*it) == 15 || get_icmp_type(*it) == 17 || get_icmp_type(*it) == 35|| get_icmp_type(*it) == 37)) {
+					data.backsc_aff_flow_count["ICMP Request"]++;
+				} else {
+					data.backsc_aff_flow_count["Unknown"]++;
+				}
+			} else if((*(*it).second.begin()).protocol == IPPROTO_TCP) {
+				bool synpkt;
+				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
+					if(get_tcp_flags((*it2).ipPayload.tcpHeader)==0x02) synpkt = true;
+				}
+					if(synpkt) data.backsc_aff_flow_count["SYN Packet"]++;
+			} else {
+				data.backsc_aff_flow_count["Unknown"]++;
+			}
+		}
+	}
 
 	//Other Malign
 	 // TODO check number!!
@@ -694,7 +708,7 @@ void get_flow_count(CPersist &data){
 	for (int i=0; i <= data.c.get_rule_count(); i++){
 		int flowcount = 0;
 		cout << "Rule: " << i << endl;
-		for (CFlowHashMap6::iterator it = data.hashedFlowlist[i]->begin(); it != data.hashedFlowlist[i]->end(); it++){
+		for (CFlowHashMap7::iterator it = data.hashedFlowlist[i]->begin(); it != data.hashedFlowlist[i]->end(); it++){
 			++flowcount;
 		}
 		string rulename;
@@ -845,78 +859,77 @@ void usage(char * progname, ostream & outfs)
 }
 
 
-void find_match(packet &p, CFlowHashMap6* hashedFlowMap, CPersist & data, int rule_pos, bool use_outflows){
-	if (use_outflows){
-		uint8_t out = outflow;
-        uint8_t q_out = q_outfl;
+vector<uint32_t> get_IPs(packet &p) {
+	uint32_t netmask;
+	inet_pton(AF_INET, "152.103.0.0", &netmask);
 
-		FlowHashKey6 mykey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-						&(p.localPort), &(p.protocol), &(out));
-		FlowHashKey6 mykey_q(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-						&(p.localPort), &(p.protocol), &(q_out));
+	vector<uint32_t> ippair;
 
-		CFlowHashMap6::iterator iter;
+	if((p.localIP & netmask) != netmask) {
+		ippair.push_back(p.remoteIP);
+		ippair.push_back(p.localIP);
+	} else {
+		ippair.push_back(p.localIP);
+		ippair.push_back(p.remoteIP);
+	}
+	return ippair;
+}
 
-		pair<CFlowHashMap6::iterator,CFlowHashMap6::iterator > cf_range;
-		pair<CFlowHashMap6::iterator,CFlowHashMap6::iterator > cf_range_q;
+vector<uint16_t> get_ports(packet &p) {
+	uint32_t netmask;
+	inet_pton(AF_INET, "152.103.0.0", &netmask);
 
-		cf_range = hashedFlowMap->equal_range(mykey);
-		cf_range_q = hashedFlowMap->equal_range(mykey);
+	vector<uint16_t> portpair;
 
-		for (iter = cf_range.first; iter != cf_range.second; ++iter){
-			if (((*iter).second.startMs <= p.ipPayload.timestamp/1000) && (p.ipPayload.timestamp/1000 <= ((*iter).second.startMs+(*iter).second.durationMs))){
-				uint64_t packetTime = p.ipPayload.timestamp/1000;
-				PacketHashKey7 pkey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-							&(p.localPort), &(p.protocol), &(out), &(packetTime));
-				(*data.hashedPacketlist[rule_pos])[pkey].push_back(p);
+	if((p.localIP & netmask) != netmask) {
+		portpair.push_back(p.remotePort);
+		portpair.push_back(p.localPort);
+	} else {
+		portpair.push_back(p.localPort);
+		portpair.push_back(p.remotePort);
+	}
+	return portpair;
+}
+
+uint64_t get_interval_start(packet &p) {
+
+	uint64_t endtime; //endtime of last segment
+	uint64_t segment_duration;
+	uint64_t packetTime = p.ipPayload.timestamp/1000;
+
+	//time = starttime of first segment
+	//TODO
+//	for(uint64_t time = 123; time <= endtime; time += segmentduration) {
+//		if()
+//	}
+	return 0;
+}
+
+void find_match(packet &p, CFlowHashMap7* hashedFlowMap, CPersist & data, int rule_pos, bool use_outflows){
+	//TODO
+	if (!use_outflows){
+		uint32_t localIP = get_IPs(p)[0];
+		uint32_t remoteIP = get_IPs(p)[1];
+		uint16_t localPort = get_ports(p)[0];
+		uint16_t remotePort = get_ports(p)[1];
+		uint8_t direction = inflow;
+		uint8_t direction_q = q_infl;
+		uint64_t interval_start = get_interval_start(p);
+
+		PacketHashKey7 pkey(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction, &interval_start);
+		PacketHashKey7 pkey_q(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction, &interval_start);
+
+		for(int rule_no=0; rule_no <= data.c.get_rule_count(); rule_no++) {
+			for(CFlowHashMap7::iterator it = data.hashedFlowlist[rule_no]->begin(); it != data.hashedFlowlist[rule_no]->end(); it++) {
+				if(data.hashedFlowlist[rule_no]->find(pkey)) {
+					(*data.hashedPacketlist[rule_no])[pkey].push_back(p);
+				} else if(data.hashedFlowlist[rule_no]->find(pkey_q)) {
+					(*data.hashedPacketlist[rule_no])[pkey_q].push_back(p);
+				} else {
+					cerr << "wtf?" << endl;
+				}
 			}
-
 		}
-		for (iter = cf_range_q.first; iter != cf_range_q.second; ++iter){
-			if (((*iter).second.startMs <= p.ipPayload.timestamp/1000) && (p.ipPayload.timestamp/1000 <= ((*iter).second.startMs+(*iter).second.durationMs))){
-				uint64_t packetTime = p.ipPayload.timestamp/1000;
-				PacketHashKey7 pkey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-						&(p.localPort), &(p.protocol), &(q_out), &(packetTime));
-				(*data.hashedPacketlist[rule_pos])[pkey].push_back(p);
-			}
-
-		}
-	}else{
-		uint8_t in = inflow;
-        uint8_t q_in = q_infl;
-
-
-		FlowHashKey6 mykey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-                        &(p.localPort), &(p.protocol), &(in));
-        FlowHashKey6 mykey_q(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-                        &(p.localPort), &(p.protocol), &(q_in));
-
-        CFlowHashMap6::iterator iter;
-
-        pair<CFlowHashMap6::iterator,CFlowHashMap6::iterator > cf_range;
-
-        cf_range = hashedFlowMap->equal_range(mykey);
-
-        for (iter = cf_range.first; iter != cf_range.second; ++iter){
-        	if (((*iter).second.startMs <= p.ipPayload.timestamp/1000) && (p.ipPayload.timestamp/1000 <= ((*iter).second.startMs+(*iter).second.durationMs))){
-        		uint64_t packetTime = p.ipPayload.timestamp/1000;
-        		PacketHashKey7 pkey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-							&(p.localPort), &(p.protocol), &(in), &(packetTime));
-				(*data.hashedPacketlist[rule_pos])[pkey].push_back(p);
-        	}
-
-        }
-
-        cf_range = hashedFlowMap->equal_range(mykey_q);
-        for (iter = cf_range.first; iter != cf_range.second; ++iter){
-        	if (((*iter).second.startMs <= p.ipPayload.timestamp/1000) && (p.ipPayload.timestamp/1000 <= ((*iter).second.startMs+(*iter).second.durationMs))){
-        		uint64_t packetTime = p.ipPayload.timestamp/1000;
-        		PacketHashKey7 pkey(&(p.remoteIP), &(p.localIP), &(p.remotePort),
-						&(p.localPort), &(p.protocol), &(q_in), &(packetTime));
-				(*data.hashedPacketlist[rule_pos])[pkey].push_back(p);
-        	}
-
-        }
 	}
 
 
@@ -981,8 +994,8 @@ void process_pcap(string pcap_filename, CPersist & data, bool use_outflows)
 				struct udphdr * udp_hdr = NULL;
 				struct icmphdr * icmp_hdr = NULL;
 
-				uint32_t netmask;
-				inet_pton(AF_INET, "152.103.0.0", &netmask);
+//				uint32_t netmask;
+//				inet_pton(AF_INET, "152.103.0.0", &netmask);
 				// Show transport layer protocol
 				/*if ((ip_hdr->saddr&netmask) == netmask){
 					packet.init(ip_hdr->saddr, ip_hdr->daddr, ip_hdr->protocol, outflow);
@@ -1353,63 +1366,63 @@ int main(int argc, char **argv) {
 		get_flow_count(data);
 	}
 
-	vector<string> snortfiles;
-
-	if (list_filename.size() > 0) {
-		if (util::getSamples(snort_filelist, snortfiles)!=0) {
-			cerr << "\ERROR: could not read files in " + list_filename << endl;
-			exit(1);
-		}
-	}  else {
-			cerr << "\nERROR: missing input file name.\n";
-			usage(argv[0], cerr);
-	}
-
-	string snort_filename;
-	for (size_t i = 0; i< snortfiles.size(); i++) {
-		if (snortfiles.size() > 1) { cout << snortfiles[i] << endl; }
-		ifstream file(snortfiles[i].c_str(), ios_base::in | ios_base::binary);
-		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-		snort_filename = snortfiles[i].substr(0,snortfiles[i].find(".gz")).substr(snortfiles[i].find_last_of("/")+1);
-		ofstream out(snort_filename.c_str());
-		in.push(boost::iostreams::gzip_decompressor());
-		in.push(file);
-		cout << "Processing snort file: " << snort_filename << endl;
-		//Processing Snort File
-		string tmp;
-		file.exceptions(ifstream::eofbit | ifstream::failbit | ifstream::badbit);
-		try {
-			file.open(snort_filename.c_str(), ios::in | ios_base::binary);
-		}
-		catch (ifstream::failure & e) {
-			cout << "Exception opening file " << snort_filename << endl;
-			if (file.fail()) cout << "failbit set\n";
-			if (file.eof())  cout << "eofbit set\n";
-			if (file.bad())  cout << "badbit set\n";
-			if (file.good()) cout << "goodbit set\n";
-			throw;
-		}
-		catch (...) {
-			cout << "\n\nERROR: unknown error while opening input file " << snort_filename << "\n\n";
-			throw;
-		}
-		file.exceptions(ios::goodbit);
-
-		// Fetch names from list
-		do {
-			char buf[256];
-			file.getline(buf, 256);
-			if (file.good() && strlen(buf)>0) {
-				// Put file name into appropriate list
-				string tmp = static_cast<string>(buf);
-				if(tmp.find("ICMP")==string::npos) { //Don't save snort messages containing ICMP
-					data.snortalerts.push_back(tmp);
-				}
-			}
-		} while (file.good());
-
-		remove(snort_filename.c_str());
-	}
+//	vector<string> snortfiles;
+//
+//	if (list_filename.size() > 0) {
+//		if (util::getSamples(snort_filelist, snortfiles)!=0) {
+//			cerr << "\ERROR: could not read files in " + list_filename << endl;
+//			exit(1);
+//		}
+//	}  else {
+//			cerr << "\nERROR: missing input file name.\n";
+//			usage(argv[0], cerr);
+//	}
+//
+//	string snort_filename;
+//	for (size_t i = 0; i< snortfiles.size(); i++) {
+//		if (snortfiles.size() > 1) { cout << snortfiles[i] << endl; }
+//		ifstream file(snortfiles[i].c_str(), ios_base::in | ios_base::binary);
+//		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+//		snort_filename = snortfiles[i].substr(0,snortfiles[i].find(".gz")).substr(snortfiles[i].find_last_of("/")+1);
+//		ofstream out(snort_filename.c_str());
+//		in.push(boost::iostreams::gzip_decompressor());
+//		in.push(file);
+//		cout << "Processing snort file: " << snort_filename << endl;
+//		//Processing Snort File
+//		string tmp;
+//		file.exceptions(ifstream::eofbit | ifstream::failbit | ifstream::badbit);
+//		try {
+//			file.open(snort_filename.c_str(), ios::in | ios_base::binary);
+//		}
+//		catch (ifstream::failure & e) {
+//			cout << "Exception opening file " << snort_filename << endl;
+//			if (file.fail()) cout << "failbit set\n";
+//			if (file.eof())  cout << "eofbit set\n";
+//			if (file.bad())  cout << "badbit set\n";
+//			if (file.good()) cout << "goodbit set\n";
+//			throw;
+//		}
+//		catch (...) {
+//			cout << "\n\nERROR: unknown error while opening input file " << snort_filename << "\n\n";
+//			throw;
+//		}
+//		file.exceptions(ios::goodbit);
+//
+//		// Fetch names from list
+//		do {
+//			char buf[256];
+//			file.getline(buf, 256);
+//			if (file.good() && strlen(buf)>0) {
+//				// Put file name into appropriate list
+//				string tmp = static_cast<string>(buf);
+//				if(tmp.find("ICMP")==string::npos) { //Don't save snort messages containing ICMP
+//					data.snortalerts.push_back(tmp);
+//				}
+//			}
+//		} while (file.good());
+//
+//		remove(snort_filename.c_str());
+//	}
 }
 
 uint8_t get_tcp_flags(tcphdr const &tcp_hdr) {

@@ -159,7 +159,7 @@ void CFlowlist::read_flows()
 		}
 
 		// Show progress on console
-		if ((flow_count % 100000) == 0) { nl_flag = true; cout << "."; cout.flush(); }
+		if ((flow_count % 100000) == 0) { nl_flag = true; /* cout << ".";*/ cout.flush(); }
 
 		// Fetch next flow
 		ok = read_flow(in, &flowlist[flow_count]);
