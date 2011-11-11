@@ -56,7 +56,7 @@ using namespace pcappp;
 // key = 7-tuple (5-tuple + direction + interval start time)
 // data = references to flowlist records
 //
-//typedef HashKeyIPv4_6T FlowHashKey6;
+typedef HashKeyIPv4_6T FlowHashKey6;
 typedef HashKeyIPv4_7T PacketHashKey7;
 typedef HashKeyIPv4_7T FlowHashKey7;
 
@@ -266,12 +266,14 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 
 	// Maintain a counter per rule
 	int * flow_per_rule_counter	= new int[rule_count];
+	uint64_t firstseg = 1318497000;
+	int interval = (fl->get_interval_start() - firstseg) / 600;
 	//cout << "Rule count: " << rule_count << endl;
 	for (int j=0; j <= rule_count; j++) {
 		flow_per_rule_counter[j] = 0;
-		data.hashedFlowlist.push_back(new CFlowHashMap7());
+		data.hashedFlowlist[interval].push_back(new CFlowHashMap6());
 		data.hashedPacketlist.push_back(new packetHashMap7());
-		data.packetlist.push_back(new vector<packet>());
+		//data.packetlist.push_back(new vector<packet>());
 	}
 
 	// Loop over all sign sets (i.e. all flows)
@@ -280,7 +282,6 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	while (pflow != NULL) {
 		totalflows++;
 		//uint64_t interval_start = get_interval_start(pflow);
-		uint64_t interval_start = fl->get_interval_start();
 		if (fl_ref[i] != 0) { // Ignore empty sign sets
 			sflows++;
 			total_flows++;
@@ -297,13 +298,13 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 					/*data.flows[j]++;
 					data.packets[j] += pflow->dPkts;
 					data.bytes[j]   += pflow->dOctets;*/
-					FlowHashKey7 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype), &interval_start);
+					FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
 
-					CFlowHashMap7::iterator iter = (*data.hashedFlowlist[j]).find(flowkey);
-					if ((*data.hashedFlowlist[j]).end() != iter){
+					CFlowHashMap6::iterator iter = (*data.hashedFlowlist[interval][j]).find(flowkey);
+					if ((*data.hashedFlowlist[interval][j]).end() != iter){
 						doubleflows++;
 					}
-					(*data.hashedFlowlist[j]).insert(CFlowHashMap7::value_type (flowkey, *pflow));
+					(*data.hashedFlowlist[interval][j]).insert(CFlowHashMap6::value_type (flowkey, *pflow));
 					found = true;
 				}
 			}
@@ -314,12 +315,12 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 				/*data.flows[rule_count]++;
 				data.packets[rule_count] += pflow->dPkts;
 				data.bytes[rule_count]   += pflow->dOctets;*/
-				FlowHashKey7 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype), &interval_start);
-				CFlowHashMap7::iterator iter = (*data.hashedFlowlist[rule_count]).find(flowkey);
-				if ((*data.hashedFlowlist[rule_count]).end() != iter){
+				FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
+				CFlowHashMap6::iterator iter = (*data.hashedFlowlist[interval][rule_count]).find(flowkey);
+				if ((*data.hashedFlowlist[interval][rule_count]).end() != iter){
 					doubleflows++;
 				}
-				(*data.hashedFlowlist[rule_count]).insert(CFlowHashMap7::value_type (flowkey, *pflow));
+				(*data.hashedFlowlist[interval][rule_count]).insert(CFlowHashMap6::value_type (flowkey, *pflow));
 			}
 		}else {
 			usflows++;
@@ -710,7 +711,8 @@ void get_flow_count(CPersist &data){
 	for (int i=0; i <= data.c.get_rule_count(); i++){
 		int flowcount = 0;
 		cout << "Rule: " << i << endl;
-		for (CFlowHashMap7::iterator it = data.hashedFlowlist[i]->begin(); it != data.hashedFlowlist[i]->end(); it++){
+		int interval = 2;
+		for (CFlowHashMap6::iterator it = data.hashedFlowlist[interval][i]->begin(); it != data.hashedFlowlist[interval][i]->end(); it++){
 			++flowcount;
 		}
 		string rulename;
@@ -894,30 +896,35 @@ vector<uint16_t> get_ports(packet &p) {
 }
 
 
-uint64_t get_interval_start(packet &p) {
+uint64_t get_interval(packet &p) {
 
 	time_t ts = p.ipPayload.timestamp;
 
-	uint64_t endtime; //endtime of last segment
-	uint64_t segment_duration;
-	time_t packetTime = p.ipPayload.timestamp/1000;
+	uint64_t firstseg = 1318497000;
+	uint64_t endtime = 1318956000; //endtime of last segment
+	uint64_t segment_duration = 600;
+	time_t packetTime = p.ipPayload.timestamp/1000000;
 
 	struct tm *tminfo;
   //time (&ts);packetTime
-	tminfo = gmtime (&packetTime);
+	tminfo = localtime (&packetTime);
 	tminfo->tm_sec=0;
 	tminfo->tm_min /= 10;
 	tminfo->tm_min *= 10;
 	time_t starttime = mktime(tminfo);
+	//cout << "Packettime: " << packetTime << endl;
+	//cout << "Starttime: " << starttime << endl;
+	int interval = (starttime -firstseg)/segment_duration;
+	//cout << "Interval Number: " << interval << endl;
 	//time = starttime of first segment
 	//TODO
-//	for(uint64_t time = 123; time <= endtime; time += segmentduration) {
-//		if()
-//	}
-	return starttime;
+	//for(time_t time = 131849700; time <= endtime; time += segment_duration) {
+	//	if()
+	//}
+	return interval;
 }
 
-void find_match(packet &p, CFlowHashMap7* hashedFlowMap, CPersist & data, int rule_pos, bool use_outflows){
+void find_match(packet &p, CPersist & data, int rule_pos, bool use_outflows){
 	//TODO
 	if (!use_outflows){
 		uint32_t localIP = get_IPs(p)[0];
@@ -926,23 +933,24 @@ void find_match(packet &p, CFlowHashMap7* hashedFlowMap, CPersist & data, int ru
 		uint16_t remotePort = get_ports(p)[1];
 		uint8_t direction = inflow;
 		uint8_t direction_q = q_infl;
-		uint64_t interval_start = get_interval_start(p);
+		uint64_t interval = get_interval(p);
 
-		PacketHashKey7 pkey(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction, &interval_start);
-		PacketHashKey7 pkey_q(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction_q, &interval_start);
-
-
+		HashKeyIPv4_6T key(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction);
+		HashKeyIPv4_6T key_q(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction_q);
 
 		for(int rule_no=0; rule_no <= data.c.get_rule_count(); rule_no++) {
-			CFlowHashMap7::iterator iter = data.hashedFlowlist[rule_no]->find(pkey);
-			CFlowHashMap7::iterator iter_q =data.hashedFlowlist[rule_no]->find(pkey_q);
-
-			if ((*data.hashedFlowlist[rule_no]).end() != iter){
+			if (!data.hashedFlowlist[interval].empty()){
+				CFlowHashMap6::iterator iter = data.hashedFlowlist[interval][rule_no]->find(key);
+				CFlowHashMap6::iterator iter_q =data.hashedFlowlist[interval][rule_no]->find(key_q);
+			if ((*data.hashedFlowlist[interval][rule_no]).end() != iter){
+				PacketHashKey7 pkey(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction, &(p.ipPayload.timestamp));
 				(*data.hashedPacketlist[rule_no])[pkey].push_back(p);
-			} else if((*data.hashedFlowlist[rule_no]).end() != iter_q) {
+			} else if((*data.hashedFlowlist[interval][rule_no]).end() != iter_q) {
+				PacketHashKey7 pkey_q(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction_q, &(p.ipPayload.timestamp));
 				(*data.hashedPacketlist[rule_no])[pkey_q].push_back(p);
 			} else {
 				//cerr << "wtf?" << endl;
+			}
 			}
 		}
 	}
@@ -958,6 +966,19 @@ void process_pcap(string pcap_filename, CPersist & data, bool use_outflows)
     // Open file for packet reading
     int pcount = 0; // Packet counter
     try {
+    	PcapOffline pco2(pcap_filename);
+
+		// Process saved packets
+		// *********************
+		// Loop through pcap file by reading packet-by-packet.
+    	Packet p;
+		long tot_packets = 0;
+		while (pco2.ok()) {
+			if (!pco2.next(p)) break;
+			tot_packets++;
+		}
+		cout << "Total Packets: " << tot_packets << endl;
+
 		PcapOffline pco(pcap_filename);
 		string filename = pco.get_filename();
 
@@ -966,7 +987,6 @@ void process_pcap(string pcap_filename, CPersist & data, bool use_outflows)
 		// Process saved packets
 		// *********************
 		// Loop through pcap file by reading packet-by-packet.
-		Packet p;
 		while (pco.ok()) {
 			//flow = {0};
 			memset(&packet, 0, sizeof(packet));
@@ -975,6 +995,9 @@ void process_pcap(string pcap_filename, CPersist & data, bool use_outflows)
 			if (!pco.next(p)) break;	// Quit if no more packets avaliable
 			pcount++;
 
+			if ((pcount%10000)==0){
+				cout << "Processing packet " << pcount << "of " << tot_packets << endl;
+			}
 			// Get packet length from header, but limit it to capture length
 			Packet::Length len = (p.get_length() > p.get_capture_length()) ? p.get_length() : p.get_capture_length();
 
@@ -1059,7 +1082,7 @@ void process_pcap(string pcap_filename, CPersist & data, bool use_outflows)
 
 				for (int i = 0; i <= data.c.get_rule_count(); i++){
 					//cout << "---------------Rule position: " << i << "-----------------" << endl;
-					find_match(packet, data.hashedFlowlist[i], data, i, use_outflows);
+					find_match(packet,data, i, use_outflows);
 				}
 
 			}

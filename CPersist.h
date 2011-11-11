@@ -22,9 +22,10 @@
 using namespace std;
 
 typedef hash_map<HashKeyIPv4, uint32_t , HashFunction<HashKeyIPv4>,HashFunction<HashKeyIPv4> > HashMap;
-//typedef hash_multimap<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
-typedef hash_multimap<HashKeyIPv4_7T, struct cflow, HashFunction<HashKeyIPv4_7T>, HashFunction<HashKeyIPv4_7T> > CFlowHashMap7;
+typedef hash_multimap<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
+//typedef hash_multimap<HashKeyIPv4_7T, struct cflow, HashFunction<HashKeyIPv4_7T>, HashFunction<HashKeyIPv4_7T> > CFlowHashMap7;
 typedef hash_map<HashKeyIPv4_7T, vector<struct packet>, HashFunction<HashKeyIPv4_7T>, HashFunction<HashKeyIPv4_7T> > packetHashMap7;
+//typedef hash_map<HashKeyIPv4_6T, vector<struct packet>, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > packetHashMap6;
 typedef vector<packet> PACKET_LIST;
 
 class CPersist {
@@ -62,7 +63,7 @@ public:
 	map<string, int> backsc_aff_flow_count;
 	map<string, int> sbenign_aff_flow_count;
 
-	vector<CFlowHashMap7*> hashedFlowlist;
+	map<int,vector<CFlowHashMap6*> > hashedFlowlist;
 	vector<packetHashMap7*> hashedPacketlist;
 
 	vector<string> snortalerts;
