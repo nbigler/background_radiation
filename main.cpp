@@ -667,9 +667,19 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
 					if(get_tcp_flags((*it2).ipPayload.tcpHeader)==0x02) synpkt = true;
 				}
-					if(synpkt) data.backsc_aff_flow_count["FP: SYN Packet"]++;
-			} else {
-				data.backsc_aff_flow_count["Unknown"]++;
+					if(synpkt) {
+						data.backsc_aff_flow_count["FP: SYN Packet"]++;
+					} else {
+						data.backsc_aff_flow_count["Unknown"]++;
+					}
+			} else if((*(*it).second.begin()).protocol == IPPROTO_UDP){
+				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
+					if (((*it2).ipPayload.actualsize == (*it2).ipPayload.packetsize)){ // UDP Packet has no payload
+						data.scan5_aff_flow_count["FP: Empty UDP Packet"]++;
+					} else {
+						data.scan5_aff_flow_count["Unknown"]++;
+					}
+				}
 			}
 		}
 	}
