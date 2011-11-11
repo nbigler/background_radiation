@@ -920,7 +920,7 @@ void find_match(packet &p, CFlowHashMap7* hashedFlowMap, CPersist & data, int ru
 		uint64_t interval_start = get_interval_start(p);
 
 		PacketHashKey7 pkey(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction, &interval_start);
-		PacketHashKey7 pkey_q(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction, &interval_start);
+		PacketHashKey7 pkey_q(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction_q, &interval_start);
 
 		for(int rule_no=0; rule_no <= data.c.get_rule_count(); rule_no++) {
 			for(CFlowHashMap7::iterator it = data.hashedFlowlist[rule_no]->begin(); it != data.hashedFlowlist[rule_no]->end(); it++) {
