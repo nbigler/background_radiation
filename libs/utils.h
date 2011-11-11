@@ -32,7 +32,7 @@ namespace util {
 
 	int getSamples(std::string filename, std::vector<std::string> & files);
 
-	uint64_t snort_date_time_to_epoch(std::string snort_date_time);
+	//uint64_t snort_date_time_to_epoch(std::string snort_date_time);
 };
 
 

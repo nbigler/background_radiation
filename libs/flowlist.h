@@ -43,6 +43,7 @@ public:
 	struct cflow * get_flowlist() { return flowlist; };
 	int get_flow_count() { return flow_count; }
 	std::string & get_filename() { return filename; }
+	uint64_t get_interval_start() { return start_time; }
 
 
 private:

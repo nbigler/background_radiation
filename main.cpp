@@ -279,7 +279,8 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	struct cflow * pflow = fl->get_first_flow();
 	while (pflow != NULL) {
 		totalflows++;
-		uint64_t interval_start = get_interval_start(pflow);
+		//uint64_t interval_start = get_interval_start(pflow);
+		uint64_t interval_start = fl->get_interval_start();
 		if (fl_ref[i] != 0) { // Ignore empty sign sets
 			sflows++;
 			total_flows++;
@@ -663,7 +664,7 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 	for(int rule_no = 8; rule_no < 11; rule_no++) {
 		for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			if((*(*it).second.begin()).protocol == IPPROTO_ICMP) {
-				if((get_icmp_type(*(*it).second.begin()) == 8 || get_icmp_type(*(*it).second.begin()) == 13 ||get_icmp_type(*(*it).second.begin()) == 15 || get_icmp_type(*(*it).second.begin()) == 17 || get_icmp_type(*(*it).second.begin()) == 35||  == 37)) {
+				if(get_icmp_type((*(*it).second.begin())) == 8 || get_icmp_type((*(*it).second.begin())) == 13 ||get_icmp_type((*(*it).second.begin())) == 15 || get_icmp_type((*(*it).second.begin())) == 17 || get_icmp_type((*(*it).second.begin())) == 35 || get_icmp_type((*(*it).second.begin())) == 37) {
 					data.backsc_aff_flow_count["ICMP Request"]++;
 				} else {
 					data.backsc_aff_flow_count["Unknown"]++;
@@ -682,7 +683,7 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 
 	//Other Malign
 	 // TODO check number!!
-	for(int rule_no = 5; rule_no < 8; rule_no++) {
+	/*for(int rule_no = 5; rule_no < 8; rule_no++) {
 		for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			bool snortalert_found = false;
 			for(vector<string>::iterator it2 = data.snortalerts.begin(); it2 != data.snortalerts.end(); ++it2) {
@@ -696,7 +697,7 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 				data.othermal_aff_flow_count["Unknown"]++;
 			}
 		}
-	}
+	}*/
 }
 
 
@@ -895,17 +896,25 @@ vector<uint16_t> get_ports(packet &p) {
 
 uint64_t get_interval_start(packet &p) {
 
+	time_t ts = p.ipPayload.timestamp;
 
 	uint64_t endtime; //endtime of last segment
 	uint64_t segment_duration;
-	uint64_t packetTime = p.ipPayload.timestamp/1000;
+	time_t packetTime = p.ipPayload.timestamp/1000;
 
+	struct tm *tminfo;
+  //time (&ts);packetTime
+	tminfo = gmtime (&packetTime);
+	tminfo->tm_sec=0;
+	tminfo->tm_min /= 10;
+	tminfo->tm_min *= 10;
+	time_t starttime = mktime(tminfo);
 	//time = starttime of first segment
 	//TODO
 //	for(uint64_t time = 123; time <= endtime; time += segmentduration) {
 //		if()
 //	}
-	return 0;
+	return starttime;
 }
 
 void find_match(packet &p, CFlowHashMap7* hashedFlowMap, CPersist & data, int rule_pos, bool use_outflows){
@@ -922,15 +931,18 @@ void find_match(packet &p, CFlowHashMap7* hashedFlowMap, CPersist & data, int ru
 		PacketHashKey7 pkey(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction, &interval_start);
 		PacketHashKey7 pkey_q(&localIP, &remoteIP, &localPort, &remotePort, &(p.protocol), &direction_q, &interval_start);
 
+
+
 		for(int rule_no=0; rule_no <= data.c.get_rule_count(); rule_no++) {
-			for(CFlowHashMap7::iterator it = data.hashedFlowlist[rule_no]->begin(); it != data.hashedFlowlist[rule_no]->end(); it++) {
-				if(data.hashedFlowlist[rule_no]->find(pkey)) {
-					(*data.hashedPacketlist[rule_no])[pkey].push_back(p);
-				} else if(data.hashedFlowlist[rule_no]->find(pkey_q)) {
-					(*data.hashedPacketlist[rule_no])[pkey_q].push_back(p);
-				} else {
-					cerr << "wtf?" << endl;
-				}
+			CFlowHashMap7::iterator iter = data.hashedFlowlist[rule_no]->find(pkey);
+			CFlowHashMap7::iterator iter_q =data.hashedFlowlist[rule_no]->find(pkey_q);
+
+			if ((*data.hashedFlowlist[rule_no]).end() != iter){
+				(*data.hashedPacketlist[rule_no])[pkey].push_back(p);
+			} else if((*data.hashedFlowlist[rule_no]).end() != iter_q) {
+				(*data.hashedPacketlist[rule_no])[pkey_q].push_back(p);
+			} else {
+				//cerr << "wtf?" << endl;
 			}
 		}
 	}
