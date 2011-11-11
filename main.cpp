@@ -620,43 +620,36 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 			//Stealth scans (Scans w/o preceding 3-way handshake)
 			if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x29) { //X-Mas Tree Scan (URG+PSH+FIN)
 
-				data.scan5_aff_flow_count["X-Mas Tree Scan"]++;
+				data.scan5_aff_flow_count["TP: X-Mas Tree Scan"]++;
 
 				if(verbose) {
-					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is X-Mas Tree Scan" << endl;
+					cout << "True Positive: Flow assigned to Rule " << rule_no << " and is X-Mas Tree Scan" << endl;
 				}
 			}else if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x01) { //FIN Scan
 
-				data.scan5_aff_flow_count["Fin Scan"]++;
+				data.scan5_aff_flow_count["TP: Fin Scan"]++;
 
 				if(verbose) {
-					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is FIN Scan" << endl;
+					cout << "True Positive: Flow assigned to Rule " << rule_no << " and is FIN Scan" << endl;
 				}
 			}else if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x00) { //Null Scan
 
-				data.scan5_aff_flow_count["Null Scan"]++;
+				data.scan5_aff_flow_count["TP: Null Scan"]++;
 
 				if(verbose) {
-					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is Null Scan" << endl;
+					cout << "True Positive: Flow assigned to Rule " << rule_no << " and is Null Scan" << endl;
 				}
 			}else if(get_tcp_flags((*(*it).second.begin()).ipPayload.tcpHeader) == 0x02 && ++(*it).second.begin() == (*it).second.end()) { //SYN Scan
 
-				data.scan5_aff_flow_count["SYN Scan"]++;
+				data.scan5_aff_flow_count["TP :SYN Scan"]++;
 
 				if(verbose) {
-					cout << "False Negative: Flow assigned to Rule " << rule_no << " but is SYN Scan" << endl;
+					cout << "True Positive: Flow assigned to Rule " << rule_no << " and is SYN Scan" << endl;
 				}
 			}else{
 
 				data.scan5_aff_flow_count["Unknown"]++;
 
-			}
-		}else if((*(*it).second.begin()).protocol == IPPROTO_UDP) {
-			if ((*(*it).second.begin()).ipPayload.actualsize == (*(*it).second.begin()).ipPayload.packetsize){
-				// UDP Packet has no payload
-				data.scan5_aff_flow_count["Empty UDP Packet"]++;
-			}else {
-				data.scan5_aff_flow_count["Unknown"]++;
 			}
 		}
 	}
@@ -666,7 +659,7 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 		for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			if((*(*it).second.begin()).protocol == IPPROTO_ICMP) {
 				if(get_icmp_type((*(*it).second.begin())) == 8 || get_icmp_type((*(*it).second.begin())) == 13 ||get_icmp_type((*(*it).second.begin())) == 15 || get_icmp_type((*(*it).second.begin())) == 17 || get_icmp_type((*(*it).second.begin())) == 35 || get_icmp_type((*(*it).second.begin())) == 37) {
-					data.backsc_aff_flow_count["ICMP Request"]++;
+					data.backsc_aff_flow_count["FP: ICMP Request"]++;
 				} else {
 					data.backsc_aff_flow_count["Unknown"]++;
 				}
@@ -675,9 +668,19 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
 					if(get_tcp_flags((*it2).ipPayload.tcpHeader)==0x02) synpkt = true;
 				}
-					if(synpkt) data.backsc_aff_flow_count["SYN Packet"]++;
-			} else {
-				data.backsc_aff_flow_count["Unknown"]++;
+					if(synpkt) {
+						data.backsc_aff_flow_count["FP: SYN Packet"]++;
+					} else {
+						data.backsc_aff_flow_count["Unknown"]++;
+					}
+			} else if((*(*it).second.begin()).protocol == IPPROTO_UDP){
+				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
+					if (((*it2).ipPayload.actualsize == (*it2).ipPayload.packetsize)){ // UDP Packet has no payload
+						data.scan5_aff_flow_count["FP: Empty UDP Packet"]++;
+					} else {
+						data.scan5_aff_flow_count["Unknown"]++;
+					}
+				}
 			}
 		}
 	}
