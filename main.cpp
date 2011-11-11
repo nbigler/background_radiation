@@ -653,8 +653,8 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 			}
 		}
 	}
-	//Backscatter
 
+	//Backscatter
 	for(int rule_no = 8; rule_no < 11; rule_no++) {
 		for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			if((*(*it).second.begin()).protocol == IPPROTO_ICMP) {
@@ -674,12 +674,16 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 						data.backsc_aff_flow_count["Unknown"]++;
 					}
 			} else if((*(*it).second.begin()).protocol == IPPROTO_UDP){
+				bool empty_packet = false;
 				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
 					if (((*it2).ipPayload.actualsize == (*it2).ipPayload.packetsize)){ // UDP Packet has no payload
-						data.scan5_aff_flow_count["FP: Empty UDP Packet"]++;
-					} else {
-						data.scan5_aff_flow_count["Unknown"]++;
+						empty_packet = true;
 					}
+				}
+				if(empty_packet) {
+					data.scan5_aff_flow_count["FP: Empty UDP Packet"]++;
+				} else {
+					data.scan5_aff_flow_count["Unknown"]++;
 				}
 			}
 		}
@@ -696,17 +700,44 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 		}
 		if(var_eq_0) {
 			data.sbenign_aff_flow_count["FP: Packet size var == 0"]++;
-		} else {
-			data.sbenign_aff_flow_count["Unknown"]++;
+		}
+		if((*(*it).second.begin()).protocol == IPPROTO_TCP){
+			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
+				if(!valid_flag_sequence_check((*it).first, data, 14)) {
+					data.sbenign_aff_flow_count["FP: Invalid flag seq"]++;
+				} else {
+					data.sbenign_aff_flow_count["Unknown"]++;
+				}
+			}
 		}
 	}
 
-
 	//Other Malign
-	 // TODO check number!!
-	/*for(int rule_no = 5; rule_no < 8; rule_no++) {
+	for(int rule_no = 5; rule_no < 8; rule_no++) {
 		for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
-			bool snortalert_found = false;
+			if((*(*it).second.begin()).protocol == IPPROTO_TCP){
+				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
+					if(!valid_flag_sequence_check((*it).first, data, 14)) {
+						data.sbenign_aff_flow_count["TP: Invalid flag seq"]++;
+					} else {
+						data.sbenign_aff_flow_count["Unknown"]++;
+					}
+				}
+			} else if((*(*it).second.begin()).protocol == IPPROTO_UDP){
+				bool empty_packet = false;
+				for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
+					if (((*it2).ipPayload.actualsize == (*it2).ipPayload.packetsize)){ // UDP Packet has no payload
+						empty_packet = true;
+					}
+				}
+				if(empty_packet) {
+					data.scan5_aff_flow_count["TP: Empty UDP Packet"]++;
+				} else {
+					data.scan5_aff_flow_count["Unknown"]++;
+				}
+			}
+
+			/*bool snortalert_found = false;
 			for(vector<string>::iterator it2 = data.snortalerts.begin(); it2 != data.snortalerts.end(); ++it2) {
 				if((*(*it).second.begin()).ipPayload.timestamp == util::snort_date_time_to_epoch((*it2).substr(0,(*it2).find_first_of(".")+6))) {
 					snortalert_found = true;
@@ -716,9 +747,10 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 				data.othermal_aff_flow_count["No Snort Alert"]++;
 			} else {
 				data.othermal_aff_flow_count["Unknown"]++;
-			}
+			}*/
+
 		}
-	}*/
+	}
 }
 
 
