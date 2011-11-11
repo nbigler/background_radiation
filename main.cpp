@@ -279,7 +279,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	struct cflow * pflow = fl->get_first_flow();
 	while (pflow != NULL) {
 		totalflows++;
-		uint64_t interval_start = get_interval_start(&pflow);
+		uint64_t interval_start = get_interval_start(pflow);
 		if (fl_ref[i] != 0) { // Ignore empty sign sets
 			sflows++;
 			total_flows++;
