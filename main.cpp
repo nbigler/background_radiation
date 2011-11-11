@@ -685,6 +685,23 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 		}
 	}
 
+	//rule15
+	for(packetHashMap7::iterator it = data.hashedPacketlist[14]->begin(); it != data.hashedPacketlist[14]->end(); ++it) {
+		bool var_eq_0 = true; //Variation of packet size over entire flow
+		uint32_t prev_packet_size = (*(*it).second.begin()).ipPayload.packetsize;
+		for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
+			if((*it2).ipPayload.packetsize != prev_packet_size) {
+				var_eq_0 = false;
+			}
+		}
+		if(var_eq_0) {
+			data.sbenign_aff_flow_count["FP: Packet size var == 0"]++;
+		} else {
+			data.sbenign_aff_flow_count["Unknown"]++;
+		}
+	}
+
+
 	//Other Malign
 	 // TODO check number!!
 	/*for(int rule_no = 5; rule_no < 8; rule_no++) {
