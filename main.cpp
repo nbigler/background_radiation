@@ -663,7 +663,7 @@ void get_affirmative_flow_count(CPersist & data, bool verbose){
 	for(int rule_no = 8; rule_no < 11; rule_no++) {
 		for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
 			if((*(*it).second.begin()).protocol == IPPROTO_ICMP) {
-				if((get_icmp_type(*it) == 8 || get_icmp_type(*it) == 13 ||get_icmp_type(*it) == 15 || get_icmp_type(*it) == 17 || get_icmp_type(*it) == 35|| get_icmp_type(*it) == 37)) {
+				if((get_icmp_type(*(*it).second.begin()) == 8 || get_icmp_type(*(*it).second.begin()) == 13 ||get_icmp_type(*(*it).second.begin()) == 15 || get_icmp_type(*(*it).second.begin()) == 17 || get_icmp_type(*(*it).second.begin()) == 35||  == 37)) {
 					data.backsc_aff_flow_count["ICMP Request"]++;
 				} else {
 					data.backsc_aff_flow_count["Unknown"]++;
