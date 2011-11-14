@@ -721,18 +721,18 @@ int main(int argc, char **argv) {
 		cts = mktime(&tm);
 		string pcap_filename;
 
-		for (size_t i = 0; i< pcap_files.size(); i++) {
-			if (pcap_files.size() > 1) { cout << pcap_files[i] << endl; }
-			pos = pcap_files[i].find(".pcap.gz");
+		for (size_t j = 0; j< pcap_files.size(); j++) {
+			if (pcap_files.size() > 1) { cout << pcap_files[j] << endl; }
+			pos = pcap_files[j].find(".pcap.gz");
 			string pcap_ts;
-			pcap_ts = pcap_files[i].substr(5,pos-1);
+			pcap_ts = pcap_files[j].substr(5,pos-1);
 			time_t pts = atoi(pcap_ts.c_str());
 			if (((cts < pts) && (cts+600 > pts)) || ((cts > pts) && (cts < pts + 3600))){
-				if (!file_exists(pcap_files[i])){
-					if (i>0) remove(pcap_files[i-1].c_str());
-					ifstream file(pcap_files[i].c_str(), ios_base::in | ios_base::binary);
+				if (!file_exists(pcap_files[j])){
+					if (j>0) remove(pcap_files[j-1].c_str());
+					ifstream file(pcap_files[j].c_str(), ios_base::in | ios_base::binary);
 					boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-					pcap_filename = pcap_files[i].substr(0,pcap_files[i].find(".gz")).substr(pcap_files[i].find_last_of("/")+1);
+					pcap_filename = pcap_files[j].substr(0,pcap_files[j].find(".gz")).substr(pcap_files[j].find_last_of("/")+1);
 					ofstream out(pcap_filename.c_str());
 					in.push(boost::iostreams::gzip_decompressor());
 					in.push(file);
