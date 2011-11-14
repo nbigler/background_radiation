@@ -64,7 +64,9 @@ public:
 	vector<CFlowHashMap6*> hashedFlowlist;
 	vector<packetHashMap7*> hashedPacketlist;
 
-	vector<PACKET_LIST*> packetlist;
+	vector<PACKET_LIST*> rules_packetlist;
+	vector<packet> packetlist;
+
 	CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		string & rules_filename, string & classes_filename, bool use_outflows);
 
