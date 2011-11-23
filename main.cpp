@@ -116,6 +116,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	// Loop over all sign sets (i.e. all flows)
 	int i = 0;
 	struct cflow * pflow = fl->get_first_flow();
+	data.last_flow = 0;
 	while (pflow != NULL) {
 		totalflows++;
 		if (fl_ref[i] != 0) { // Ignore empty sign sets
@@ -124,6 +125,10 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 			total_packets += pflow->dPkts;
 			total_bytes   += pflow->dOctets;
 			util::swap_endians(*pflow);
+
+			if (data.last_flow < (pflow->startMs + pflow->durationMs)){
+				data.last_flow = (pflow->startMs + pflow->durationMs);
+			}
 			// Check signs against all rules and increment counters for matching ones
 			bool found = false;
 
@@ -481,7 +486,7 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 					packet.localPort = ntohs(tcp_hdr->source);
 					packet.remotePort = ntohs(tcp_hdr->dest);
 					packet.ipPayload.tcpHeader = *tcp_hdr;
-					//packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr));
+					packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr));
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr));
 					//(*packet.ipPayload.payload) = (*pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr));
 					break;
@@ -490,25 +495,25 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 					packet.localPort = ntohs(udp_hdr->source);
 					packet.remotePort = ntohs(udp_hdr->dest);
 					packet.ipPayload.udpHeader = *udp_hdr;
-					//packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr));
+					packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr));
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr));
 					//(*packet.ipPayload.payload) = (*pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr));
 					break;
 				case IPPROTO_ICMP:
 					icmp_hdr = (struct icmphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
 					packet.ipPayload.icmpHeader = *icmp_hdr;
-					//packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr));
+					packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr));
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr));
 					//(*packet.ipPayload.payload) = (*pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr));
 					break;
 				default:
-					//packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr));
+					packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr));
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+sizeof(struct iphdr));
 					//(*packet.ipPayload.payload) = (*pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
 					break;
 				}
 				packet.ipPayload.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
-				packet.ipPayload.packetsize = p.get_capture_length();
+				//packet.ipPayload.packetsize = p.get_capture_length();
 				packet.ipPayload.actualsize = p.get_length();
 
 				/*static char local[16];
@@ -517,7 +522,7 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 				util::ipV4AddressToString(packet.remoteIP, remote,sizeof remote);
 				cout << "Packet: " << local << ":" << packet.localPort << ";\t" << remote << ":" << packet.remotePort << ";" << static_cast<int>(packet.protocol)<< endl;*/
 
-				if ((cflow_start < (packet.ipPayload.timestamp / 100000)) && ((cflow_start + 600) > (packet.ipPayload.timestamp / 1000000))){
+				if (((cflow_start <= (packet.ipPayload.timestamp / 100000)) && ((cflow_start + 600) > (packet.ipPayload.timestamp / 1000000)))){
 					find_match(packet, data);
 				}
 			}
@@ -578,15 +583,22 @@ bool flowlist_not_complete(CPersist & data){
 
 	vector<CFlowHashMap6*>::iterator it;
 	CFlowHashMap6::iterator cfHmiter;
+	bool found = false;
 	for (it=data.flows_by_rule.begin(); it!=data.flows_by_rule.end(); it++){
 		for (cfHmiter = (*it)->begin(); cfHmiter != (*it)->end(); cfHmiter++){
 			if (cfHmiter->second.get_flow().dPkts != cfHmiter->second.get_packets().size()){
-				return false;
+				cout << "Incomplete Flow!!!: " <<  cfHmiter->second.get_flow().dPkts - cfHmiter->second.get_packets().size() << endl;
+				static char local[16];
+				static char remote[16];
+				util::ipV4AddressToString(cfHmiter->second.get_flow().localIP, local, sizeof local);
+				util::ipV4AddressToString(cfHmiter->second.get_flow().remoteIP, remote,sizeof remote);
+				cout << "Flow: " << local << ":" << cfHmiter->second.get_flow().localPort << ";\t" << remote << ":" << cfHmiter->second.get_flow().remotePort << ";" << static_cast<int>(cfHmiter->second.get_flow().dPkts) << endl;
+				found = true;
 			}
 		}
 	}
 
-	return true;
+	return found;
 }
 
 int main(int argc, char **argv) {
@@ -750,7 +762,7 @@ int main(int argc, char **argv) {
 				pcap_ts = pcap_files[j].substr(pos-10,10);
 				time_t pts = atoi(pcap_ts.c_str());
 				cout << "pts: " << pts << endl;
-				if (((cts < pts) && (cts+600 > pts)) || ((cts > pts) && (cts < pts + 3600)) || flowlist_not_complete(data)){
+				if (((cts < pts) && (cts+600 > pts)) || ((cts > pts) && (cts < pts + 3600))){
 					cout << "if entered" << endl;
 					pcap_filename = pcap_files[j].substr(0,pcap_files[j].find(".gz")).substr(pcap_files[j].find_last_of("/")+1);
 					if (!file_exists(pcap_filename)){

@@ -40,6 +40,7 @@ public:
 	uint64_t * bytes;			///< Byte count per rule (rule number is index)*/
 	string date;
 
+	time_t last_flow;
 	static const int TYPE_COUNT = 255;
 	static const int CODE_COUNT = 255;
 	static const int PORT_COUNT = 65536;
