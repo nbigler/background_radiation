@@ -15,7 +15,7 @@ class Flow {
 		}
 
 		void add(const packet &pck) {
-			if(packets.size() <= static_cast<int>(flow.dPkts)) {
+			if(packets.size() > static_cast<int>(flow.dPkts)) {
 				packets.push_back(pck);
 			} else {
 				std::cerr << "Number of packets must not exceed number of packets in flow" << std::endl;

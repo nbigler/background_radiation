@@ -355,28 +355,30 @@ void write_pcap(CPersist & data){
 		}
 		vector<packet>::iterator iter;
 		//iter != data.rules_packetlist[i]->end()
-		CFlowHashMap6::iterator it = *(data.flows_by_rule[i]);
-		for (vector<packet>::iterator iter = (*it).second.get_packets().begin(); iter != (*it).second.get_packets().end(); iter++){
-			packetHeader.init((*iter).ipPayload.timestamp, (*iter).ipPayload.packetsize, (*iter).ipPayload.actualsize);
-			fileout.write(reinterpret_cast<const char*>(&packetHeader), sizeof fileHeader);
-			fileout.write(reinterpret_cast<const char*>(&(*iter).ethHeader), sizeof(struct ethhdr));
-			fileout.write(reinterpret_cast<const char*>(&(*iter).ipHeader), sizeof(struct iphdr));
-			switch ((*iter).protocol) {
-				case IPPROTO_TCP:
-					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.tcpHeader), sizeof(struct tcphdr));
-					//fileout.write(reinterpret_cast<const char*>(&it->ipPayload.payload), it->ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr)));
-					break;
-				case IPPROTO_UDP:
-					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.udpHeader), sizeof(struct udphdr));
-					//fileout.write(reinterpret_cast<const char*>(&it->ipPayload.payload), it->ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr)));
-					break;
-				case IPPROTO_ICMP:
-					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.icmpHeader), sizeof(struct icmphdr));
-					//fileout.write(reinterpret_cast<const char*>(&p.ipPayload.payload), p.ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr)));
-					break;
-				default:
-					//fileout.write(reinterpret_cast<const char*>(&p.ipPayload.payload), p.ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)));
-					break;
+		CFlowHashMap6::iterator it;
+		for (it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end() ; it++){
+			for (vector<packet>::const_iterator iter = (*it).second.get_packets().begin(); iter != (*it).second.get_packets().end(); iter++){
+				packetHeader.init((*iter).ipPayload.timestamp, (*iter).ipPayload.packetsize, (*iter).ipPayload.actualsize);
+				fileout.write(reinterpret_cast<const char*>(&packetHeader), sizeof packetHeader);
+				fileout.write(reinterpret_cast<const char*>(&(*iter).ethHeader), sizeof(struct ethhdr));
+				fileout.write(reinterpret_cast<const char*>(&(*iter).ipHeader), sizeof(struct iphdr));
+				switch ((*iter).protocol) {
+					case IPPROTO_TCP:
+						fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.tcpHeader), sizeof(struct tcphdr));
+						//fileout.write(reinterpret_cast<const char*>(&it->ipPayload.payload), it->ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr)));
+						break;
+					case IPPROTO_UDP:
+						fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.udpHeader), sizeof(struct udphdr));
+						//fileout.write(reinterpret_cast<const char*>(&it->ipPayload.payload), it->ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr)));
+						break;
+					case IPPROTO_ICMP:
+						fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.icmpHeader), sizeof(struct icmphdr));
+						//fileout.write(reinterpret_cast<const char*>(&p.ipPayload.payload), p.ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr)));
+						break;
+					default:
+						//fileout.write(reinterpret_cast<const char*>(&p.ipPayload.payload), p.ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)));
+						break;
+				}
 			}
 		}
 		fileout.close();
@@ -415,7 +417,7 @@ void find_match(packet &p, CPersist & data){
 	}
 }
 
-void process_pcap(string pcap_filename, CPersist & data, bool use_outflows)
+void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 {
     struct packet packet;
     memset((void*)(&packet), 0, sizeof (packet));
@@ -514,7 +516,10 @@ void process_pcap(string pcap_filename, CPersist & data, bool use_outflows)
 				util::ipV4AddressToString(packet.localIP, local, sizeof local);
 				util::ipV4AddressToString(packet.remoteIP, remote,sizeof remote);
 				cout << "Packet: " << local << ":" << packet.localPort << ";\t" << remote << ":" << packet.remotePort << ";" << static_cast<int>(packet.protocol)<< endl;*/
-				find_match(packet, data);
+
+				if ((cflow_start < (packet.ipPayload.timestamp / 100000)) && ((cflow_start + 600) > (packet.ipPayload.timestamp / 1000000))){
+					find_match(packet, data);
+				}
 			}
 		}
 
@@ -567,6 +572,21 @@ void clear_lists(CPersist & data){
 	}
 	data.flows_by_rule.clear();
 //	data.rules_packetlist.clear();
+}
+
+bool flowlist_not_complete(CPersist & data){
+
+	vector<CFlowHashMap6*>::iterator it;
+	CFlowHashMap6::iterator cfHmiter;
+	for (it=data.flows_by_rule.begin(); it!=data.flows_by_rule.end(); it++){
+		for (cfHmiter = (*it)->begin(); cfHmiter != (*it)->end(); cfHmiter++){
+			if (cfHmiter->second.get_flow().dPkts != cfHmiter->second.get_packets().size()){
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 int main(int argc, char **argv) {
@@ -730,7 +750,7 @@ int main(int argc, char **argv) {
 				pcap_ts = pcap_files[j].substr(pos-10,10);
 				time_t pts = atoi(pcap_ts.c_str());
 				cout << "pts: " << pts << endl;
-				if (((cts < pts) && (cts+600 > pts)) || ((cts > pts) && (cts < pts + 3600))){
+				if (((cts < pts) && (cts+600 > pts)) || ((cts > pts) && (cts < pts + 3600)) || flowlist_not_complete(data)){
 					cout << "if entered" << endl;
 					pcap_filename = pcap_files[j].substr(0,pcap_files[j].find(".gz")).substr(pcap_files[j].find_last_of("/")+1);
 					if (!file_exists(pcap_filename)){
@@ -743,11 +763,10 @@ int main(int argc, char **argv) {
 						boost::iostreams::copy(in, out);
 					}
 					cout << "Processing pcap file: " << pcap_filename << endl;
-					process_pcap(pcap_filename, data, use_outflows);
-
-					write_pcap(data);
+					process_pcap(pcap_filename, data, cts);
 				}
 			}
+			write_pcap(data);
 			clear_lists(data);
 		}
 	}
