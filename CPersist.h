@@ -18,13 +18,12 @@
 #include "libs/flowlist.h"
 #include "libs/utils.h"
 #include "libs/packet.h"
+#include "Flow.h"
 
 using namespace std;
 
-typedef hash_map<HashKeyIPv4, uint32_t , HashFunction<HashKeyIPv4>,HashFunction<HashKeyIPv4> > HashMap;
-typedef hash_multimap<HashKeyIPv4_6T, struct cflow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
-typedef hash_map<HashKeyIPv4_7T, vector<struct packet>, HashFunction<HashKeyIPv4_7T>, HashFunction<HashKeyIPv4_7T> > packetHashMap7;
-typedef vector<packet> PACKET_LIST;
+//typedef hash_map<HashKeyIPv4, uint32_t , HashFunction<HashKeyIPv4>,HashFunction<HashKeyIPv4> > HashMap;
+typedef hash_map<HashKeyIPv4_6T, Flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
 
 class CPersist {
 public:
@@ -61,11 +60,12 @@ public:
 	map<string, int> backsc_aff_flow_count;
 	map<string, int> sbenign_aff_flow_count;
 
-	vector<CFlowHashMap6*> hashedFlowlist;
-	vector<packetHashMap7*> hashedPacketlist;
 
-	vector<PACKET_LIST*> rules_packetlist;
-	vector<packet> packetlist;
+
+	vector<CFlowHashMap6*> flows_by_rule;
+
+//	vector<vector<packet> > rules_packetlist;
+//	vector<packet> packetlist;
 
 	CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		string & rules_filename, string & classes_filename, bool use_outflows);
