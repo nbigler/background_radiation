@@ -105,7 +105,10 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	//cout << "Rule count: " << rule_count << endl;
 	for (int j=0; j <= rule_count; j++) {
 		flow_per_rule_counter[j] = 0;
-		data.flows_by_rule.push_back(new CFlowHashMap6());
+		if(data.flows_by_rule[j] == NULL) {
+			data.flows_by_rule[j] = new CFlowHashMultiMap6();
+		}
+//		data.flows_by_rule.push_back(new CFlowHashMap6());
 	}
 
 	// Loop over all sign sets (i.e. all flows)
@@ -139,7 +142,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 
 //					CFlowHashMap6::iterator iter = (*data.flows_by_rule[j]).find(flowkey);
 
-					(*data.flows_by_rule[j]).insert(CFlowHashMap6::value_type (flowkey, Flow(*pflow)));
+					(*data.flows_by_rule[j]).insert(CFlowHashMultiMap6::value_type (flowkey, Flow(*pflow)));
 					found = true;
 				}
 			}
@@ -349,8 +352,7 @@ void write_pcap(CPersist & data){
 		}
 		vector<packet>::iterator iter;
 		//iter != data.rules_packetlist[i]->end()
-		CFlowHashMap6::iterator it;
-		for (it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end() ; it++){
+		for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end() ; it++){
 			for (vector<packet>::const_iterator iter = (*it).second.get_packets().begin(); iter != (*it).second.get_packets().end(); iter++){
 				if((*it).second.flow_complete()) {
 					packetHeader.init((*iter).ipPayload.timestamp, (*iter).ipPayload.packetsize, (*iter).ipPayload.actualsize);
@@ -392,8 +394,8 @@ void find_match(packet &p, CPersist & data){
 					&(p.localPort), &(p.protocol), &(q_in));
 
 	for (int i = 0; i <= data.c.get_rule_count(); i++){
-		CFlowHashMap6::iterator iter = data.flows_by_rule[i]->find(mykey);
-		CFlowHashMap6::iterator iter_q = data.flows_by_rule[i]->find(mykey_q);
+		CFlowHashMultiMap6::iterator iter = data.flows_by_rule[i]->find(mykey);
+		CFlowHashMultiMap6::iterator iter_q = data.flows_by_rule[i]->find(mykey_q);
 
 		if (iter != data.flows_by_rule[i]->end()){
 
@@ -537,7 +539,7 @@ void get_flow_count(CPersist &data){
 		int packetcount = 0;
 		cout << "Rule: " << i << endl;
 //		int interval = 2;
-		for (CFlowHashMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end(); it++){
+		for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end(); it++){
 			++flowcount;
 			cflow fl = (*it).second.get_flow();
 			packetcount += fl.dPkts;
@@ -559,8 +561,14 @@ void get_flow_count(CPersist &data){
 
 void clear_lists(CPersist & data){
 	for (int i=0; i <= data.c.get_rule_count(); i++) {
-		data.flows_by_rule[i]->clear();
-		delete data.flows_by_rule[i];
+		for(CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end(); it++) {
+			if((*it).second.flow_complete()) data.flows_by_rule[i]->erase((*it).first);
+		}
+//		data.flows_by_rule[i]->clear();
+		if(data.flows_by_rule[i]->empty()) {
+			delete data.flows_by_rule[i];
+		}
+
 //		data.rules_packetlist[i]->clear();
 //		delete data.rules_packetlist[i];
 	}
@@ -568,23 +576,6 @@ void clear_lists(CPersist & data){
 //	data.rules_packetlist.clear();
 }
 
-bool flowlist_not_complete(CPersist & data){
-
-	vector<CFlowHashMap6*>::iterator it;
-	CFlowHashMap6::iterator cfHmiter;
-	bool found = false;
-	for (it=data.flows_by_rule.begin(); it!=data.flows_by_rule.end(); it++){
-		for (cfHmiter = (*it)->begin(); cfHmiter != (*it)->end(); cfHmiter++){
-			if (cfHmiter->second.get_flow().dPkts != cfHmiter->second.get_packets().size()){
-				cout << "Incomplete Flow!!!: " <<  cfHmiter->second.get_flow().dPkts - cfHmiter->second.get_packets().size() << endl;
-				util::print_flow(cfHmiter->second.get_flow());
-				found = true;
-			}
-		}
-	}
-
-	return found;
-}
 
 int main(int argc, char **argv) {
 
@@ -746,8 +737,8 @@ int main(int argc, char **argv) {
 				string pcap_ts;
 				pcap_ts = pcap_files[j].substr(pos-10,10);
 				time_t pts = atoi(pcap_ts.c_str());
-				cout << "pts: " << pts << endl;
-				if (((cts < pts) && (cts+600 > pts)) || ((cts > pts) && (cts < pts + 3600))){
+				//cout << "pts: " << pts << endl;
+				if (((cts <= pts) && (pts <= cts+601)) || ((pts >= cts) && (cts <= pts + 3601))){
 					cout << "if entered" << endl;
 					pcap_filename = pcap_files[j].substr(0,pcap_files[j].find(".gz")).substr(pcap_files[j].find_last_of("/")+1);
 					if (!file_exists(pcap_filename)){

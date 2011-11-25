@@ -23,7 +23,10 @@
 using namespace std;
 
 //typedef hash_map<HashKeyIPv4, uint32_t , HashFunction<HashKeyIPv4>,HashFunction<HashKeyIPv4> > HashMap;
-typedef hash_map<HashKeyIPv4_6T, Flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
+//typedef hash_map<HashKeyIPv4_6T, Flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
+
+typedef hash_multimap<HashKeyIPv4_6T, Flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMultiMap6;
+
 
 class CPersist {
 public:
@@ -63,7 +66,7 @@ public:
 
 
 
-	vector<CFlowHashMap6*> flows_by_rule;
+	vector<CFlowHashMultiMap6*> flows_by_rule;
 
 //	vector<vector<packet> > rules_packetlist;
 //	vector<packet> packetlist;
