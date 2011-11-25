@@ -58,9 +58,6 @@ using namespace pcappp;
 // data = references to flowlist records
 //
 typedef HashKeyIPv4_6T FlowHashKey6;
-typedef HashKeyIPv4_7T PacketHashKey7;
-
-
 
 /**
   *	Classifies flows by applying rules and rule-to-class assocciations to actual
@@ -109,8 +106,6 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	for (int j=0; j <= rule_count; j++) {
 		flow_per_rule_counter[j] = 0;
 		data.flows_by_rule.push_back(new CFlowHashMap6());
-		//data.hashedPacketlist.push_back(new packetHashMap7());
-		//data.rules_packetlist.push_back(new vector<packet>());
 	}
 
 	// Loop over all sign sets (i.e. all flows)
@@ -132,12 +127,6 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 			// Check signs against all rules and increment counters for matching ones
 			bool found = false;
 
-			/*static char local[16];
-			static char remote[16];
-			util::ipV4AddressToString(pflow->localIP, local, sizeof local);
-			util::ipV4AddressToString(pflow->remoteIP, remote,sizeof remote);
-			cout << "Flow: " << local << ":" << pflow->localPort << ";\t" << remote << ":" << pflow->remotePort << ";" << static_cast<int>(pflow->prot) << endl;
-*/
 			for (int j=0; j<rule_count; j++) { // j is rule index
 				if (data.c.rule_match(j, fl_ref[i])) {
 					flow_per_rule_counter[j]++;

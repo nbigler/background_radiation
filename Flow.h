@@ -15,16 +15,17 @@ class Flow {
 			flow = fl;
 		}
 
-		void add(const packet &pck) {
-			if(packets.size() < static_cast<int>(flow.dPkts)) {
-				packets.push_back(pck);
-			} else {
-				std::cerr << "Number of packets must not exceed number of packets in flow" << std::endl;
-				static char local[16];
-				static char remote[16];
-				util::ipV4AddressToString(pck.localIP, local, sizeof local);
-				util::ipV4AddressToString(pck.remoteIP, remote,sizeof remote);
-				cout << "Packet: " << local << ":" << pck.localPort << ";\t" << remote << ":" << pck.remotePort << ";" << static_cast<int>(pck.protocol)<< endl;
+		void add(const packet & pck) {
+			bool packet_belongs_to_flow = (pck.ipPayload.timestamp <= flow.startMs - 1) && (pck.ipPayload.timestamp <= (flow.startMs + flow.durationMs) - 1);
+			bool flow_not_complete = packets.size() < static_cast<int>(flow.dPkts);
+
+			if(packet_belongs_to_flow){
+				if(flow_not_complete){
+					packets.push_back(pck);
+				}else{
+					std::cerr << "Number of packets must not exceed number of packets in flow" << std::endl;
+					util::print_packet(pck);
+				}
 			}
 		}
 

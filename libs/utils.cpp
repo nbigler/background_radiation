@@ -522,6 +522,14 @@ int getSamples(string filename, vector<string> & files)
 	return 0;
 }
 
+void print_packet(const packet & pck) {
+	static char local[16];
+	static char remote[16];
+	ipV4AddressToString(pck.localIP, local, sizeof local);
+	ipV4AddressToString(pck.remoteIP, remote, sizeof remote);
+	cout << "Packet: " << local << ":" << pck.localPort << ";\t" << remote << ":" << pck.remotePort << ";" << static_cast<int>(pck.protocol) << endl;
+}
+
 int count_occurrence_of_char(const char c, const string s) {
 	int count = 0;
 	for(unsigned int i=0; i < s.size(); i++) {
@@ -550,6 +558,8 @@ using namespace boost::posix_time;
 
 	return static_cast<uint64_t>(epoch);
 }*/
+
+
 
 } // Namespace util
 
