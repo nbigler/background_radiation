@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "cflow.h"
+#include "packet.h"
 
 namespace util {
 	void open_outfile(std::ofstream & outfs, std::string ofname);
@@ -29,7 +30,7 @@ namespace util {
 	std::string pformat(int x, int min_fieldsize);
 	std::string pformat(long x, int min_fieldsize);
 	std::string & flowtype2string(flow_type_t flowtype);
-	void print_packet(const packet & pck);
+	void print_packet(const struct packet & pck);
 
 	int getSamples(std::string filename, std::vector<std::string> & files);
 };
