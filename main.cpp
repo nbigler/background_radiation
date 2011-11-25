@@ -352,26 +352,28 @@ void write_pcap(CPersist & data){
 		CFlowHashMap6::iterator it;
 		for (it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end() ; it++){
 			for (vector<packet>::const_iterator iter = (*it).second.get_packets().begin(); iter != (*it).second.get_packets().end(); iter++){
-				packetHeader.init((*iter).ipPayload.timestamp, (*iter).ipPayload.packetsize, (*iter).ipPayload.actualsize);
-				fileout.write(reinterpret_cast<const char*>(&packetHeader), sizeof packetHeader);
-				fileout.write(reinterpret_cast<const char*>(&(*iter).ethHeader), sizeof(struct ethhdr));
-				fileout.write(reinterpret_cast<const char*>(&(*iter).ipHeader), sizeof(struct iphdr));
-				switch ((*iter).protocol) {
-					case IPPROTO_TCP:
-						fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.tcpHeader), sizeof(struct tcphdr));
-						//fileout.write(reinterpret_cast<const char*>(&it->ipPayload.payload), it->ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr)));
-						break;
-					case IPPROTO_UDP:
-						fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.udpHeader), sizeof(struct udphdr));
-						//fileout.write(reinterpret_cast<const char*>(&it->ipPayload.payload), it->ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr)));
-						break;
-					case IPPROTO_ICMP:
-						fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.icmpHeader), sizeof(struct icmphdr));
-						//fileout.write(reinterpret_cast<const char*>(&p.ipPayload.payload), p.ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr)));
-						break;
-					default:
-						//fileout.write(reinterpret_cast<const char*>(&p.ipPayload.payload), p.ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)));
-						break;
+				if((*it).second.flow_complete()) {
+					packetHeader.init((*iter).ipPayload.timestamp, (*iter).ipPayload.packetsize, (*iter).ipPayload.actualsize);
+					fileout.write(reinterpret_cast<const char*>(&packetHeader), sizeof packetHeader);
+					fileout.write(reinterpret_cast<const char*>(&(*iter).ethHeader), sizeof(struct ethhdr));
+					fileout.write(reinterpret_cast<const char*>(&(*iter).ipHeader), sizeof(struct iphdr));
+					switch ((*iter).protocol) {
+						case IPPROTO_TCP:
+							fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.tcpHeader), sizeof(struct tcphdr));
+							//fileout.write(reinterpret_cast<const char*>(&it->ipPayload.payload), it->ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr)));
+							break;
+						case IPPROTO_UDP:
+							fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.udpHeader), sizeof(struct udphdr));
+							//fileout.write(reinterpret_cast<const char*>(&it->ipPayload.payload), it->ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr)));
+							break;
+						case IPPROTO_ICMP:
+							fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.icmpHeader), sizeof(struct icmphdr));
+							//fileout.write(reinterpret_cast<const char*>(&p.ipPayload.payload), p.ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr)));
+							break;
+						default:
+							//fileout.write(reinterpret_cast<const char*>(&p.ipPayload.payload), p.ipPayload.packetsize - (sizeof(struct ethhdr)+sizeof(struct iphdr)));
+							break;
+					}
 				}
 			}
 		}
@@ -397,14 +399,12 @@ void find_match(packet &p, CPersist & data){
 
 			cflow fl = (*iter).second.get_flow();
 			if ((fl.startMs <= p.ipPayload.timestamp/1000) && (p.ipPayload.timestamp/1000 <= (fl.startMs + fl.durationMs))){
-//				(*data.rules_packetlist[i]).push_back(p);
 				(*iter).second.add(p);
 			}
 		} else if(iter_q != data.flows_by_rule[i]->end()){
 
 			cflow fl = (*iter_q).second.get_flow();
 			if ((fl.startMs <= p.ipPayload.timestamp/1000) && (p.ipPayload.timestamp/1000 <= (fl.startMs + fl.durationMs))){
-//				(*data.rules_packetlist[i]).push_back(p);
 				(*iter_q).second.add(p);
 			}
 		}
@@ -577,11 +577,7 @@ bool flowlist_not_complete(CPersist & data){
 		for (cfHmiter = (*it)->begin(); cfHmiter != (*it)->end(); cfHmiter++){
 			if (cfHmiter->second.get_flow().dPkts != cfHmiter->second.get_packets().size()){
 				cout << "Incomplete Flow!!!: " <<  cfHmiter->second.get_flow().dPkts - cfHmiter->second.get_packets().size() << endl;
-				static char local[16];
-				static char remote[16];
-				util::ipV4AddressToString(cfHmiter->second.get_flow().localIP, local, sizeof local);
-				util::ipV4AddressToString(cfHmiter->second.get_flow().remoteIP, remote,sizeof remote);
-				cout << "Flow: " << local << ":" << cfHmiter->second.get_flow().localPort << ";\t" << remote << ":" << cfHmiter->second.get_flow().remotePort << ";" << static_cast<int>(cfHmiter->second.get_flow().dPkts) << endl;
+				util::print_flow(cfHmiter->second.get_flow());
 				found = true;
 			}
 		}

@@ -522,6 +522,14 @@ int getSamples(string filename, vector<string> & files)
 	return 0;
 }
 
+void print_flow(const cflow & flow) {
+    static char local[16];
+    static char remote[16];
+    util::ipV4AddressToString(flow.localIP, local, sizeof local);
+    util::ipV4AddressToString(flow.remoteIP, remote, sizeof remote);
+    cout << "Flow: " << local << ":" << flow.localPort << ";\t" << remote << ":" << flow.remotePort << ";" << static_cast<int>(flow.dPkts) << endl;
+}
+
 void print_packet(const packet & pck) {
 	static char local[16];
 	static char remote[16];
