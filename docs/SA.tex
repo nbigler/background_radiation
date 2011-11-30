@@ -1,0 +1,267 @@
+\documentclass[a4paper]{scrartcl}
+
+\usepackage[applemac]{inputenc}
+%\usepackage{a4wide}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{pstricks-add}
+\usepackage{url}
+\usepackage{auto-pst-pdf}
+\usepackage{ngerman}
+
+% Kopf- und Fusszeilen
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhead{}
+\fancyfoot{}
+\lhead{HSR Hochschule für Technik Rapperswil}
+\rhead{Studienarbeit}
+\lfoot{\copyright \ Nicolas Bigler, Michael Fisler}
+\rfoot{Seite \thepage}
+\renewcommand{\headrulewidth}{0.4pt} 
+\renewcommand{\footrulewidth}{0.4pt}
+
+
+\title{
+	\vspace{-30mm}
+	\hspace{-40mm}
+	\includegraphics{Bilder/HSR_Logo_CMYK.eps}
+	\newline
+	\newline
+	\newline
+	\newline
+	\newline
+	\newline
+	\newline
+%\fbox{\textwidth}{
+Validierung des Background Radiation Detectors
+%}
+ \\ \ \\ Studienarbeit \\ \ \\ \ }
+\subtitle{
+	Abteilung Informatik \\ Hochschule für Technik Rapperswil \\ \ \\ \ Herbstsemester 2011\\ \ \\ \ \\ \ \\ \ \\ \ \\ \ 
+}
+
+\author{
+Autoren: Nicolas Bigler, Michael Fisler  \and
+Betreuer: Prof. Eduard Glatz \and		
+Projektpartner: - \and
+Experte: ? \and
+Gegenleser: ?
+}
+
+%Datum auf Titelseite unterdrücken
+\date{}
+
+% Absatzeinzug aufheben
+\parindent 0pt
+
+% Absatzabstände festlegen
+\parskip 6pt
+
+\begin{document}
+
+%Marginalien links 
+\reversemarginpar
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+
+\section{Aufgabenstellung}
+% Die Marginalie wird so auf derselben Absatzhöhe eingefügt.
+Ein \marginpar{Ausgangslage} wesentlicher Anteil des Internetverkehrs wird durch Fehlkonfigurationen, Würmer und andere Schädlinge, oder Angriffe aller Art verursacht und ist deshalb unerwünscht. Da dieser Verkehr latent auftritt und zeitlich nicht beschränkt ist, wird er oft als Internet-Hintergrundstrahlung (Internet Background Radiation) bezeichnet. [] 
+Die Überwachung dieser Hintergrundstrahlung liefert wertvolle Informationen in Bezug auf bösartige Aktivitäten und kann über längere Zeit betrachtet helfen Trends zu erkennen.
+
+An der ETH Zürich wurde ein Programm entwickelt, welches Verkehrsdaten (die sogenannten Flowdaten) in Ein- und Zweiwegverkehr unterteilen kann, um anschliessend den Einwegverkehr mit Hilfe eines Satzes von vordefinierten Regeln in verschiedene Klassen einzuteilen.
+
+Die bisher analysierten Daten hatten einen sehr begrenzten Informationsgehalt, wodurch die Validierung der verwendeten Regeln stark eingeschränkt war.
+
+Aus diesem Grund wurde an der HSR eine spezielle Infrastruktur aufgebaut, die den gesamten Internetverkehr während einer Woche aufzeichnet und somit zusätzliche Daten für die Validierung liefert. Bisher bildeten die  Paket- und Flowdaten die einzige Basis, neu kommen Payloads von gewissen Paketen und IDS-Alarme hinzu.
+
+Durch \marginpar{Auftrag} geschicktes Anwenden und Analysieren der bereitgestellten Daten sollen die im Detektor verwendeten Regeln validiert und optimiert werden. Die Validierung soll nach Möglichkeit weitestgehend automatisiert erfolgen. Es gilt dabei für die einzelnen Klassen beziehungsweise Regeln die False Negative (FN) und False Positive (FP) Raten zu bestimmen. 
+Zur Analyse sollen die folgenden Verfahren angewendet werden:
+\begin{itemize}
+	\item Analyse der Zustandsabfolge der Pakete (bei TCP Paketen)
+	\item Analyse der Netzwerk Management Informationsdaten (mittels ICMP Paketen)
+	\item Korrelation der Meldungen des Intrusion Detection Systems (IDS) mit den Verkehrsdaten
+\end{itemize}
+
+Der Fokus der Validierung soll auf den Klassen ``Malicious Scanning'' (Regel 5), ``Suspicious Other'' (Regeln 6-8), ``Backscatter'' (Regeln 9-11) und ``Suspected Benign'' (Regel 15) liegen. Die Klasse ``Bogon'' soll nicht validiert werden.
+
+Die vom Betreuer unterschriebene Originalfassung der Aufgabenstellung ist im Anhang [ref?] zu finden.
+\newpage
+
+\section{Abstract}
+
+\section{Management Summary}
+Das \marginpar{Ausgangslage} Ziel dieser Arbeit ist die Validierung des an der ETH entwickelten ``Background Radiation Detectors''. Der Detektor analysiert den gesamten Internetverkehr von und zu der HSR und teilt die darin enthaltenen Einwegflüsse in verschiedene Klassen ein. Die Klassen quantifizieren den Anteil an gutartigem und bösartigem Einwegverkehr. Die Regeln welche die Grundlage für diese Einteilung bilden, sollen auf deren Korrektheit überprüft werden. Als Analysedaten dienen die Paketheader, welche während einer Woche aufgezeichnet wurden, die Meldungen des Intrusion Detection Systems Snort sowie die Flowdaten, welche die einzelnen Flüsse kennzeichnen und die Zusammengehörigkeit der einzelnen Pakete definieren.
+
+Die \marginpar{Vorgehen} zu analysierenden Daten sind sehr umfangreich. Aus diesem Grund ist es sinnvoll die manuelle Arbeit auf ein Minimum zu beschränken. Allein das Laden einer Paketdatei dauert über eine halbe Stunde. Um die Dateigrössen zu reduzieren und somit die Analyse von Hand zu erleichtern werden die Einwegflüsse aus den Roh-Paketdaten extrahiert und getrennt nach ihrer Regelzugehörigkeit in eine eigene Paketdatei gespeichert.
+
+
+blub \marginpar{Ergebnisse} blub
+
+blub \marginpar{Ausblick} blub
+
+\section{Technischer Bericht}
+
+\subsection{Infrastruktur}
+Die Sammlung der Daten fand im Zeitraum vom ... bis ... auf einem zwischen dem HSR-Gateway und der Firewall platzierten Server statt, dem ``Kollektor''. Der ``Kollektor ist mit einer leistungsfähigen DAG Endace Netzwerkkarte ausgestattet, die .... Für die Analyse wird ein separater Server, der ``Analyzer'' verwendet auf dem zu Analysezwecken Wireshark installiert wurde.  
+\begin{figure}[ht]
+	\begin{center}
+		 %345pt entspricht \textwidth, siehe http://andy-roberts.net/res/writing/latex/playout.pdf
+		\includegraphics[width=200pt, keepaspectratio=true]{Bilder/Infrastruktur.eps}
+		\caption{Validierungsinfrastruktur}
+		\label{infra}
+	\end{center}
+\end{figure}
+
+\subsection{Daten}
+Die\marginpar{PCAP} für die Validierung verwendeten Daten sind über eine Woche gesammelte Pcap-Traces des gesamten Verkehrs zwischen dem HSR-Gateway und der Firewall. Sie sind in Einstundenintervalle unterteilt. Da innerhalb des Switch Netzwerks der Verkehr nicht gefiltert wird [Zitat Prof. Glatz], enthalten diese Paketdaten ein gutes Abbild der im Internet herrschenden Background Radiation.
+
+Die\marginpar{Flowdaten} Kategorisierung des Internetverkehrs geschieht auf den in 10 Minuten-Intervallen vorliegenden Flowdaten. Die Flowdaten wurden aus IPFIX zu CFlow konvertiert und beinhalten im Fall von UDP und TCP die lokale IP und den lokalen Port, die externe IP und den externen Port und die Flowrichtung. Für die Validierung von Interesse sind gemäss der Aufgabenstellung nur die Flowrichtungen inflow (eingehende Einwegflüsse) und q\_infl (eingehende Einwegflüsse zu denen ein Zweiwegfluss mit identischem IP-Adressen und Ports existiert) relevant.
+
+Die\marginpar{Signdaten} Flow Daten wurden anschliessend mit dem O/W Classifier [] den verschiedenen Klassen zugeordnet. Als Resultat liegen Signdaten vor in denen die Klassenzugehörigkeit der Flows gespeichert ist.
+
+Zusätzlich\marginpar{IDS} zu den Flow- und Signdaten liegen Warnmeldungen des IDS Snort vor, die für die Analyse Anhaltspunkte liefern können. Um die Snort-Alerts mit den Paket-/Flowdaten korrelieren zu können, wurden die IP Adressen in den Pcap-, Flow- und Snort Daten nach dem gleichen Schema anonymisiert.
+
+\subsubsection{Datenschutz}
+Um den Datenschutzanforderungen der HSR gerecht zu werden, liegen die gesamten IP-Adressen der Paketdaten anonymisiert vor und die Paketinhalte wurden ab dem Layer 4 Header entfernt. Lediglich für die als Einwegflüsse identifizierten Flows liegen die vollständigen Paketdaten vor.
+Die Anonymisierung der IP-Adressen ist präfixerhaltend, damit die Subnetzzugehörigkeit erhalten bleibt, lässt aber ansonsten keine Rückschlüsse auf die hinter der Adresse verborgenen Netze, Rechner oder Services zu. Es können also aufgrund der Adresse weder auf die geografische Position der Endknoten, noch auf den Provider Rückschlüsse gezogen werden. Zudem ist es mit der IP allein unmöglich zu bestimmen, ob sich hinter einer bestimmten IP ein regulärer Server befindet. Die IP Adressen der HSR sind statistisch ersichtlich, da bei den Verkehrsdaten mit Ausnahme von Transit- und Multicastverkehr immer eine HSR Adresse involviert ist. Dadurch konnten die Adressen der Form 152.103.xxx.xxx als HSR intern identifiziert werden.
+
+\subsection{Grundsätzliche Überlegungen zur Validierung}
+Im\marginpar{TCP} Fall von TCP Einwegflows ist die einzige gültige Flag Kombination eine Folge von SYN Paketen mit mindestens 2 Paketen. Bevor eine TCP Verbindung aufgebaut ist, dürfen laut RFC XYZ nur SYN Flags auftreten. Bei nur einem SYN Paket gehen wir davon aus, dass ein SYN-Scan vorliegt, da jede gutartige Applikation sinnvollerweise mehrere Verbindungsaufbauversuche macht. Beim Standard-Socket der von den meisten Applikationen verwendet wird [Zitat Prof. Glatz] ist das standardmässig der Fall.
+
+Bei\marginpar{UDP} UDP Flows wurde die Paketgrösse, beziehungsweise der UDP-Payload als Kriterium für die Kategorisierung verwendet. UDP Pakete ohne Payload sind sehr verdächtig, denn bei regulären UDP Paketen sollte selbst wenn keine Nutzdaten verschickt werden mindestens ein Protokoll-Header der ISO Schichten 5 - 7 und somit ein UDP Payload vorliegen.
+Zusätzlich kann die Varianz der Grösse der einzelnen UDP Pakete eines Flows einen Anhaltspunkt liefern, ob der Flow gutartig ist. BRINGT DIESES KRITERIUM ETWAS? AUSWERTUNG ANSCHAUEN!!!
+
+\subsection{Flow-Klassen}
+Im Folgenden wird die von der ``Background Radiation Detection''-Software verwendete Klassifizierung kurz erläutert und die Charakteristiken der einzelnen Klassen aus Sicht der Validierung aufgezeigt. Die Klassen sind disjunkt, so dass die jeweiligen False Positive und False Negative Raten theoretisch berechnet werden können unter der Voraussetzung, dass die einzelnen Flowdaten korrekt den Klassen zugeordnet werden können. Neben den Regeln zur Klassifizierung werden die Überlegungen und die daraus resultierenden Kriterien und Ansätze für die Validierung erläutert. Es werden bei den Regeln jeweils nur die für die Validation relevanten Kriterien angeführt, die restlichen sind in der Publikation von Prof. Eduard Glatz [] im Detail beschrieben.
+
+\begin{figure}[ht]
+\begin{center}
+\psset{framesep=1.1pt,unit=1.1cm}
+\begin{pspicture}(-5.1,-5.1)(5.1,5.1)
+	\degrees[100]
+	\pswedge[fillstyle=hlines,fillcolor=gray,hatchcolor=gray]{5}{ 0 }{65.24 }
+	\rput(4.2; 32.62 ){\psframebox*{\small 65.24 \%}}
+	\uput{5.2}[ 32.62 ](0;0){\small Malicious Scanning}
+	\pswedge[fillstyle=hlines,fillcolor=gray,hatchcolor=gray]{5}{65.24 }{93.16 }
+	\rput(4.2;79 ){\psframebox*{\small 27.92 \%}}
+	\uput{5.2}[79 ](0;0){\small Suspicious Other}
+	\pswedge[fillstyle=hlines,fillcolor=gray,hatchcolor=gray]{5}{93.16 }{95.39 }
+	\rput(4.2;94.2 ){\psframebox*{\small 2.23 \%}}
+	\uput{5.2}[94.2 ](0;0){\small Backscatter}
+	\pswedge[fillstyle=solid,fillcolor=white,hatchcolor=white]{5}{95.39 }{95.52 }
+%	\rput(4.2;95.4 ){\psframebox*{\small 0.13 \%}}
+	\uput{5.2}[95.4 ](0;0){\small Serv. Unreach. (0.13 \%)}
+	\pswedge[fillstyle=solid,fillcolor=white,hatchcolor=white]{5}{95.52 }{98.49 }
+	\rput(4.2;97 ){\psframebox*{\small 2.97 \%}}
+	\uput{5.2}[97 ](0;0){\small P2P Scanning}
+	\pswedge[fillstyle=solid,fillcolor=white,hatchcolor=white]{5}{98.49 }{98.68 }
+%	\rput(4.2;98 ){\psframebox*{\small 0.19 \%}}
+	\uput{5.2}[98 ](0;0){\small Susp. Benign (0.19 \%)}
+	\pswedge[fillstyle=solid,fillcolor=gray,hatchcolor=gray]{5}{98.68 }{98.94 }
+%	\rput(4.2;98.7 ){\psframebox*{\small 0.26 \%}}
+	\uput{5.2}[98.7 ](0;0){\small Bogon (0.26 \%)}
+	\pswedge[fillstyle=solid,fillcolor=gray,hatchcolor=gray]{5}{98.94 }{100 }
+	\rput(4.2;99.5 ){\psframebox*{\small 1.8 \%}}
+	\uput{5.2}[99.5 ](0;0){\small Other}
+\end{pspicture}
+\caption{Die Klassen und ihre Häufigkeiten gemäss der Klassifizierung durch den ``O/W Classifier''. Insgesamt sind 95.93\% der Flows als bösartig (schraffiert), 3.29\% gutartig (weiss), 2.06\% nicht definiert (grau) eingestuft worden.}
+		\label{class}
+	\end{center}
+\end{figure}
+
+\subsubsection{Malicious Scanning}
+Für\marginpar{Regeln} die Klasse ``Malicious Scanning'' gibt es drei Regeln: 
+
+In\marginpar{Charakteris\-tika} dieser Klasse befinden sich alle bösartigen Scanaktivitäten. Mit Ausnahme des SYN Scans ist die Länge der Flows grundsätzlich nicht beschränkt. Es ist durchaus denkbar, dass mehrere Pakete unterschiedlicher Scanart in einem einzelnen Flow enthalten sein können. UDP Scans haben in der Regel einen spezifischen Payload, der von dem Zielservice abhängt \cite{nmap09}.
+
+Für\marginpar{Validierung} die Validierung der TCP Flows werden die von NMAP vewendeten Scanmuster \cite{nmap09} verwendet:
+\begin{itemize}
+	\item Christmas Scan: Beim Christmas Scan wird ein Paket mit gesetzten FIN, PSH und URG Flags geschickt.
+	\item Null Scan: Ein Paket ohne gesetzte Flags wird ohne vorhergehenden TCP-Verbindungsaufbau verschickt. 
+	\item FIN Scan: Ein Paket mit gesetzten FIN-Flag wird ohne vorhergehenden TCP-Verbindungsaufbau geschickt.
+	\item SYN Scan: Ein einzelnes Paket mit gesetztem SYN-Flag wird geschickt
+\end{itemize}
+Mit den oben aufgeführten Kriterien kann die True Positive Rate bestimmt werden. 
+Für das Bestimmen der False Positive Rate wurden die nicht eindeutig als Scan verifizierten TCP-Flows manuell auf die Klassenzugehörigkeit überprüft.
+
+Für die Analyse der ICMP Flows nutzen wir die Tatsache, dass Scanning nur mit ICMP Requests möglich ist, da alle anderen ICMP Arten nicht quittiert werden []. Die False Positive Rate ergibt sich bei den ICMP Paketen folglich aus der Anzahl der ICMP Responses.
+
+\subsubsection{Suspicious Other}
+In\marginpar{Charakteris\-tika} dieser Klasse befinden sich alle Flows, die nicht den restlichen bösartigen Klassen ``Malicious Scanning'' und ``Backscatter'' zugewiesen werden können, aber vermutlich bösartigen Ursprungs sind. 
+
+Alle\marginpar{Validierung} TCP Flows die keine gültige Flag-Sequenz aufweisen sind a priori als bösartig einzustufen. Falls eine gültige Flag-Srequenz vorliegt kann ohne Zusatzinformationen keine Zuordnung gemacht werden, da zum Beispiel bösartige Scans zur Tarnung auch gültige Sequenzen verwenden können \cite{nmap09}.
+
+\subsubsection{Suspected Benign}
+In\marginpar{Charakteris\-tika} die Klasse Suspected Benign fällt der Verkehr, der nicht eindeutig den Klassen ``P2P'' oder ``Service Unreachable'' zugewiesen werden kann, aber keine Anzeichen für bösartiges Verhalten aufweisen. Darunter fallen zum Beispiel ...
+
+Die \marginpar{Validierung} Möglichkeit der Validierung dieser Klasse ist beschränkt und konnte bisher nur bedingt automatisiert werden. Bei TCP Flows gehen wir aus, dass nur gültige Flag-Sequenzen vorkommen dürfen, denn gutartige Applikationen verwenden normalerweise den Standard-Socket oder sollten sich an die im RFC793 \cite{rfc_tcp} definierte TCP-State Machine halten.
+
+\subsubsection{Backscatter}
+Unter\marginpar{Charakteris\-tika} Backscatter versteht man den eingehenden Verkehr, der durch Angriffe auf Rechner in anderen Netzen mit gefälschten Absenderadressen verursacht wird []. 
+
+Durch\marginpar{Validierung} Backscatter ausgelöste ICMP Pakete können nur Replys sein, denn Backscatter ist immer eine Reaktion auf eingehende Pakete. Allfällige Requests fallen somit in die Kategorie False Positive.
+
+Bei TCP dürfen keine SYN Flags vorkommen, da diese einen aktiven Verbindungsaufbau einleiten und somit nicht Backscatter sein können. Die Flag-Sequenzen in der Klasse Backscatter müssen gemäss der TCP-State Machine gültig sein weil der Ursprung der Pakete reguläre Hosts und Netzwerkgeräte sind. <-- UMSETZEN!
+
+
+\subsubsection{Other Malicious}
+
+\subsubsection{Bogon}
+Die Klasse Bogon wurde nicht validiert, deshalb wird nicht weiter auf diese Klasse eingegangen.
+
+\subsection{Ergebnisse}
+lorem ipsum...
+\subsection{Schlussfolgerungen}
+lorem ipsum...
+
+\section{Persönliche Berichte}
+\subsection{Bericht Nicolas Bigler}
+\subsection{Bericht Michael Fisler}
+
+%In Abbildung \ref{sc_kz} sind die Finanzkennzahlen 2010/2011 der Swisscom dargestellt%\cite{oppenheimer11}.
+
+
+%In Tabelle \ref{plnp} sind die technischen Anforderungen aufgeführt:
+%\begin{table}[h]
+%\begin{tabularx}{\textwidth}{|l|X|}
+%	\hline Skalierbarkeit & Option für Feeder Netzwerk (Bündelung und Multiplex);  \\ 
+%	\hline Verfügbarkeit & Hoch: Silber: 99.95\%, Gold: 99.97\% \\
+%	\hline Performanz & 2 - 155 Mbps \\
+%	\hline Sicherheit & Hoch, physikalisch getrennte Leitungen, Farbe pro Kunde \\
+%	\hline Verwaltung & Proaktives End-zu-End Management \\
+%	\hline Anpassbarkeit & Schwierig anzupassen \\
+%	\hline Erschwinglichkeit & Teuer, lohnt sich nur bei entsprechender Aulastung der Leitung, Granularität der Bandbreite schlecht \\
+%	\hline
+%\end{tabularx}
+% \caption{Private Line National Plus Technische Anforderungen}
+%	\label{plnp}
+%\end{table}
+
+
+\newpage
+\begin{thebibliography}{9}
+
+	\bibitem{nmap09} Gordon ``Fyodor'' Lyon, \emph{Nmap Network Scanning: The Official Nmap Project Guide to Network Discovery and Security Scanning},
+	Nmap Project,
+	2009
+	
+	\bibitem{icmp} IANA.org, Internet Control Message Protocol (ICMP) Parameters \\
+	\url{http://www.iana.org/assignments/icmp-parameters/icmp-parameters.xml}
+	
+	\bibitem{rfc_tcp} IETF.org, RFC793: Transmission Control Protocol (TCP) \\
+	\url{http://www.ietf.org/rfc/rfc793.txt}
+	
+	\bibitem{rfc_icmp} IETF.org, RFC792: Internet Control Message Protocol (ICMP) \\
+	\url{http://www.ietf.org/rfc/rfc792.txt}
+	
+\end{thebibliography}
+
+\end{document}
