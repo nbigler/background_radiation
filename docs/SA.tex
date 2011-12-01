@@ -110,7 +110,7 @@ blub \marginpar{Ausblick} blub
 \section{Technischer Bericht}
 
 \subsection{Infrastruktur}
-Die Sammlung der Daten fand im Zeitraum vom ... bis ... auf einem zwischen dem HSR-Gateway und der Firewall platzierten Server statt, dem ``Kollektor''. Der ``Kollektor ist mit einer leistungsfähigen DAG Endace Netzwerkkarte ausgestattet, die .... Für die Analyse wird ein separater Server, der ``Analyzer'' verwendet auf dem zu Analysezwecken Wireshark installiert wurde.  
+Die Sammlung der Daten fand im Zeitraum vom ... bis ... auf einem zwischen dem HSR-Gateway und der Firewall platzierten Server statt, dem ``Collektor''. Der ``Collektor ist mit einer leistungsfähigen DAG Endace Netzwerkkarte ausgestattet, die auch bei voller Link Auslastung 100\% der Pakete aufzeichnen kann. Die dabei gelieferten Timestamps sind dank externer Zeitreferenz hochgenau \cite{endace}. Für die Analyse wird ein separater Server, der ``Analyzer'' verwendet auf dem zu Analysezwecken Wireshark installiert wurde.  
 \begin{figure}[ht]
 	\begin{center}
 		 %345pt entspricht \textwidth, siehe http://andy-roberts.net/res/writing/latex/playout.pdf
@@ -123,15 +123,18 @@ Die Sammlung der Daten fand im Zeitraum vom ... bis ... auf einem zwischen dem H
 \subsection{Daten}
 Die\marginpar{PCAP} für die Validierung verwendeten Daten sind über eine Woche gesammelte Pcap-Traces des gesamten Verkehrs zwischen dem HSR-Gateway und der Firewall. Sie sind in Einstundenintervalle unterteilt. Da innerhalb des Switch Netzwerks der Verkehr nicht gefiltert wird [Zitat Prof. Glatz], enthalten diese Paketdaten ein gutes Abbild der im Internet herrschenden Background Radiation.
 
-Die\marginpar{Flowdaten} Kategorisierung des Internetverkehrs geschieht auf den in 10 Minuten-Intervallen vorliegenden Flowdaten. Die Flowdaten wurden aus IPFIX zu CFlow konvertiert und beinhalten im Fall von UDP und TCP die lokale IP und den lokalen Port, die externe IP und den externen Port und die Flowrichtung. Für die Validierung von Interesse sind gemäss der Aufgabenstellung nur die Flowrichtungen inflow (eingehende Einwegflüsse) und q\_infl (eingehende Einwegflüsse zu denen ein Zweiwegfluss mit identischem IP-Adressen und Ports existiert) relevant.
+Die\marginpar{Flowdaten} Kategorisierung des Internetverkehrs geschieht auf den in 10 Minuten-Intervallen vorliegenden Flowdaten. Die Flowdaten wurden mit YAF \cite{yaf} aus den Paketdaten extrahiert und anschliessend aus IPFIX zu CFlow konvertiert. Sie beinhalten im Fall von UDP und TCP die lokale IP und den lokalen Port, die externe IP und den externen Port und die Flowrichtung. Für die Validierung von Interesse sind gemäss der Aufgabenstellung nur die Flowrichtungen inflow (eingehende Einwegflüsse) und q\_infl (eingehende Einwegflüsse zu denen ein Zweiwegfluss mit identischem IP-Adressen und Ports existiert) relevant.
 
 Die\marginpar{Signdaten} Flow Daten wurden anschliessend mit dem O/W Classifier [] den verschiedenen Klassen zugeordnet. Als Resultat liegen Signdaten vor in denen die Klassenzugehörigkeit der Flows gespeichert ist.
 
-Zusätzlich\marginpar{IDS} zu den Flow- und Signdaten liegen Warnmeldungen des IDS Snort vor, die für die Analyse Anhaltspunkte liefern können. Um die Snort-Alerts mit den Paket-/Flowdaten korrelieren zu können, wurden die IP Adressen in den Pcap-, Flow- und Snort Daten nach dem gleichen Schema anonymisiert.
+Zusätzlich\marginpar{IDS} zu den Flow- und Signdaten liegen Warnmeldungen des IDS Snort vor, die für die Analyse Anhaltspunkte liefern können. Um die Snort-Alerts mit den Paket- und Flowdaten korrelieren zu können, wurden die IP Adressen in den Pcap-, Flow- und Snort Daten nach dem gleichen Schema anonymisiert.
 
 \subsubsection{Datenschutz}
 Um den Datenschutzanforderungen der HSR gerecht zu werden, liegen die gesamten IP-Adressen der Paketdaten anonymisiert vor und die Paketinhalte wurden ab dem Layer 4 Header entfernt. Lediglich für die als Einwegflüsse identifizierten Flows liegen die vollständigen Paketdaten vor.
-Die Anonymisierung der IP-Adressen ist präfixerhaltend, damit die Subnetzzugehörigkeit erhalten bleibt, lässt aber ansonsten keine Rückschlüsse auf die hinter der Adresse verborgenen Netze, Rechner oder Services zu. Es können also aufgrund der Adresse weder auf die geografische Position der Endknoten, noch auf den Provider Rückschlüsse gezogen werden. Zudem ist es mit der IP allein unmöglich zu bestimmen, ob sich hinter einer bestimmten IP ein regulärer Server befindet. Die IP Adressen der HSR sind statistisch ersichtlich, da bei den Verkehrsdaten mit Ausnahme von Transit- und Multicastverkehr immer eine HSR Adresse involviert ist. Dadurch konnten die Adressen der Form 152.103.xxx.xxx als HSR intern identifiziert werden.
+Die Anonymisierung der IP-Adressen ist präfixerhaltend, damit die Subnetzzugehörigkeit erhalten bleibt, lässt aber ansonsten keine Rückschlüsse auf die hinter der Adresse verborgenen Netze, Rechner oder Services zu. Es kann also aufgrund der Adresse weder auf die geografische Position der Endknoten, noch auf den Provider Rückschlüsse gezogen werden. Zudem ist es mit der IP allein unmöglich zu bestimmen, ob sich hinter einer bestimmten IP ein regulärer Server befindet. Die IP Adressen der HSR sind statistisch ersichtlich, da bei den Verkehrsdaten mit Ausnahme von Transit- und Multicastverkehr immer eine HSR Adresse involviert ist. Dadurch konnten die Adressen der Form 152.103.xxx.xxx als HSR intern identifiziert werden.
+
+\subsubsection{Einschränkungen der Flowdaten}
+Durch das Erstellen der Flows mit YAF \cite{yaf} wurden einzelne Pakete die eigentlich zu einem Zweiwegfluss gehören als Einwegflüsse identifiziert. Dies ist zum Beispiel der Fall, falls nach dem Verbindungsabbau durch ein FIN Flag noch Retransmissions von einzelnen Paketen stattfinden oder wenn nach einem RST noch weitere Daten folgen. ZAHL?
 
 \subsection{Grundsätzliche Überlegungen zur Validierung}
 Im\marginpar{TCP} Fall von TCP Einwegflows ist die einzige gültige Flag Kombination eine Folge von SYN Paketen mit mindestens 2 Paketen. Bevor eine TCP Verbindung aufgebaut ist, dürfen laut RFC XYZ nur SYN Flags auftreten. Bei nur einem SYN Paket gehen wir davon aus, dass ein SYN-Scan vorliegt, da jede gutartige Applikation sinnvollerweise mehrere Verbindungsaufbauversuche macht. Beim Standard-Socket der von den meisten Applikationen verwendet wird [Zitat Prof. Glatz] ist das standardmässig der Fall.
@@ -192,17 +195,12 @@ Für\marginpar{Validierung} die Validierung der TCP Flows werden die von NMAP vew
 Mit den oben aufgeführten Kriterien kann die True Positive Rate bestimmt werden. 
 Für das Bestimmen der False Positive Rate wurden die nicht eindeutig als Scan verifizierten TCP-Flows manuell auf die Klassenzugehörigkeit überprüft.
 
-Für die Analyse der ICMP Flows nutzen wir die Tatsache, dass Scanning nur mit ICMP Requests möglich ist, da alle anderen ICMP Arten nicht quittiert werden []. Die False Positive Rate ergibt sich bei den ICMP Paketen folglich aus der Anzahl der ICMP Responses.
+Für die Analyse der ICMP Flows nutzen wir die Tatsache, dass Scanning nur mit ICMP Requests möglich ist, da alle anderen ICMP Arten nicht quittiert werden \cite{rfc_icmp}. Die False Positive Rate ergibt sich bei den ICMP Paketen folglich aus der Anzahl der ICMP Responses.
 
 \subsubsection{Suspicious Other}
 In\marginpar{Charakteris\-tika} dieser Klasse befinden sich alle Flows, die nicht den restlichen bösartigen Klassen ``Malicious Scanning'' und ``Backscatter'' zugewiesen werden können, aber vermutlich bösartigen Ursprungs sind. 
 
 Alle\marginpar{Validierung} TCP Flows die keine gültige Flag-Sequenz aufweisen sind a priori als bösartig einzustufen. Falls eine gültige Flag-Srequenz vorliegt kann ohne Zusatzinformationen keine Zuordnung gemacht werden, da zum Beispiel bösartige Scans zur Tarnung auch gültige Sequenzen verwenden können \cite{nmap09}.
-
-\subsubsection{Suspected Benign}
-In\marginpar{Charakteris\-tika} die Klasse Suspected Benign fällt der Verkehr, der nicht eindeutig den Klassen ``P2P'' oder ``Service Unreachable'' zugewiesen werden kann, aber keine Anzeichen für bösartiges Verhalten aufweisen. Darunter fallen zum Beispiel ...
-
-Die \marginpar{Validierung} Möglichkeit der Validierung dieser Klasse ist beschränkt und konnte bisher nur bedingt automatisiert werden. Bei TCP Flows gehen wir aus, dass nur gültige Flag-Sequenzen vorkommen dürfen, denn gutartige Applikationen verwenden normalerweise den Standard-Socket oder sollten sich an die im RFC793 \cite{rfc_tcp} definierte TCP-State Machine halten.
 
 \subsubsection{Backscatter}
 Unter\marginpar{Charakteris\-tika} Backscatter versteht man den eingehenden Verkehr, der durch Angriffe auf Rechner in anderen Netzen mit gefälschten Absenderadressen verursacht wird []. 
@@ -211,11 +209,32 @@ Durch\marginpar{Validierung} Backscatter ausgelöste ICMP Pakete können nur Reply
 
 Bei TCP dürfen keine SYN Flags vorkommen, da diese einen aktiven Verbindungsaufbau einleiten und somit nicht Backscatter sein können. Die Flag-Sequenzen in der Klasse Backscatter müssen gemäss der TCP-State Machine gültig sein weil der Ursprung der Pakete reguläre Hosts und Netzwerkgeräte sind. <-- UMSETZEN!
 
+\subsubsection{Service Unreachable}
+Unter\marginpar{Charakteris\-tika} Service Unreachable fallen alle Flows, die aufgrund eines temporär nicht verfügbaren Services entstehen.
 
-\subsubsection{Other Malicious}
+Ein\marginpar{Validierung} Ansatz zur Validierung besteht darin, zu überprüfen ob sich die Zieladresse im von der HSR ungenutzten Adressraum befindet. Ist dies der Fall, liegt 
+
+Da\cite{rfc_icmp} die HSR ausgehende ICMP Destination Unreachable Pakete nicht unterdrückt, können ICMP Pakete durch die im Payload enthaltenen Source- und Destinationsadressen mit den als unreachable klassifzierten Flows korreliert werden.  
+
+
+\subsubsection{Benign P2P Scanning}
+Unter\marginpar{Charakteris\-tika} Benign P2P Scanning sind jene Flows zu finden, die sich durch die Suche von P2P Clients nach online Peers ergeben.
+
+Zur\marginpar{Validierung} Validierung kann der Payload auf die Existenz von P2P Protokollheadern untersucht werden. Da aber mittlerweile viele P2P Applikationen die Möglichkeit bieten den Verkehr zu verschleiern \cite{emule} oder verschlüsseln \cite{vuze} wird es wohl eine Restmenge geben, bei der man den Ursprung nicht eindeutig bestimmen kann.
+
+\subsubsection{Suspected Benign}
+In\marginpar{Charakteris\-tika} die Klasse Suspected Benign fällt der Verkehr, der nicht eindeutig den Klassen ``P2P'' oder ``Service Unreachable'' zugewiesen werden kann, aber keine Anzeichen für bösartiges Verhalten aufweisen. Darunter fallen zum Beispiel Einwegflows die durch Falschkonfiguration entstehen.
+
+Die \marginpar{Validierung} Möglichkeit der Validierung dieser Klasse ist beschränkt und konnte bisher nur bedingt automatisiert werden. Bei TCP Flows gehen wir aus, dass nur gültige Flag-Sequenzen vorkommen dürfen, denn gutartige Applikationen verwenden normalerweise den Standard-Socket oder sollten sich an die im RFC793 \cite{rfc_tcp} definierte TCP-State Machine halten.
 
 \subsubsection{Bogon}
 Die Klasse Bogon wurde nicht validiert, deshalb wird nicht weiter auf diese Klasse eingegangen.
+
+\subsubsection{Other}
+Hier sind alle Flows, die durch die Klasifikation keiner bestehenden Klasse zugewiesen werden konnten zu finden. Other stellt keine Klasse im eigentlichen Sinn dar, sondern ist einfach die Restklasse. Es sind deshalb weder True Positive, noch False Negative Raten bestimmbar.
+
+Die\marginpar{Validierung} False Positive Rate kann durch die True Positive Kriterien aller Klassen ermittelt werden.
+
 
 \subsection{Ergebnisse}
 lorem ipsum...
@@ -261,6 +280,21 @@ lorem ipsum...
 	
 	\bibitem{rfc_icmp} IETF.org, RFC792: Internet Control Message Protocol (ICMP) \\
 	\url{http://www.ietf.org/rfc/rfc792.txt}
+	
+	\bibitem{emule} Emule-Project.net, Protocol Obfuscation \\
+	\url{http://www.emule-project.net/home/perl/help.cgi?l=1&rm=show_topic&topic_id=848}
+	
+	\bibitem{vuze} Vuze.com, Message Stream Encryption \\
+	\url{http://wiki.vuze.com/w/Message_Stream_Encryption}
+	
+	\bibitem{yaf} CERT.org, CERT NetSA Security Suite \\
+	\url{http://tools.netsa.cert.org/yaf/}
+	
+	\bibitem{backscatter} CAIDA.org, Worldwide Detection of Denial of Service (DoS) Attacks \\
+	\url{http://www.caida.org/publications/presentations/usenix0108/dos/dos.pdf}
+	
+	\bibitem{endace} Endace.com, Endace High Speed Capture Cards \\
+	\url{http://www.endace.com/endace-dag-high-speed-packet-capture-cards.html}
 	
 \end{thebibliography}
 
