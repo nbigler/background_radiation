@@ -140,7 +140,7 @@ To\marginpar{UDP} validate UDP flows we use the UDP PDU's size. Packets without 
 In addition to the existence of a PDU the variance of size over all packets within the flow may be used to identify malicious intent. If all PDUs are the same size the flow is certainly not a regular benign flow but rather a scan. BRINGT DIESES KRITERIUM ETWAS? AUSWERTUNG ANSCHAUEN!!!
 
 \subsection{Flow Classes}
-Im Folgenden wird die von der ``Background Radiation Detection''-Software verwendete Klassifizierung kurz erläutert und die Charakteristiken der einzelnen Klassen aus Sicht der Validierung aufgezeigt. Die Klassen sind disjunkt, so dass die jeweiligen False Positive und False Negative Raten theoretisch berechnet werden können unter der Voraussetzung, dass die einzelnen Flowdaten korrekt den Klassen zugeordnet werden können. Neben den Regeln zur Klassifizierung werden die Überlegungen und die daraus resultierenden Kriterien und Ansätze für die Validierung erläutert. Es werden bei den Regeln jeweils nur die für die Validation relevanten Kriterien angeführt, die restlichen sind in der Publikation von Prof. Eduard Glatz [] im Detail beschrieben.
+In this section we describe the classes that need to be validated. All descriptions are from a validation perspective, for details and rules refer to [Glatz'sche publikation, bzw. Auszug]. The classification currently used by the background radiation detector is based on seven disjoint classes. Provided that all flows can be assigned to the proper class false negative and false positive rates can therefore be calculated. In addition to the description of each class our strategies for the validation of each class are layed out.
 
 \begin{figure}[ht]
 \begin{center}
