@@ -533,9 +533,9 @@ void print_flow(const cflow & flow) {
 void print_packet(const packet & pck) {
 	static char local[16];
 	static char remote[16];
-	ipV4AddressToString(pck.localIP, local, sizeof local);
-	ipV4AddressToString(pck.remoteIP, remote, sizeof remote);
-	cout << "Packet: " << local << ":" << pck.localPort << ";\t" << remote << ":" << pck.remotePort << ";" << static_cast<int>(pck.protocol) << endl;
+	ipV4AddressToString(pck.srcIP, local, sizeof local);
+	ipV4AddressToString(pck.dstIP, remote, sizeof remote);
+	cout << "Packet: " << local << ":" << pck.srcPort << ";\t" << remote << ":" << pck.dstPort << ";" << static_cast<int>(pck.protocol) << endl;
 }
 
 int count_occurrence_of_char(const char c, const string s) {
