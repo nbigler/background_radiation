@@ -353,8 +353,8 @@ void write_pcap(CPersist & data){
 		vector<packet>::iterator iter;
 		//iter != data.rules_packetlist[i]->end()
 		for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end() ; it++){
-			for (vector<packet>::const_iterator iter = (*it).second.get_packets().begin(); iter != (*it).second.get_packets().end(); iter++){
-				if((*it).second.flow_complete()) {
+			if((*it).second.flow_complete()) {
+				for (vector<packet>::const_iterator iter = (*it).second.get_packets().begin(); iter != (*it).second.get_packets().end(); iter++){
 					packetHeader.init((*iter).timestamp, (*iter).packetsize, (*iter).actualsize);
 					fileout.write(reinterpret_cast<const char*>(&packetHeader), sizeof packetHeader);
 					fileout.write(reinterpret_cast<const char*>(&(*iter).ethHeader), sizeof(struct ethhdr));
@@ -567,12 +567,13 @@ void clear_lists(CPersist & data){
 //		data.flows_by_rule[i]->clear();
 		if(data.flows_by_rule[i]->empty()) {
 			delete data.flows_by_rule[i];
+			data.flows_by_rule[i] = NULL;
 		}
 
 //		data.rules_packetlist[i]->clear();
 //		delete data.rules_packetlist[i];
 	}
-	data.flows_by_rule.clear();
+//	data.flows_by_rule.clear();
 //	data.rules_packetlist.clear();
 }
 
