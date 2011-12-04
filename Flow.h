@@ -20,7 +20,7 @@ class Flow {
 		}
 
 		void add(const packet & pck) {
-			bool packet_belongs_to_flow = (pck.ipPayload.timestamp <= flow.startMs - 1) && (pck.ipPayload.timestamp <= (flow.startMs + flow.durationMs) - 1);
+			bool packet_belongs_to_flow = (flow.startMs - 1 <= pck.timestamp/1000) && (pck.timestamp/1000 <= (flow.startMs + flow.durationMs) + 1);
 
 			if(packet_belongs_to_flow){
 				if(!flow_complete()){

@@ -19,39 +19,32 @@ struct ipPayload {
 		struct udphdr udpHeader;
 		struct icmphdr icmpHeader;
 	};
-	uint64_t timestamp;		///< Timestamp of the packet
-	uint32_t packetsize;	///< packet size in byte;
-	uint32_t actualsize;
-	//uint32_t  payloadsize;
-	//char payload [65535 - (sizeof(struct ethhdr)+sizeof(struct iphdr))];
+
+	uint32_t  payloadsize;
+	const unsigned char* payload;
 };
 
 
 struct packet {
 	struct ethhdr ethHeader;
 	struct iphdr ipHeader;
-	uint32_t localIP;		///< Numeric ip address of source vertex (host byte order)
-	uint32_t remoteIP;		///< Numeric ip address of destination vertex (host byte order)
+	uint32_t srcIP;		///< Numeric ip address of source vertex (host byte order)
+	uint32_t dstIP;		///< Numeric ip address of destination vertex (host byte order)
 
-	uint16_t localPort;		///< Source port of vertex
-	uint16_t remotePort;	///< Destination port of vertex
-
-	//uint64_t startMs;		///< Flow  start time in microseconds since the epoch
-	//uint32_t durationMs;	///< Flow duration in microseconds
-
-	//uint64_t dOctets;		///< flow size in byte
-	//uint32_t dPkts;			///< number of packets containted in flow
+	uint16_t srcPort;		///< Source port of vertex
+	uint16_t dstPort;	///< Destination port of vertex
 
 	uint8_t protocol;		///< protocl type
 
-	//uint8_t tos_flags;		///< ToS flags
-	//uint8_t magic;			///< Magic number (format version)
+	uint64_t timestamp;		///< Timestamp of the packet
+	uint32_t packetsize;	///< Packet size in byte
+	uint32_t actualsize;	///< Captured packet size
 
 	struct ipPayload ipPayload; ///< IP-payload of each packet in flow
 
-	void init(uint32_t localIP, uint32_t remoteIP, uint8_t protocol) {
-		this->localIP = localIP;
-		this->remoteIP = remoteIP;
+	void init(uint32_t srcIP, uint32_t dstIP, uint8_t protocol) {
+		this->srcIP = srcIP;
+		this->dstIP = dstIP;
 		this->protocol = protocol;
 	}
 
