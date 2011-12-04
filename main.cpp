@@ -513,7 +513,7 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 				util::ipV4AddressToString(packet.remoteIP, remote,sizeof remote);
 				cout << "Packet: " << local << ":" << packet.localPort << ";\t" << remote << ":" << packet.remotePort << ";" << static_cast<int>(packet.protocol)<< endl;*/
 
-				if (((cflow_start <= (packet.timestamp / 100000)) && ((cflow_start + 600) > (packet.timestamp / 1000000)))){
+				if (((cflow_start <= (packet.timestamp / 1000000)) && ((cflow_start + 600) > (packet.timestamp / 1000000)))){
 					find_match(packet, data);
 				}
 			}
