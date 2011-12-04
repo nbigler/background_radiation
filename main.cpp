@@ -700,6 +700,11 @@ int main(int argc, char **argv) {
 		usage(argv[0], cerr);
 	}
 
+	//init flows by rule
+	for(int i=0;i<=data.c.get_rule_count();++i) {
+		data.flows_by_rule.push_back(new CFlowHashMultiMap6());
+	}
+
 	if (files.size() > 1) { cout << "Processing file:\n"; }
 	for (size_t i = 0; i< files.size(); i++) {
 		if (files.size() > 1) { cout << files[i] << endl;}
