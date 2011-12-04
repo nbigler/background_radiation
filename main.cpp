@@ -742,7 +742,7 @@ int main(int argc, char **argv) {
 				pcap_ts = pcap_files[j].substr(pos-10,10);
 				time_t pts = atoi(pcap_ts.c_str());
 				//cout << "pts: " << pts << endl;
-				if (((cts <= pts) && (pts <= cts+601)) || ((pts >= cts) && (cts <= pts + 3601))){
+				if (((cts <= pts) && (pts <= cts+601)) || ((pts <= cts) && (cts <= pts + 3601))){
 					cout << "if entered" << endl;
 					pcap_filename = pcap_files[j].substr(0,pcap_files[j].find(".gz")).substr(pcap_files[j].find_last_of("/")+1);
 					if (!file_exists(pcap_filename)){
