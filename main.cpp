@@ -562,7 +562,7 @@ void get_flow_count(CPersist &data){
 void clear_lists(CPersist & data){
 	for (int i=0; i <= data.c.get_rule_count(); i++) {
 		for(CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end(); it++) {
-			if((*it).second.flow_complete()) data.flows_by_rule[i]->erase((*it).first);
+			if((*it).second.flow_complete()) data.flows_by_rule[i]->erase(it);
 		}
 //		data.flows_by_rule[i]->clear();
 		if(data.flows_by_rule[i]->empty()) {
