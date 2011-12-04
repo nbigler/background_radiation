@@ -477,7 +477,7 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 					packet.srcPort = ntohs(tcp_hdr->source);
 					packet.dstPort = ntohs(tcp_hdr->dest);
 					packet.ipPayload.tcpHeader = *tcp_hdr;
-					//packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr));
+					packet.ipPayload.packetsize = (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+packet.ipPayload.tcpHeader.doff*4);
 					packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+packet.ipPayload.tcpHeader.doff*4);
 					packet.ipPayload.payload = pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4+packet.ipPayload.tcpHeader.doff*4;
 					break;
@@ -486,25 +486,25 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 					packet.srcPort = ntohs(udp_hdr->source);
 					packet.dstPort = ntohs(udp_hdr->dest);
 					packet.ipPayload.udpHeader = *udp_hdr;
-					//packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct udphdr));
+					packet.ipPayload.packetsize = (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct udphdr));
 					packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct udphdr));
 					packet.ipPayload.payload = (pdata+sizeof(struct ethhdr)+sizeof(struct udphdr));
 					break;
 				case IPPROTO_ICMP:
 					icmp_hdr = (struct icmphdr *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr));
 					packet.ipPayload.icmpHeader = *icmp_hdr;
-					//packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct icmphdr));
+					packet.ipPayload.packetsize = (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct icmphdr));
 					packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct icmphdr));
 					packet.ipPayload.payload = (pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct icmphdr));
 					break;
 				default:
-					//packet.ipPayload.packetsize = (sizeof(struct ethhdr)+sizeof(struct iphdr));
+					packet.ipPayload.packetsize = (sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
 					packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
 					packet.ipPayload.payload = (pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
 					break;
 				}
 				packet.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
-				packet.packetsize = p.get_capture_length();
+				//packet.packetsize = p.get_capture_length();
 				packet.actualsize = p.get_length();
 
 				/*static char local[16];
