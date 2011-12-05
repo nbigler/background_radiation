@@ -9,6 +9,7 @@
 \usepackage{url}
 \usepackage{auto-pst-pdf}
 \usepackage[english]{babel}
+\usepackage{hyperref}[2010/09/11]
 
 % Kopf- und Fusszeilen
 \usepackage{fancyhdr}
@@ -69,8 +70,8 @@ Internal Co-Examiner: ?
 \newpage
 \listoffigures
 \newpage
-\listoftables
-\newpage
+%\listoftables
+%\newpage
 
 \section{Task}
 A \marginpar{Starting position} substantial part of the internet's traffic stems from misconfiguration, worms, malware, viral activity or all sorts of attacks and therefore is undesirable. As this kind of traffic is constantly present it often is referred to as ``internet background radiation''. The monitoring of the background radiation yields valuable information in terms of malicious activity and may be used to predict future trends.
@@ -97,7 +98,7 @@ The original text of the task (in German) is enclosed in the appendix [ref?].
 \section{Abstract}
 
 \section{Management Summary}
-The\marginpar{Starting position} goal of this project is the validation of the ``Background Radiation Detector'' which was developed at ETH Zurich. In a first step the detector identifies one-way flows and in a second step classifies those flows using predefined rules. In order to validate these rules and if necessary adapt them packet and flow data was recorded in a five day period. Aditionally an intrusion detection system has been set-up to further investigate the cause of all incoming traffic.
+The\marginpar{Starting position} goal of this project is the validation of the ``Background Radiation Detector'' which was developed at ETH Zurich. In a first step the detector identifies one-way flows and in a second step classifies those flows using predefined rules. In order to validate these rules and if necessary adapt them packet and flow data was recorded in a five day period. Additionally an intrusion detection system has been set-up to further investigate the cause of all incoming traffic.
 
 Since\marginpar{Approach} we are dealing with very large PCAP files loading an entire file in Wireshark takes at least half an hour. In order to reduce the file size and thus allowing a more efficient manual analysis one-way flows from the original PCAP traces were written into new files according to the class they belong to.
 
@@ -108,7 +109,7 @@ blub \marginpar{Outlook} blub
 
 \section{Technical Report}
 
-\subsection{Infrstructure}
+\subsection{Infrastructure}
 Data was collected between ... and ... on a server (``Collector'') connected between HSR's gateway and firewall.  The ``Collector'' is equipped with a high performance DAG Endace network card which allows to capture all packets even at full line rate. Using external time references the captured packet's timestamps are highly accurate. \cite{endace}. Attached to the collecting server a second server (``Analyzer'') is used to process and evaluate the data captured. It hosts an environment to compile and run validation software and tools such as Wireshark for further analysis.
 \begin{figure}[ht]
 	\begin{center}
@@ -208,19 +209,19 @@ TCP flows cannot contain SYN flags, because they initiate connection and therefo
 \subsubsection{Service Unreachable}
 ``Service Unreachable''\marginpar{Character\-istics} contains all flows, that are generated <bad choice of word!> because of temporarily unavailable services.
 
-One\marginpar{Validation} approach is to check if the destination address resides on an unused range of the HSR. Is this the case ...
+One\marginpar{Validation} approach is to check if the destination address resides on an unused range of the HSR. If this is the case
 
-Since\cite{rfc_icmp} HSR does not suppress outgoing ICMP destination unreachable packets, such packets may be used to identify unreachable services. To match ICMP packets with flows classified as ``Service Unreachable'' the IP and port information from the ICMP packet's payload \cite{rfc_icmp} can be used. 
+Since HSR does not suppress outgoing ICMP destination unreachable packets, such packets may be used to identify unreachable services. To match ICMP packets with flows classified as ``Service Unreachable'' the IP and port information from the ICMP packet's payload \cite{rfc_icmp} can be used. 
 
 \subsubsection{Benign P2P Scanning}
-``Benign P2P Scanning''\marginpar{Charakteris\-tika} contains all flows which originate from P2P applications scanning for currently unavailable peers.
+``Benign P2P Scanning''\marginpar{Charakter\-istics} contains all flows which originate from P2P applications scanning for currently unavailable peers.
 
 As\marginpar{Validierung} a mean to validate this class the packets payload can be checked for the existence of a P2P protocol header. Due to the capability of modern P2P applications to obfuscate \cite{emule} or encrypt \cite{vuze} traffic there will be a remainder of unknown cause.
 
 \subsubsection{Suspected Benign}
-``Suspected Benign''\marginpar{Charakteris\-tika} contains all traffic which is considered benign and has not been classified as ``P2P'' or ``Service Unreachable''. As an example one-way flows which were caused by misconfiguration fall in this class.
+``Suspected Benign''\marginpar{Charakter\-istics} contains all traffic which is considered benign and has not been classified as ``P2P'' or ``Service Unreachable''. As an example one-way flows which were caused by misconfiguration fall in this class.
 
-As\marginpar{Validierung} a remainder class the validation hinges on the definition of ``benign flow''. 
+As\marginpar{Validation} a remainder class the validation hinges on the definition of ``benign flow''. 
 In order to avoid a formal and possibly flawed definition we try to detect malicious patterns to gauge the false positive rate.
 In case of TCP flows we define flows that contain an invalid flag sequence malign. On one hand benign applications should follow the TCP state machine defined in RFC793 \cite{rfc_tcp}, on the other hand most applications use the default socket and therefore implement the state machine by default. [quote Prof. Glatz]
 In any case snort alerts may be used to verify the intent of each flow not confirmed as malign.
@@ -231,7 +232,7 @@ Class ``Bogon'' was not validated and therefore will not go into details.
 \subsubsection{Other}
 ``Other'' contains all flows which could not successfully be assigned to one of the before mentioned classes. It is not a class in the narrower sense but a remainder class. Therefore neither true positive nor false negative rates can be determined.
 
-The\marginpar{Validierung} false positive rate is a result of all true positive criteria for each class.
+The\marginpar{Validation} false positive rate is a result of all true positive criteria for each class.
 
 
 \subsection{Results}
@@ -242,11 +243,23 @@ The\marginpar{Validierung} false positive rate is a result of all true positive 
 lorem ipsum...
 
 \section{Appendix}
-\subsection{Personal Reports}
-\subsubsection{Bericht Nicolas Bigler}
-\subsubsection{Bericht Michael Fisler}
+
+\subsection{Report Nicolas Bigler}
+
+\subsection{Report Michael Fisler}
+
 \subsection{Test Documentation}
+
 \subsection{Meeting Protocols}
+	\href{meeting\_protocols.pdf}{meeting\_protocols.pdf}
+
+\subsection{Project Plan}
+	\href{./project\_plan.pdf}{project\_plan.pdf}
+
+
+\subsection{Task description}
+%	\href{./task\_description.pdf}{task\_description.pdf}
+
 %In Abbildung \ref{sc_kz} sind die Finanzkennzahlen 2010/2011 der Swisscom dargestellt%\cite{oppenheimer11}.
 
 
