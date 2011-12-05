@@ -189,19 +189,19 @@ For \marginpar{Validation} the validation of TCP flows the scan patterns of NMAP
 	\item SYN Scan: A single packet with the SYN flag set is being sent.
 \end{itemize}
 With those criteria the true positive rate can be determined. 
-To determine the false positive rate, the TCP flows that could not be clearly verified as scan, are manually checked for their class affiliation.
+To ascertain the false positive rate, the TCP flows that could not be clearly verified as scan, are manually checked for their class affiliation.
 
 For the analysis of ICMP flows we use the fact, that scanning is only possible with ICMP requests, because all other ICMP messages are not acknowledged\cite{rfc_icmp}. Therefore the false positive rate of the ICMP flows adds up to the number of ICMP responses.
 
 \subsubsection{Suspicious Other}
-This\marginpar{Character\-istics} class containts all flows that could not be asigned to the remaining classes ``Malicious Scanning'' and ``Backscatter'', but probably have malicious origin.
+This\marginpar{Character\-istics} class containts all flows that could not be assigned to the remaining classes ``Malicious Scanning'' and ``Backscatter'', but probably have malicious origin.
 
 All\marginpar{Validation} TCP flows that do not have a valid flow sequence should a priori be classified as malicious. If a valid flow sequence is present, it is not possible to classify the flow without further information, because malicious scans can also use valid sequences as a camouflage. \cite{nmap09}.
 
 \subsubsection{Backscatter}
 Backscatter\marginpar{Character\-istics} is incoming traffic caused by attacks to hosts in other networks with faked source addresses. The received replies to those attacks are called backscatter[]. 
 
-ICMP\marginpar{Validation} packets triggered by backscatter scanning can only be replies, because backscatter is always a reaction to faked incoming packets from another network. Possible requests thus <use of thus?> fall into the category false positive.
+ICMP\marginpar{Validation} packets triggered by backscatter scanning can only be replies, because backscatter is always a reaction to faked incoming packets from another network. Possible requests thus fall into the category false positive.
 
 TCP flows cannot contain SYN flags, because they initiate connection and therefore cannot be backscatter. The flag sequences in the class backscatter have to be valid as defined in the TCP state machine \cite{rfc_tcp} because the origin of these packets are regular hosts and network devices. <-- UMSETZEN!
 
@@ -215,7 +215,7 @@ Since\cite{rfc_icmp} HSR does not suppress outgoing ICMP destination unreachable
 \subsubsection{Benign P2P Scanning}
 ``Benign P2P Scanning''\marginpar{Charakteris\-tika} contains all flows which originate from P2P applications scanning for currently unavailable peers.
 
-As\marginpar{Validierung} a mean to validate this class the packets payload can be checked for the existence of a P2P protocol header. Due to the capability of modern P2P applications to <verschleiern> \cite{emule} or encrypt \cite{vuze} traffic there will be a remainder of unknown cause.
+As\marginpar{Validierung} a mean to validate this class the packets payload can be checked for the existence of a P2P protocol header. Due to the capability of modern P2P applications to obfuscate \cite{emule} or encrypt \cite{vuze} traffic there will be a remainder of unknown cause.
 
 \subsubsection{Suspected Benign}
 ``Suspected Benign''\marginpar{Charakteris\-tika} contains all traffic which is considered benign and has not been classified as ``P2P'' or ``Service Unreachable''. As an example one-way flows which were caused by misconfiguration fall in this class.
@@ -226,10 +226,10 @@ In case of TCP flows we define flows that contain an invalid flag sequence malig
 In any case snort alerts may be used to verify the intent of each flow not confirmed as malign.
 
 \subsubsection{Bogon}
-Class ``Bogon'' was not validated and therefore will not laid out <chose better word: beschrieben, ...> further.
+Class ``Bogon'' was not validated and therefore will not go into details.
 
 \subsubsection{Other}
-``Òther'' contains all flows which could not successfully be assigned to one of the before mentioned classes. < Other stellt keine Klasse im eigentlichen Sinn dar, sondern ist einfach die Restklasse.> Therefore neither true positive nor false negative rates can be determined.
+``Other'' contains all flows which could not successfully be assigned to one of the before mentioned classes. It is not a class in the narrower sense but a remainder class. Therefore neither true positive nor false negative rates can be determined.
 
 The\marginpar{Validierung} false positive rate is a result of all true positive criteria for each class.
 
@@ -237,13 +237,16 @@ The\marginpar{Validierung} false positive rate is a result of all true positive 
 \subsection{Results}
 \subsubsection{Statistics per class}
 \subsubsection{}
-\subsection{Schlussfolgerungen}
+\subsection{Conclusions}
+
 lorem ipsum...
 
-\section{Pers√∂nliche Berichte}
-\subsection{Bericht Nicolas Bigler}
-\subsection{Bericht Michael Fisler}
-
+\section{Appendix}
+\subsection{Personal Reports}
+\subsubsection{Bericht Nicolas Bigler}
+\subsubsection{Bericht Michael Fisler}
+\subsection{Test Documentation}
+\subsection{Meeting Protocols}
 %In Abbildung \ref{sc_kz} sind die Finanzkennzahlen 2010/2011 der Swisscom dargestellt%\cite{oppenheimer11}.
 
 
