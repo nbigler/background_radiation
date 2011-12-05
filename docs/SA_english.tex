@@ -74,7 +74,7 @@ Internal Co-Examiner: ?
 %\newpage
 
 \section{Task}
-A \marginpar{Starting position} substantial part of the internet's traffic stems from misconfiguration, worms, malware, viral activity or all sorts of attacks and therefore is undesirable. As this kind of traffic is constantly present it often is referred to as ``internet background radiation''. The monitoring of the background radiation yields valuable information in terms of malicious activity and may be used to predict future trends.
+A \marginpar{Starting position} substantial part of the internet's traffic stems from misconfiguration, worms, malware, viral activity or all sorts of attacks and therefore is undesirable. As this kind of traffic is constantly present it often is referred to as ``internet background radiation'' \cite{bg_radiation}. The monitoring of the background radiation yields valuable information in terms of malicious activity and may be used to predict future trends.
 
 At ETH Zurich a tool was developed to distinguish between one-way and two-way flows and subsequently classify one-way traffic using a set of predefined rules.
 
@@ -98,19 +98,21 @@ The original text of the task (in German) is enclosed in the appendix [ref?].
 \section{Abstract}
 
 \section{Management Summary}
-The\marginpar{Starting position} goal of this project is the validation of the ``Background Radiation Detector'' which was developed at ETH Zurich. In a first step the detector identifies one-way flows and in a second step classifies those flows using predefined rules. In order to validate these rules and if necessary adapt them packet and flow data was recorded in a five day period. Additionally an intrusion detection system has been set-up to further investigate the cause of all incoming traffic.
+The\marginpar{Starting position} goal of this project is the validation of the ``Background Radiation Detector'' which was developed at ETH Zurich. It's purpose is the classification of internet one-way traffic In a first step the detector identifies one-way flows and in a second step classifies those flows using predefined rules. In order to validate these rules and if necessary adapt them packet and flow data was recorded in a five day period. Additionally an intrusion detection system has been set-up to further investigate the cause of all incoming traffic.
 
 Since\marginpar{Approach} we are dealing with very large PCAP files loading an entire file in Wireshark takes at least half an hour. In order to reduce the file size and thus allowing a more efficient manual analysis one-way flows from the original PCAP traces were written into new files according to the class they belong to.
+
+For each class false positive, false negative and true positive were de
 
 
 blub \marginpar{Results} blub
 
-blub \marginpar{Outlook} blub
+Many\marginpar{Outlook} validation approaches could not be implemented. Especially the Snort alert analysis still is done manually. In order to automate Snort Most of the alerts are harmless ICMP echo requests or replies or 
 
 \section{Technical Report}
 
 \subsection{Infrastructure}
-Data was collected between ... and ... on a server (``Collector'') connected between HSR's gateway and firewall.  The ``Collector'' is equipped with a high performance DAG Endace network card which allows to capture all packets even at full line rate. Using external time references the captured packet's timestamps are highly accurate. \cite{endace}. Attached to the collecting server a second server (``Analyzer'') is used to process and evaluate the data captured. It hosts an environment to compile and run validation software and tools such as Wireshark for further analysis.
+Data was collected between Thu, 13 Oct 2011 and Tue, 18 Oct 2011 on a server (called ``Collector'') which captured all traffic between HSR's gateway and firewall.  The ``Collector'' is equipped with a high performance DAG Endace network card which allows to capture every single packet without losses even at full line rate. Using external time references the captured packet's timestamps are highly accurate \cite{endace}. Attached to the collecting server a second server (called ``Analyzer'') is used to process and evaluate the data captured. It hosts an environment to compile and run validation software and tools such as Wireshark for further analysis.
 \begin{figure}[ht]
 	\begin{center}
 		\includegraphics[width=200pt, keepaspectratio=true]{Bilder/Infrastruktur.eps}
@@ -120,11 +122,11 @@ Data was collected between ... and ... on a server (``Collector'') connected bet
 \end{figure}
 
 \subsection{Data}
-The\marginpar{PCAP} validation is primarily based on PCAP traces which contain the entire traffic from and to the HSR in a five day span. The traces are split into one hour intervals. HSR is connected to the Switch network which doesn't filter traffic. We therefore get a good sample of the internet background radiation [quote Prof. Glatz].
+The\marginpar{PCAP} validation is primarily based on PCAP traces which contain the packet data from and to the HSR in the above mentioned timespan. The traces are split into one hour intervals. HSR is connected to the Switch network which doesn't filter traffic. We therefore get a good sample of the internet background radiation [quote Prof. Glatz]. The filename pattern is ...
 
 Flow \marginpar{Flow data} data was generated from the PCAP files with YAF \cite{yaf} and converted from IPFIX to CFlow format. The resulting files contain flow data in 10 minute intervals. Each flow is defined by its starting time, its duration (which may exceed 10 minutes), the IP data and the flow direction. Only incoming flows (infl) and incoming flows which have a corresponding two-way flow with the same IP addresses and ports (q\_infl) are relevant for our validation.
 
-Based\marginpar{Sign sets} on the flow data  Flow Daten wurden anschliessend mit dem O/W Classifier [] den verschiedenen Klassen zugeordnet. Als Resultat liegen Signdaten vor in denen die Klassenzugehörigkeit der Flows gespeichert ist.
+Based\marginpar{Sign sets} on the flow data the ``O/W Classifier'' generates sign data, which defines the flow/class affiliation. This data is stored in separate files using the same granularity as the flow data files.
 
 In\marginpar{IDS alerts} addition to the flow and sign data, alerts generated by the open-source intrusion detection system Snort can be used to investigate the intent of the flows. In order to be able to correlate these alerts with the packet and flow data, the same anonymizing scheme was used.
 
@@ -209,7 +211,7 @@ TCP flows cannot contain SYN flags, because they initiate connection and therefo
 \subsubsection{Service Unreachable}
 ``Service Unreachable''\marginpar{Character\-istics} contains all flows, that are generated <bad choice of word!> because of temporarily unavailable services.
 
-One\marginpar{Validation} approach is to check if the destination address resides on an unused range of the HSR. If this is the case
+One\marginpar{Validation} approach is to check if the destination address resides on an unused range of the HSR. If this is the case the respective flows may be suspected benign, or other malicious rather than unreachable.
 
 Since HSR does not suppress outgoing ICMP destination unreachable packets, such packets may be used to identify unreachable services. To match ICMP packets with flows classified as ``Service Unreachable'' the IP and port information from the ICMP packet's payload \cite{rfc_icmp} can be used. 
 
@@ -224,7 +226,7 @@ As\marginpar{Validierung} a mean to validate this class the packets payload can 
 As\marginpar{Validation} a remainder class the validation hinges on the definition of ``benign flow''. 
 In order to avoid a formal and possibly flawed definition we try to detect malicious patterns to gauge the false positive rate.
 In case of TCP flows we define flows that contain an invalid flag sequence malign. On one hand benign applications should follow the TCP state machine defined in RFC793 \cite{rfc_tcp}, on the other hand most applications use the default socket and therefore implement the state machine by default. [quote Prof. Glatz]
-In any case snort alerts may be used to verify the intent of each flow not confirmed as malign.
+In any case snort alerts may be used to verify the intent of each flow not confirmed as malign (i.e. possibly suspected benign flows).
 
 \subsubsection{Bogon}
 Class ``Bogon'' was not validated and therefore will not go into details.
@@ -232,7 +234,7 @@ Class ``Bogon'' was not validated and therefore will not go into details.
 \subsubsection{Other}
 ``Other'' contains all flows which could not successfully be assigned to one of the before mentioned classes. It is not a class in the narrower sense but a remainder class. Therefore neither true positive nor false negative rates can be determined.
 
-The\marginpar{Validation} false positive rate is a result of all true positive criteria for each class.
+The\marginpar{Validation} false positive rate is a result from all true positive criteria for each class.
 
 
 \subsection{Results}
@@ -283,9 +285,11 @@ lorem ipsum...
 \newpage
 \begin{thebibliography}{9}
 
-	\bibitem{nmap09} Gordon ``Fyodor'' Lyon, \emph{Nmap Network Scanning: The Official Nmap Project Guide to Network Discovery and Security Scanning},
+	\bibitem{nmap09} Gordon ``Fyodor'' Lyon. \emph{Nmap Network Scanning: The Official Nmap Project Guide to Network Discovery and Security Scanning},
 	Nmap Project,
 	2009
+	
+	\bibitem{bg_radiation} R. Pang, V. Yegneswaran, P. Barford, V. Paxson, and L. Peterson. \emph{Characteristics of Internet Background Radiation}. In Proceedings of the 4th ACM SIGCOMM Conference on Internet Measurement, Oct 2004.
 	
 	\bibitem{icmp} IANA.org, Internet Control Message Protocol (ICMP) Parameters \\
 	\url{http://www.iana.org/assignments/icmp-parameters/icmp-parameters.xml}
