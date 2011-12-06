@@ -68,8 +68,8 @@ public:
 
 	vector<CFlowHashMultiMap6*> flows_by_rule;
 
-//	vector<vector<packet> > rules_packetlist;
-//	vector<packet> packetlist;
+	vector<vector<packet> *> rules_packetlist;
+	vector<packet> packetlist;
 
 	CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		string & rules_filename, string & classes_filename, bool use_outflows);

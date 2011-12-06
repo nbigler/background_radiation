@@ -8,7 +8,8 @@
 class Flow {
 	private:
 		cflow flow;
-		std::vector<packet> packets;
+		//std::vector<packet> packets;
+		int packetcount;
 		Flow();
 	public:
 		Flow(cflow &fl) {
@@ -16,29 +17,32 @@ class Flow {
 		}
 
 		bool flow_complete() {
-			return packets.size() == static_cast<int>(flow.dPkts);
+			return packetcount == static_cast<int>(flow.dPkts);
 		}
 
-		void add(const packet & pck) {
+		bool add(const packet & pck) {
 			bool packet_belongs_to_flow = (flow.startMs - 1 <= pck.timestamp/1000) && (pck.timestamp/1000 <= (flow.startMs + flow.durationMs) + 1);
 
 			if(packet_belongs_to_flow){
 				if(!flow_complete()){
-					packets.push_back(pck);
+					++packetcount;
+					return true;
+					//packets.push_back(pck);
 				}else{
 					std::cerr << "Number of packets must not exceed number of packets in flow" << std::endl;
 					util::print_packet(pck);
 				}
 			}
+			return false;
 		}
 
 		cflow get_flow() {
 			return flow;
 		}
 
-		const vector<packet> get_packets() {
+		/*const vector<packet> get_packets() {
 			return packets;
-		}
+		}*/
 
 };
 
