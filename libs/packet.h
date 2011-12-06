@@ -11,8 +11,6 @@
 #include <netinet/ip_icmp.h>
 #include "global.h"
 
-
-
 struct ipPayload {
 	union {
 		struct tcphdr tcpHeader;
@@ -28,6 +26,7 @@ struct ipPayload {
 struct packet {
 	struct ethhdr ethHeader;
 	struct iphdr ipHeader;
+
 	uint32_t srcIP;		///< Numeric ip address of source vertex (host byte order)
 	uint32_t dstIP;		///< Numeric ip address of destination vertex (host byte order)
 
