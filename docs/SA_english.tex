@@ -6,10 +6,12 @@
 \usepackage{graphicx}
 \usepackage{tabularx}
 \usepackage{pstricks-add}
+\usepackage{pst-bar}
 \usepackage{url}
 \usepackage{auto-pst-pdf}
 \usepackage[english]{babel}
 \usepackage{hyperref}[2010/09/11]
+\usepackage{filecontents}
 
 % Kopf- und Fusszeilen
 \usepackage{fancyhdr}
@@ -23,6 +25,9 @@
 \renewcommand{\headrulewidth}{0.4pt} 
 \renewcommand{\footrulewidth}{0.4pt}
 
+\begin{filecontents*}{./Bilder/autovalidpercent.csv}
+Mal Scan, Susp Other, Backscatter, Serv Unr, P2P Scan, Susp Benign50, 70, 60, 45, 13, 1050, 30, 40, 55, 87, 90
+\end{filecontents*}
 
 \title{
 	\vspace{-30mm}
@@ -91,8 +96,6 @@ The methods to use are as follows:
 \end{itemize}
 
 The main focus of this validation is on the classes ``malicious scanning'' (rule 5), ``suspicious other'' (rules 6 to 8), ``backscatter'' (rules 9 to 11) and ``suspected benign'' (rule 15). Class ``Bogon'' needs no validation.
-
-The original text of the task (in German) is enclosed in the appendix [ref?].
 \newpage
 
 \section{Abstract}
@@ -102,12 +105,12 @@ The\marginpar{Starting position} goal of this project is the validation of the `
 
 Since\marginpar{Approach} we are dealing with very large PCAP files loading an entire file in Wireshark takes at least half an hour. In order to reduce the file size and thus allowing a more efficient manual analysis one-way flows from the original PCAP traces were written into new files according to the class they belong to.
 
-For each class false positive, false negative and true positive were de
 
 
-blub \marginpar{Results} blub
+To \marginpar{Results} Do
 
-Many\marginpar{Outlook} validation approaches could not be implemented. Especially the Snort alert analysis still is done manually. In order to automate Snort Most of the alerts are harmless ICMP echo requests or replies or 
+Due\marginpar{Outlook} to a lack of time some validation approaches could not be implemented. Especially the intrusion detection system alert analysis still is done manually. In order to fully automate IDS based analysis, the configuration may be tweaked to only register malicious events. Most alerts currently do not provide added value.
+
 
 \section{Technical Report}
 
@@ -122,19 +125,19 @@ Data was collected between Thu, 13 Oct 2011 and Tue, 18 Oct 2011 on a server (ca
 \end{figure}
 
 \subsection{Data}
-The\marginpar{PCAP} validation is primarily based on PCAP traces which contain the packet data from and to the HSR in the above mentioned timespan. The traces are split into one hour intervals. HSR is connected to the Switch network which doesn't filter traffic. We therefore get a good sample of the internet background radiation [quote Prof. Glatz]. The filename pattern is ...
+The\marginpar{PCAP} validation is primarily based on PCAP traces which contain the packet data from and to the HSR in the above mentioned timespan. The traces are split into one hour intervals. HSR is connected to the Switch network which doesn't filter traffic. We therefore get a good sample of the internet background radiation [quote Prof. Glatz]. The filename pattern is derived from the capture file's starting time in epoch (e.g. the PCAP starting at Thu, 13 Oct 2011 23:16:04 GMT is named trace1318547764.pcap.gz)
 
-Flow \marginpar{Flow data} data was generated from the PCAP files with YAF \cite{yaf} and converted from IPFIX to CFlow format. The resulting files contain flow data in 10 minute intervals. Each flow is defined by its starting time, its duration (which may exceed 10 minutes), the IP data and the flow direction. Only incoming flows (infl) and incoming flows which have a corresponding two-way flow with the same IP addresses and ports (q\_infl) are relevant for our validation.
+Flow \marginpar{Flow data} data was generated from the PCAP files with YAF \cite{yaf} and converted from IPFIX to CFlow format. The resulting files contain flow data in 10 minute intervals. Each flow is defined by its starting time, its duration (which may exceed 10 minutes), the IP data and the flow direction. Only incoming flows (infl) and incoming flows which have a corresponding two-way flow with the same IP addresses and ports (q\_infl) are relevant for our validation. The flow data's filename pattern is a combination of flow direction, date and time (e.g. an inflow file starting at Thu, 13 Oct 2011 23:10:00 would be named i\_20111013.231000.gz) 
 
-Based\marginpar{Sign sets} on the flow data the ``O/W Classifier'' generates sign data, which defines the flow/class affiliation. This data is stored in separate files using the same granularity as the flow data files.
+Based\marginpar{Sign sets} on the flow data the ``O/W Classifier'' generates sign data, which defines the flow/class affiliation. This data is stored in separate files using the same granularity as the flow data files. The naming scheme follows the flow data naming convention except for the addition of ``.sig'' (e.g. i\_20111013.231000.sig.gz)
 
 In\marginpar{IDS alerts} addition to the flow and sign data, alerts generated by the open-source intrusion detection system Snort can be used to investigate the intent of the flows. In order to be able to correlate these alerts with the packet and flow data, the same anonymizing scheme was used.
 
 \subsubsection{Data privacy}
-In order to meet the data privacy requirements at HSR all IP addresses are anonymized and all data above the transport layer has been stripped from packets belonging to two-way flows. Layer 4 PDU are available for one-way flows only. The anonymization generates random IP addresses but preserves prefixes (i.e. subnet membership is preserved). It therefore is impossible to identify the hosts, networks oder services behind those IP addresses. As a consequence it is very difficult to figure out if a certain host is a regular server and neither the geographic location, nor the provider who owns the respective IP address can be identified. We discovered that the IP addresses 152.103.xxx.xxx are HSR addresses since they were present in almost all packets.
+In order to meet the data privacy requirements at HSR all IP addresses are anonymized and all data above the transport layer has been stripped from packets belonging to two-way flows. Layer 4 PDU are available for one-way flows only. The anonymization generates random IP addresses but preserves prefixes (i.e. subnet membership is preserved). It therefore is impossible to identify the hosts, networks oder services behind those IP addresses. As a consequence it is very difficult to figure out if a certain host is a regular server and neither the geographic location, nor the provider who owns the respective IP address can be identified. We discovered that the IP addresses which match the pattern 152.103.xxx.xxx are from HSR since they were present in almost all packets.
 
 \subsubsection{Limitations of our flow data}
-YAF has some limitations in terms of flow defragmentation. If a connection is terminated with a FIN flag and packets are retransmitted after that, YAF interprets those retransmissions as independent one-way flows. The same holds true if Multiple RST packets are sent. HOW MANY?
+YAF has some limitations in terms of flow defragmentation. If a connection is terminated with a FIN flag and packets are retransmitted after that, YAF interprets those retransmissions as independent one-way flows. The same holds true if multiple RST packets are sent. HOW MANY?
 
 \subsection{Basic Validation Concepts}
 In\marginpar{TCP} case of TCP one-way flows the only valid flag sequence is a sequence of multiple SYN flags. If only one SYN flag is sent we consider that to be a SYN scan because benign applications should try to establish a connection more than once if they don't receive a SYN/ACK. Most applicaitons use the default socket and therefore do that by default [quote Prof. Glatz]. Before a connection is established RFC 793 \cite{rfc_tcp} forbids the use of flags other than SYN. 
@@ -143,46 +146,46 @@ To\marginpar{UDP} validate UDP flows we use the UDP PDU's size. Packets without 
 In addition to the existence of a PDU the variance of size over all packets within the flow may be used to identify malicious intent. If all PDUs are the same size the flow is certainly not a regular benign flow but rather a scan. BRINGT DIESES KRITERIUM ETWAS? AUSWERTUNG ANSCHAUEN!!!
 
 \subsection{Flow Classes}
-In this section we describe the classes that need to be validated. All descriptions are from a validation perspective, for details and rules refer to [Glatz'sche publikation, bzw. Auszug]. The classification currently used by the background radiation detector is based on seven disjoint classes. Provided that all flows can be assigned to the proper class false negative and false positive rates can therefore be calculated. In addition to the description of each class our strategies for the validation of each class are layed out.
+In this section we describe the classes that need to be validated. All descriptions are from a validation perspective, for details and rules refer to [Glatz'sche publikation, bzw. Auszug]. The classification currently used by the background radiation detector is based on seven disjoint classes. Provided that all flows can be assigned to the proper class false negative and false positive rates can therefore be calculated. In addition to the description of each class our strategies for the validation of each class are listed.
 
 \begin{figure}[ht]
 \begin{center}
 \psset{framesep=1.1pt,unit=1.1cm}
 \begin{pspicture}(-5.1,-5.1)(5.1,5.1)
 	\degrees[100]
-	\pswedge[fillstyle=hlines,fillcolor=gray,hatchcolor=gray]{5}{ 0 }{65.24 }
-	\rput(4.2; 32.62 ){\psframebox*{\small 65.24 \%}}
+	\pswedge[fillstyle=hlines,fillcolor=gray,hatchcolor=gray]{5}{ 0 }{66.00 }
+	\rput(4.2; 32.62 ){\psframebox*{\small 66.00 \%}}
 	\uput{5.2}[ 32.62 ](0;0){\small Malicious Scanning}
-	\pswedge[fillstyle=hlines,fillcolor=gray,hatchcolor=gray]{5}{65.24 }{93.16 }
-	\rput(4.2;79 ){\psframebox*{\small 27.92 \%}}
+	\pswedge[fillstyle=hlines,fillcolor=gray,hatchcolor=gray]{5}{66.00 }{92.78 }
+	\rput(4.2;79 ){\psframebox*{\small 26.78 \%}}
 	\uput{5.2}[79 ](0;0){\small Suspicious Other}
-	\pswedge[fillstyle=hlines,fillcolor=gray,hatchcolor=gray]{5}{93.16 }{95.39 }
-	\rput(4.2;94.2 ){\psframebox*{\small 2.23 \%}}
+	\pswedge[fillstyle=hlines,fillcolor=gray,hatchcolor=gray]{5}{92.78 }{95.04 }
+	\rput(4.2;94.2 ){\psframebox*{\small 2.26 \%}}
 	\uput{5.2}[94.2 ](0;0){\small Backscatter}
-	\pswedge[fillstyle=solid,fillcolor=white,hatchcolor=white]{5}{95.39 }{95.52 }
-%	\rput(4.2;95.4 ){\psframebox*{\small 0.13 \%}}
-	\uput{5.2}[95.4 ](0;0){\small Serv. Unreach. (0.13 \%)}
-	\pswedge[fillstyle=solid,fillcolor=white,hatchcolor=white]{5}{95.52 }{98.49 }
-	\rput(4.2;97 ){\psframebox*{\small 2.97 \%}}
-	\uput{5.2}[97 ](0;0){\small P2P Scanning}
-	\pswedge[fillstyle=solid,fillcolor=white,hatchcolor=white]{5}{98.49 }{98.68 }
-%	\rput(4.2;98 ){\psframebox*{\small 0.19 \%}}
-	\uput{5.2}[98 ](0;0){\small Susp. Benign (0.19 \%)}
-	\pswedge[fillstyle=solid,fillcolor=gray,hatchcolor=gray]{5}{98.68 }{98.94 }
-%	\rput(4.2;98.7 ){\psframebox*{\small 0.26 \%}}
-	\uput{5.2}[98.7 ](0;0){\small Bogon (0.26 \%)}
-	\pswedge[fillstyle=solid,fillcolor=gray,hatchcolor=gray]{5}{98.94 }{100 }
-	\rput(4.2;99.5 ){\psframebox*{\small 1.8 \%}}
-	\uput{5.2}[99.5 ](0;0){\small Other}
+	\pswedge[fillstyle=solid,fillcolor=white,hatchcolor=white]{5}{95.04 }{95.14 }
+%	\rput(4.2;95.09 ){\psframebox*{\small 0.13 \%}}
+	\uput{5.2}[95.09 ](0;0){\small Serv. Unreach. (0.10 \%)}
+	\pswedge[fillstyle=solid,fillcolor=white,hatchcolor=white]{5}{95.14 }{97.79 }
+	\rput(4.2;96.47 ){\psframebox*{\small 2.65 \%}}
+	\uput{5.2}[96.47 ](0;0){\small P2P Scanning}
+	\pswedge[fillstyle=solid,fillcolor=white,hatchcolor=white]{5}{97.79 }{97.96 }
+%	\rput(4.2;97.8 ){\psframebox*{\small 0.19 \%}}
+	\uput{5.2}[97.6 ](0;0){\small Susp. Benign (0.17 \%)}
+	\pswedge[fillstyle=solid,fillcolor=gray,hatchcolor=gray]{5}{97.96 }{98.22 }
+%	\rput(4.2;98.1 ){\psframebox*{\small 0.26 \%}}
+	\uput{5.2}[98.3 ](0;0){\small Bogon (0.26 \%)}
+	\pswedge[fillstyle=solid,fillcolor=gray,hatchcolor=gray]{5}{98.22 }{100 }
+	\rput(4.2;99.3 ){\psframebox*{\small 1.8 \%}}
+	\uput{5.2}[99.3 ](0;0){\small Other}
 \end{pspicture}
-\caption{Classes as used by the ``O/W Classifier''.  95.93\% of all flows were identified as malign (striped), 3.29\% benign (white) and 2.06\% not defined (grey).}
+\caption{Classes as used by the ``O/W Classifier''.  95.04\% of all flows were identified as malign (striped), 3.29\% benign (white) and 2.06\% not defined (grey).}
 		\label{class}
 	\end{center}
 \end{figure}
 
 \subsubsection{Malicious Scanning}
 
-All \marginpar{Character\-istics} malicious scan activities as well as traffic generated by viruses, trojans and worms are summarized in this class. With the exception of SYN scans, the length of the flows is basically not limited. It is definitely  possible that a flow contains multiple packets from different scans. UDP scans normally have a specific payload depending on the destination service. \cite{nmap09}.
+All\marginpar{Character\-istics} malicious scan activities are summarized in this class. With the exception of SYN scans, the length of the flows is not limited. It is theoretically possible that a flow contains multiple packets from different scan types. For example a null scan packet may be followed by a christmas tree scan packet for footprinting purposes. UDP scans normally have a specific payload depending on the destination service. \cite{nmap09}.
 
 For \marginpar{Validation} the validation of TCP flows the scan patterns of NMAP are used \cite{nmap09}:
 \begin{itemize}
@@ -202,7 +205,7 @@ This\marginpar{Character\-istics} class containts all flows that could not be as
 All\marginpar{Validation} TCP flows that do not have a valid flow sequence should a priori be classified as malicious. If a valid flow sequence is present, it is not possible to classify the flow without further information, because malicious scans can also use valid sequences as a camouflage. \cite{nmap09}.
 
 \subsubsection{Backscatter}
-Backscatter\marginpar{Character\-istics} is incoming traffic caused by attacks to hosts in other networks with faked source addresses. The received replies to those attacks are called backscatter[]. 
+Backscatter\marginpar{Character\-istics} is incoming traffic caused by attacks to hosts in other networks with spoofed source addresses. The received replies to those attacks are called backscatter[]. 
 
 ICMP\marginpar{Validation} packets triggered by backscatter scanning can only be replies, because backscatter is always a reaction to faked incoming packets from another network. Possible requests thus fall into the category false positive.
 
@@ -216,9 +219,13 @@ One\marginpar{Validation} approach is to check if the destination address reside
 Since HSR does not suppress outgoing ICMP destination unreachable packets, such packets may be used to identify unreachable services. To match ICMP packets with flows classified as ``Service Unreachable'' the IP and port information from the ICMP packet's payload \cite{rfc_icmp} can be used. 
 
 \subsubsection{Benign P2P Scanning}
-``Benign P2P Scanning''\marginpar{Charakter\-istics} contains all flows which originate from P2P applications scanning for currently unavailable peers.
+``Benign P2P Scanning''\marginpar{Charakter\-istics} contains all flows which originate from P2P applications trying to connect to offline peers. 
 
-As\marginpar{Validierung} a mean to validate this class the packets payload can be checked for the existence of a P2P protocol header. Due to the capability of modern P2P applications to obfuscate \cite{emule} or encrypt \cite{vuze} traffic there will be a remainder of unknown cause.
+As\marginpar{Validierung} a mean to validate this class the packets payload can be checked for the existence of a P2P protocol header. Due to the capability of modern P2P applications to obfuscate \cite{emule} or encrypt \cite{vuze} traffic there will always be a remainder of unknown cause.
+
+TCP connection attempts use SYN flags only, therefore the TCP flag verification can be used.
+
+In case of UDP connections, the UDP PDU's size must not be 0.
 
 \subsubsection{Suspected Benign}
 ``Suspected Benign''\marginpar{Charakter\-istics} contains all traffic which is considered benign and has not been classified as ``P2P'' or ``Service Unreachable''. As an example one-way flows which were caused by misconfiguration fall in this class.
@@ -229,22 +236,52 @@ In case of TCP flows we define flows that contain an invalid flag sequence malig
 In any case snort alerts may be used to verify the intent of each flow not confirmed as malign (i.e. possibly suspected benign flows).
 
 \subsubsection{Bogon}
-Class ``Bogon'' was not validated and therefore will not go into details.
+Class ``Bogon'' was not validated we therefore will not go into details.
 
 \subsubsection{Other}
-``Other'' contains all flows which could not successfully be assigned to one of the before mentioned classes. It is not a class in the narrower sense but a remainder class. Therefore neither true positive nor false negative rates can be determined.
+``Other'' contains all flows which could not successfully be assigned to one of the above mentioned classes. It is not a class in the narrower sense but a remainder class. Therefore neither true positive nor false negative rates can be determined.
 
 The\marginpar{Validation} false positive rate is a result from all true positive criteria for each class.
 
 
 \subsection{Results}
-\subsubsection{Statistics per class}
+\subsubsection{Per class statistics}
+Table \ref{stats_classes} shows the true positive, false positive and false negative rates for each class as determined by the automated validation:
+\begin{table}[h]
+\begin{tabularx}{\textwidth}{|X|X|X|X| }
+	\cline{1-4} Class & True Positive & False Positive & False Negative \\
+	\hline
+	\hline Malicious Scanning  & X flows (XX\%) &  X flows (XX\%) &  X flows (XX\%) \\
+	\hline Suspicious Other  & X flows (XX\%) & X flows (XX\%) & X flows (XX\%) \\
+	\hline Backscatter  & X flows (XX\%) & X flows (XX\%) & X flows (XX\%) \\
+	\hline
+	\hline Service Unreachable  & X flows (XX\%) & X flows (XX\%) & X flows (XX\%) \\
+	\hline P2P Scanning  & X flows (XX\%) & X flows (XX\%) & X flows (XX\%) \\
+	\hline Suspected Benign  & X flows (XX\%) & X flows (XX\%) & X flows (XX\%) \\
+	\hline
+\end{tabularx}
+	\caption{Automated validation}
+	\label{stats_classes}
+\end{table}
+
+%\hfill
+%\begin{minipage}[b]{1.5in}
+%\begin{figure}[ht]
+%	\centering
+%	\psset{unit=0.5in}%	\begin{pspicture}(0,-0.5)(3,4)%		\readpsbardata{\data}{./Bilder/autovalidpercent.csv} 
+%		\psbarchart[barstyle={white,grey}, chartstyle=stack]{\data}%	\end{pspicture}
+%	\caption{Coverage of the automated validation. Successfully validated flow percentages are in white, rest in grey}
+%	\label{validation_percentages}
+%\end{figure}
+%\end{minipage}
+%\hfill
+
 \subsubsection{}
 \subsection{Conclusions}
 
-lorem ipsum...
+\subsubsection{Lessons Learned}
 
-\section{Appendix}
+\section{Appendix}	
 
 \subsection{Report Nicolas Bigler}
 
@@ -260,26 +297,6 @@ lorem ipsum...
 
 
 \subsection{Task description}
-%	\href{./task\_description.pdf}{task\_description.pdf}
-
-%In Abbildung \ref{sc_kz} sind die Finanzkennzahlen 2010/2011 der Swisscom dargestellt%\cite{oppenheimer11}.
-
-
-%In Tabelle \ref{plnp} sind die technischen Anforderungen aufgeführt:
-%\begin{table}[h]
-%\begin{tabularx}{\textwidth}{|l|X|}
-%	\hline Skalierbarkeit & Option für Feeder Netzwerk (Bündelung und Multiplex);  \\ 
-%	\hline Verfügbarkeit & Hoch: Silber: 99.95\%, Gold: 99.97\% \\
-%	\hline Performanz & 2 - 155 Mbps \\
-%	\hline Sicherheit & Hoch, physikalisch getrennte Leitungen, Farbe pro Kunde \\
-%	\hline Verwaltung & Proaktives End-zu-End Management \\
-%	\hline Anpassbarkeit & Schwierig anzupassen \\
-%	\hline Erschwinglichkeit & Teuer, lohnt sich nur bei entsprechender Aulastung der Leitung, Granularität der Bandbreite schlecht \\
-%	\hline
-%\end{tabularx}
-% \caption{Private Line National Plus Technische Anforderungen}
-%	\label{plnp}
-%\end{table}
 
 
 \newpage
