@@ -812,7 +812,6 @@ int main(int argc, char **argv) {
 					}
 					cout << "Processing pcap file: " << pcap_filename << endl;
 					process_pcap(pcap_filename, data, cts);
-					//process_pcap(pcap_files[j].c_str(), data, cts);
 				}
 			}
 
