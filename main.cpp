@@ -126,6 +126,11 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 			total_bytes   += pflow->dOctets;
 			util::swap_endians(*pflow);
 
+			if (pflow->prot == IPPROTO_ICMP){
+				pflow->localPort = 0;
+				pflow->remotePort = 0;
+			}
+
 			if (data.last_flow < (pflow->startMs + pflow->durationMs)){
 				data.last_flow = (pflow->startMs + pflow->durationMs);
 			}
@@ -407,7 +412,7 @@ void find_match(packet &p, CPersist & data){
 		if (iter != data.flows_by_rule[i]->end()){
 
 			cflow fl = (*iter).second.get_flow();
-			if ((fl.startMs <= p.timestamp/1000) && (p.timestamp/1000 <= (fl.startMs + fl.durationMs))){
+			if ((fl.startMs-1 < p.timestamp/1000) && (p.timestamp/1000 < (fl.startMs + fl.durationMs + 1))){
 				if ((*iter).second.add(p)){
 					(*data.rules_packetlist[i]).push_back(p);
 				}
@@ -415,7 +420,7 @@ void find_match(packet &p, CPersist & data){
 		} else if(iter_q != data.flows_by_rule[i]->end()){
 
 			cflow fl = (*iter_q).second.get_flow();
-			if ((fl.startMs <= p.timestamp/1000) && (p.timestamp/1000 <= (fl.startMs + fl.durationMs))){
+			if ((fl.startMs-1 < p.timestamp/1000) && (p.timestamp/1000 < (fl.startMs + fl.durationMs + 1))){
 				if ((*iter_q).second.add(p)){
 					(*data.rules_packetlist[i]).push_back(p);
 				}
@@ -531,7 +536,7 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 				util::ipV4AddressToString(packet.remoteIP, remote,sizeof remote);
 				cout << "Packet: " << local << ":" << packet.localPort << ";\t" << remote << ":" << packet.remotePort << ";" << static_cast<int>(packet.protocol)<< endl;*/
 
-				if (((cflow_start <= (packet.timestamp / 1000000)) && ((cflow_start + 600) > (packet.timestamp / 1000000))) || ((cflow_start <= (packet.timestamp / 1000000)) && ((data.last_flow >= packet.timestamp / 1000000)))){
+				if ((cflow_start <= (packet.timestamp / 1000000)) && (data.last_flow >= (packet.timestamp / 1000000))){
 					find_match(packet, data);
 				}
 			}
@@ -587,10 +592,12 @@ void clear_lists(CPersist & data){
 		for(CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end(); it++) {
 
 			//cout << "Iterating through Rule " << i << "..." << endl;
-			if((*it).second.flow_complete()) {
+			if(!(*it).second.flow_incomplete()) {
 				//cout << "Flows with same key: " << data.flows_by_rule[i]->count((*it).first) << endl;
 				iterators.push_back(it);
 				++deleted;
+			}else{
+				util::print_flow((*it).second.get_flow());
 			}
 			++count;
 		}
@@ -600,7 +607,7 @@ void clear_lists(CPersist & data){
 		for(CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end(); it++) {
 
 			//cout << "Iterating through Rule " << i << "..." << endl;
-			if((*it).second.flow_complete()) {
+			if(!(*it).second.flow_incomplete()) {
 				//cout << "Flows with same key: " << data.flows_by_rule[i]->count((*it).first) << endl;
 				cout << "FAILLLLL" << endl;
 			}
@@ -790,11 +797,12 @@ int main(int argc, char **argv) {
 				pcap_ts = pcap_files[j].substr(pos-10,10);
 				time_t pts = atoi(pcap_ts.c_str());
 				//cout << "pts: " << pts << endl;
-				if (((cts <= pts) && (pts <= cts+601)) || ((pts <= cts) && (cts <= pts + 3601)) || ((cts <= pts) && (pts < data.last_flow/1000))){
+				if (((pts <= cts) && (cts <= pts + 3600)) || ((cts <= pts) && (pts < data.last_flow/1000))){
 					cout << "if entered" << endl;
+					string old_pcap_file = pcap_filename;
 					pcap_filename = pcap_files[j].substr(0,pcap_files[j].find(".gz")).substr(pcap_files[j].find_last_of("/")+1);
 					if (!file_exists(pcap_filename)){
-						if (j>0) remove(pcap_files[j].substr(0,pcap_files[j].find(".gz")).substr(pcap_files[j].find_last_of("/")+1).c_str());
+						if (j>0) remove(old_pcap_file.c_str());
 						ifstream file(pcap_files[j].c_str(), ios_base::in | ios_base::binary);
 						boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
 						ofstream out(pcap_filename.c_str());
@@ -805,9 +813,6 @@ int main(int argc, char **argv) {
 					cout << "Processing pcap file: " << pcap_filename << endl;
 					process_pcap(pcap_filename, data, cts);
 					//process_pcap(pcap_files[j].c_str(), data, cts);
-				}
-				if (cts > pts +3601){
-					remove(pcap_filename.c_str());
 				}
 			}
 
