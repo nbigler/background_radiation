@@ -623,12 +623,12 @@ void clear_lists(CPersist & data){
 			data.flows_by_rule[i] = NULL;
 		}
 
-//		data.rules_packetlist[i]->clear();
-//		delete data.rules_packetlist[i];
+		data.rules_packetlist[i]->clear();
+		delete data.rules_packetlist[i];
 
 	}
 //	data.flows_by_rule.clear();
-//	data.rules_packetlist.clear();
+	data.rules_packetlist.clear();
 }
 
 
@@ -812,6 +812,7 @@ int main(int argc, char **argv) {
 					}
 					cout << "Processing pcap file: " << pcap_filename << endl;
 					process_pcap(pcap_filename, data, cts);
+					//process_pcap(pcap_files[j].c_str(), data, cts);
 				}
 			}
 
