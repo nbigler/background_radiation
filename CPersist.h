@@ -75,7 +75,9 @@ public:
 
 
 
-	vector<CFlowHashMultiMap6*> flows_by_rule;
+	CFlowHashMultiMap6* flowHashMap;
+
+	vector<packet> packets;
 
 	CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		string & rules_filename);
