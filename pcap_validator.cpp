@@ -113,8 +113,8 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data,
 		if (data.flows_by_rule[j] == NULL) {
 			data.flows_by_rule[j] = new CFlowHashMultiMap6();
 		}
-//		data.flows_by_rule.push_back(new CFlowHashMap6());
-//		data.rules_packetlist.push_back(new vector<packet>());
+		//		data.flows_by_rule.push_back(new CFlowHashMap6());
+		//		data.rules_packetlist.push_back(new vector<packet>());
 	}
 
 	// Loop over all sign sets (i.e. all flows)
@@ -328,104 +328,104 @@ bool file_exists(string filename) {
  *	\param data	  CPersist object containing all data
  */
 void write_pcap(CPersist & data) {
-//
-//	struct pcapFileHeader {
-//	    uint32_t magic_number;   /* magic number */
-//	    uint16_t version_major;  /* major version number */
-//	    uint16_t version_minor;  /* minor version number */
-//	    int16_t  thiszone;       /* GMT to local correction */
-//	    uint32_t sigfigs;        /* accuracy of timestamps */
-//	    uint32_t snaplen;        /* max length of captured packets, in octets */
-//	    uint32_t network;        /* data link type */
-//
-//	    pcapFileHeader (uint32_t magic, uint16_t major, uint16_t minor,
-//	    		int16_t zone, uint32_t ts_acc, uint32_t max_packlen, uint32_t dl_type){
-//	    	magic_number = magic;
-//	    	version_major = major;
-//	    	version_minor = minor;
-//	    	thiszone = zone;
-//	    	sigfigs = ts_acc;
-//	    	snaplen = max_packlen;
-//	    	network = dl_type;
-//	    }
-//	    pcapFileHeader(){
-//	    	magic_number = 0xa1b2c3d4;
-//			version_major = 2;
-//			version_minor = 4;
-//			thiszone = 0;
-//			sigfigs = 0;
-//			snaplen = 65535;
-//			network = 1;
-//	    }
-//	};
-//
-//	struct pcapPacketHeader {
-//	    uint32_t ts_sec;         /* timestamp seconds */
-//	    uint32_t ts_usec;        /* timestamp microseconds */
-//	    uint32_t incl_len;       /* number of octets of packet saved in file */
-//	    uint32_t orig_len;       /* actual length of packet */
-//
-//	    void init (uint64_t timestamp, uint32_t packetsize, uint32_t actualsize) {
-//	    	ts_sec = timestamp/1000000;
-//	    	ts_usec = timestamp%1000000;
-//	    	incl_len = packetsize;
-//	    	orig_len = actualsize;
-//	    }
-//	};
-//
-//	//pcapFileHeader fileHeader(0xa1b2c3d4, 2, 4, 0, 0, 65535, 1);
-//	pcapFileHeader fileHeader;
-//
-//	pcapPacketHeader packetHeader;
-//	ofstream fileout;
-//	string rulename;
-//	string filename;
-//
-//	for (int i = 0; i<= data.c.get_rule_count(); i++){
-//		if (i == data.c.get_rule_count()){
-//			rulename = "Other";
-//		} else {
-//			data.c.get_rule_name(i, rulename);
-//		}
-//		filename = "rule_" + rulename + ".pcap";
-//
-//		if (!file_exists(filename)){
-//			fileout.open(filename.c_str(), ios::trunc | ios::binary);
-//			fileout.write(reinterpret_cast<const char*>(&fileHeader),
-//							  sizeof fileHeader);
-//		}else{
-//			fileout.open(filename.c_str(), ios::app | ios::binary);
-//		}
-//		vector<packet>::iterator iter;
-//		for (iter = data.rules_packetlist[i]->begin(); iter != data.rules_packetlist[i]->end(); iter++){
-//		//for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end() ; it++){
-//			//if((*it).second.flow_complete()) {
-//				//for (vector<packet>::const_iterator iter = (*it).second.get_packets().begin(); iter != (*it).second.get_packets().end(); iter++){
-//			packetHeader.init((*iter).timestamp, (*iter).packetsize, (*iter).actualsize);
-//			fileout.write(reinterpret_cast<const char*>(&packetHeader), sizeof packetHeader);
-//			fileout.write(reinterpret_cast<const char*>(&(*iter).ethHeader), sizeof(struct ethhdr));
-//			fileout.write(reinterpret_cast<const char*>(&(*iter).ipHeader), sizeof(struct iphdr));
-//			switch ((*iter).protocol) {
-//				case IPPROTO_TCP:
-//					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.tcpHeader), sizeof(struct tcphdr));
-//					//fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.payload), (*iter).ipPayload.payloadsize);
-//					break;
-//				case IPPROTO_UDP:
-//					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.udpHeader), sizeof(struct udphdr));
-//					//fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.payload), (*iter).ipPayload.payloadsize);
-//					break;
-//				case IPPROTO_ICMP:
-//					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.icmpHeader), sizeof(struct icmphdr));
-//					//fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.payload), (*iter).ipPayload.payloadsize);
-//					break;
-//				default:
-//					//fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.payload), (*iter).ipPayload.payloadsize);
-//					break;
-//			//	}
-//			}
-//		}
-//		fileout.close();
-//	}
+	//
+	//	struct pcapFileHeader {
+	//	    uint32_t magic_number;   /* magic number */
+	//	    uint16_t version_major;  /* major version number */
+	//	    uint16_t version_minor;  /* minor version number */
+	//	    int16_t  thiszone;       /* GMT to local correction */
+	//	    uint32_t sigfigs;        /* accuracy of timestamps */
+	//	    uint32_t snaplen;        /* max length of captured packets, in octets */
+	//	    uint32_t network;        /* data link type */
+	//
+	//	    pcapFileHeader (uint32_t magic, uint16_t major, uint16_t minor,
+	//	    		int16_t zone, uint32_t ts_acc, uint32_t max_packlen, uint32_t dl_type){
+	//	    	magic_number = magic;
+	//	    	version_major = major;
+	//	    	version_minor = minor;
+	//	    	thiszone = zone;
+	//	    	sigfigs = ts_acc;
+	//	    	snaplen = max_packlen;
+	//	    	network = dl_type;
+	//	    }
+	//	    pcapFileHeader(){
+	//	    	magic_number = 0xa1b2c3d4;
+	//			version_major = 2;
+	//			version_minor = 4;
+	//			thiszone = 0;
+	//			sigfigs = 0;
+	//			snaplen = 65535;
+	//			network = 1;
+	//	    }
+	//	};
+	//
+	//	struct pcapPacketHeader {
+	//	    uint32_t ts_sec;         /* timestamp seconds */
+	//	    uint32_t ts_usec;        /* timestamp microseconds */
+	//	    uint32_t incl_len;       /* number of octets of packet saved in file */
+	//	    uint32_t orig_len;       /* actual length of packet */
+	//
+	//	    void init (uint64_t timestamp, uint32_t packetsize, uint32_t actualsize) {
+	//	    	ts_sec = timestamp/1000000;
+	//	    	ts_usec = timestamp%1000000;
+	//	    	incl_len = packetsize;
+	//	    	orig_len = actualsize;
+	//	    }
+	//	};
+	//
+	//	//pcapFileHeader fileHeader(0xa1b2c3d4, 2, 4, 0, 0, 65535, 1);
+	//	pcapFileHeader fileHeader;
+	//
+	//	pcapPacketHeader packetHeader;
+	//	ofstream fileout;
+	//	string rulename;
+	//	string filename;
+	//
+	//	for (int i = 0; i<= data.c.get_rule_count(); i++){
+	//		if (i == data.c.get_rule_count()){
+	//			rulename = "Other";
+	//		} else {
+	//			data.c.get_rule_name(i, rulename);
+	//		}
+	//		filename = "rule_" + rulename + ".pcap";
+	//
+	//		if (!file_exists(filename)){
+	//			fileout.open(filename.c_str(), ios::trunc | ios::binary);
+	//			fileout.write(reinterpret_cast<const char*>(&fileHeader),
+	//							  sizeof fileHeader);
+	//		}else{
+	//			fileout.open(filename.c_str(), ios::app | ios::binary);
+	//		}
+	//		vector<packet>::iterator iter;
+	//		for (iter = data.rules_packetlist[i]->begin(); iter != data.rules_packetlist[i]->end(); iter++){
+	//		//for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end() ; it++){
+	//			//if((*it).second.flow_complete()) {
+	//				//for (vector<packet>::const_iterator iter = (*it).second.get_packets().begin(); iter != (*it).second.get_packets().end(); iter++){
+	//			packetHeader.init((*iter).timestamp, (*iter).packetsize, (*iter).actualsize);
+	//			fileout.write(reinterpret_cast<const char*>(&packetHeader), sizeof packetHeader);
+	//			fileout.write(reinterpret_cast<const char*>(&(*iter).ethHeader), sizeof(struct ethhdr));
+	//			fileout.write(reinterpret_cast<const char*>(&(*iter).ipHeader), sizeof(struct iphdr));
+	//			switch ((*iter).protocol) {
+	//				case IPPROTO_TCP:
+	//					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.tcpHeader), sizeof(struct tcphdr));
+	//					//fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.payload), (*iter).ipPayload.payloadsize);
+	//					break;
+	//				case IPPROTO_UDP:
+	//					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.udpHeader), sizeof(struct udphdr));
+	//					//fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.payload), (*iter).ipPayload.payloadsize);
+	//					break;
+	//				case IPPROTO_ICMP:
+	//					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.icmpHeader), sizeof(struct icmphdr));
+	//					//fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.payload), (*iter).ipPayload.payloadsize);
+	//					break;
+	//				default:
+	//					//fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.payload), (*iter).ipPayload.payloadsize);
+	//					break;
+	//			//	}
+	//			}
+	//		}
+	//		fileout.close();
+	//	}
 }
 
 /**
@@ -624,7 +624,7 @@ void get_flow_count(CPersist &data) {
 		int flowcount = 0;
 		int packetcount = 0;
 		cout << "Rule: " << i << endl;
-//		int interval = 2;
+		//		int interval = 2;
 		for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin();
 				it != data.flows_by_rule[i]->end(); it++) {
 			++flowcount;
@@ -691,7 +691,7 @@ void clear_lists(CPersist & data) {
 		}
 		cout << "Done traversing " << count << " flows" << endl;
 		cout << "Flows deleted: " << deleted << endl;
-//		data.flows_by_rule[i]->clear();
+		//		data.flows_by_rule[i]->clear();
 		if (data.flows_by_rule[i]->empty()) {
 			cout << "Rule " << i << " is empty!" << endl;
 			delete data.flows_by_rule[i];
@@ -699,12 +699,275 @@ void clear_lists(CPersist & data) {
 			data.flows_by_rule[i] = NULL;
 		}
 
-//		data.rules_packetlist[i]->clear();
-//		delete data.rules_packetlist[i];
+		//		data.rules_packetlist[i]->clear();
+		//		delete data.rules_packetlist[i];
 
 	}
-//	data.flows_by_rule.clear();
-//	data.rules_packetlist.clear();
+	//	data.flows_by_rule.clear();
+	//	data.rules_packetlist.clear();
+}
+
+
+uint8_t get_tcp_flags(tcphdr const &tcp_hdr) {
+	return *(((uint8_t *) &(tcp_hdr.ack_seq)) + 5);
+}
+
+int get_icmp_type(const packet p) {
+	return p.ipPayload.icmpHeader.type;
+}
+
+int get_icmp_code(const packet p) {
+	return p.ipPayload.icmpHeader.code;
+}
+
+/**
+ * Checks if the flag sequence from a given packet sequence is valid
+ *
+ * @param packets
+ * @return TRUE if valid sequence, else FALSE
+ */
+bool valid_flag_sequence_check(vector<packet> packets) {
+
+	int counter = 0;
+	uint8_t flag_sequence[5] = { 0x00, 0x00, 0x00, 0x00, 0x00 };
+	uint8_t tcp_flags;
+
+	//Fill flag sequence with 5 first packets from flow
+	for (vector<packet>::iterator it = packets.begin();
+			it != packets.end() && counter < 5; ++it) {
+		tcp_flags = get_tcp_flags((*it).ipPayload.tcpHeader);
+
+		flag_sequence[counter] = tcp_flags;
+		counter++;
+	}
+
+	//Check if flag sequence is valid. One single SYN is considered a SYN-Scan and therefore an invalid flag sequence.
+	if (flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02
+			&& flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02
+			&& flag_sequence[4] == 0x02)
+		return true; // 5 syn flags
+	if (flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02
+			&& flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02
+			&& flag_sequence[4] == 0x00)
+		return true; // 4 syn flags
+	if (flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02
+			&& flag_sequence[2] == 0x02 && flag_sequence[3] == 0x00
+			&& flag_sequence[4] == 0x00)
+		return true; // 3 syn flags
+	if (flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02
+			&& flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00
+			&& flag_sequence[4] == 0x00)
+		return true; // 2 syn flags
+
+	return false;
+}
+
+
+
+
+void flow_validation(CPersist & data, bool verbose) {
+	int rule_no = 4; // Scan 5
+
+	for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[rule_no]->begin();
+			it != data.flows_by_rule[rule_no]->end(); ++it) {
+
+		if ((*it).second.get_flow().prot == IPPROTO_TCP) {
+			if (get_tcp_flags(
+					(*it).second.get_packets().begin()->ipPayload.tcpHeader)
+					== 0x02 && (*it).second.get_packets().size() == 1) { //SYN Scan
+
+				data.scan5_validation_flow_count["TP :SYN Scan"]++;
+
+				if (verbose) {
+					cout << "True Positive: Flow assigned to Rule " << rule_no
+							<< " and is SYN Scan" << endl;
+				}
+			} else {
+
+				data.scan5_validation_flow_count["Unknown"]++;
+			}
+		} else if (get_tcp_flags(
+				(*it).second.get_packets().begin()->ipPayload.tcpHeader)
+				== 0x29) { //X-Mas Tree Scan (URG+PSH+FIN)
+
+			data.scan5_validation_flow_count["TP: X-Mas Tree Scan"]++;
+
+			if (verbose) {
+				cout << "True Positive: Flow assigned to Rule " << rule_no
+						<< " and is X-Mas Tree Scan" << endl;
+			}
+		} else if (get_tcp_flags(
+				(*it).second.get_packets().begin()->ipPayload.tcpHeader)
+				== 0x01) { //FIN Scan
+
+			data.scan5_validation_flow_count["TP: Fin Scan"]++;
+
+			if (verbose) {
+				cout << "True Positive: Flow assigned to Rule " << rule_no
+						<< " and is FIN Scan" << endl;
+			}
+		} else if (get_tcp_flags(
+				(*it).second.get_packets().begin()->ipPayload.tcpHeader)
+				== 0x00) { //Null Scan
+
+			data.scan5_validation_flow_count["TP: Null Scan"]++;
+
+			if (verbose) {
+				cout << "True Positive: Flow assigned to Rule " << rule_no
+						<< " and is Null Scan" << endl;
+			}
+		}
+	}
+
+	//Backscatter
+	for (int rule_no = 8; rule_no < 11; rule_no++) {
+		for (CFlowHashMultiMap6::iterator it =
+				data.flows_by_rule[rule_no]->begin();
+				it != data.flows_by_rule[rule_no]->end(); ++it) {
+			if ((*it).second.get_flow().prot == IPPROTO_ICMP) {
+				for (vector<packet>::const_iterator it2 =
+						(*it).second.get_packets().begin();
+						it2 != (*it).second.get_packets().end(); ++it2) {
+					if (get_icmp_type(*it2) == 8 || get_icmp_type(*it2) == 13
+							|| get_icmp_type(*it2) == 15
+							|| get_icmp_type(*it2) == 17
+							|| get_icmp_type(*it2) == 35
+							|| get_icmp_type(*it2) == 37) {
+						data.backsc_validation_flow_count["FP: ICMP Request"]++;
+					} else {
+						data.backsc_validation_flow_count["Unknown"]++;
+					}
+				}
+			} else if ((*it).second.get_flow().prot == IPPROTO_TCP) {
+				bool synpkt;
+				for (vector<packet>::const_iterator it2 =
+						(*it).second.get_packets().begin();
+						it2 != (*it).second.get_packets().end(); it2++) {
+					if (get_tcp_flags((*it2).ipPayload.tcpHeader) == 0x02)
+						synpkt = true;
+				}
+				if (synpkt) {
+					data.backsc_validation_flow_count["FP: SYN Packet"]++;
+				} else {
+					data.backsc_validation_flow_count["Unknown"]++;
+				}
+			} else if ((*it).second.get_flow().prot == IPPROTO_UDP) {
+				bool empty_packet = false;
+				for (vector<packet>::const_iterator it2 =
+						(*it).second.get_packets().begin();
+						it2 != (*it).second.get_packets().end(); it2++) {
+					if ((*it2).packetsize == (*it2).actualsize) { // UDP Packet has no payload
+						empty_packet = true;
+					}
+				}
+				if (empty_packet) {
+					data.backsc_validation_flow_count["FP: Empty UDP Packet"]++;
+				} else {
+					data.backsc_validation_flow_count["Unknown"]++;
+				}
+			}
+		}
+	}
+
+	//rule15
+	rule_no = 14; // Scan 5
+
+	for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[rule_no]->begin();
+			it != data.flows_by_rule[rule_no]->end(); ++it) {
+		bool var_eq_0 = true; //Variation of packet size over entire flow
+		uint32_t prev_packet_size =
+				(*(*it).second.get_packets().begin()).packetsize;
+		for (vector<packet>::const_iterator it2 = (*it).second.get_packets().begin();
+				it2 != (*it).second.get_packets().end(); it2++) {
+			if ((*it2).packetsize != prev_packet_size) {
+				var_eq_0 = false;
+			}
+		}
+		if (var_eq_0) {
+			data.sbenign_validation_flow_count["FP: Packet size var == 0"]++;
+		}
+		if ((*(*it).second.get_packets().begin()).protocol == IPPROTO_TCP) {
+			for (vector<packet>::const_iterator it2 =
+					(*it).second.get_packets().begin();
+					it2 != (*it).second.get_packets().end(); it2++) {
+				if (!valid_flag_sequence_check((*it).second.get_packets())) {
+					data.sbenign_validation_flow_count["FP: Invalid flag seq"]++;
+				} else {
+					data.sbenign_validation_flow_count["Unknown"]++;
+				}
+			}
+		}
+	}
+
+	//Other Malign
+	for (int rule_no = 5; rule_no < 8; rule_no++) {
+		for (CFlowHashMultiMap6::iterator it =
+				data.flows_by_rule[rule_no]->begin();
+				it != data.flows_by_rule[rule_no]->end(); ++it) {
+			if ((*(*it).second.get_packets().begin()).protocol == IPPROTO_TCP) {
+				for (vector<packet>::const_iterator it2 =
+						(*it).second.get_packets().begin();
+						it2 != (*it).second.get_packets().end(); it2++) {
+					if (!valid_flag_sequence_check(
+							(*it).second.get_packets())) {
+						data.sbenign_validation_flow_count["TP: Invalid flag seq"]++;
+					} else {
+						data.sbenign_validation_flow_count["Unknown"]++;
+					}
+				}
+			} else if ((*(*it).second.get_packets().begin()).protocol
+					== IPPROTO_UDP) {
+				bool empty_packet = false;
+				for (vector<packet>::const_iterator it2 =
+						(*it).second.get_packets().begin();
+						it2 != (*it).second.get_packets().end(); it2++) {
+					if (((*it2).actualsize == (*it2).packetsize)) { // UDP Packet has no payload
+						empty_packet = true;
+					}
+				}
+				if (empty_packet) {
+					data.sbenign_validation_flow_count["TP: Empty UDP Packet"]++;
+				} else {
+					data.sbenign_validation_flow_count["Unknown"]++;
+				}
+			}
+		}
+	}
+}
+
+void write_validation_stats(CPersist & data){
+	ofstream out;
+
+	string filename = "scan5_validation_stats.csv";
+	util::open_outfile(out, filename);
+	out << "Type;Count" << endl;
+	map<string, int>::iterator iter;
+	for (iter = data.scan5_validation_flow_count.begin(); iter != data.scan5_validation_flow_count.end(); iter++){
+		out << (*iter).first << ";" << (*iter).second << endl;
+	}
+	out.close();
+	filename = "sbenign_validation_stats.csv";
+	util::open_outfile(out, filename);
+	out << "Type;Count" << endl;
+	for (iter = data.sbenign_validation_flow_count.begin(); iter != data.sbenign_validation_flow_count.end(); iter++){
+		out << (*iter).first << ";" << (*iter).second << endl;
+	}
+	out.close();
+	filename = "backsc_validation_stats.csv";
+	util::open_outfile(out, filename);
+	out << "Type;Count" << endl;
+	for (iter = data.backsc_validation_flow_count.begin(); iter != data.backsc_validation_flow_count.end(); iter++){
+		out << (*iter).first << ";" << (*iter).second << endl;
+	}
+	out.close();
+	filename = "othermal_validation_stats.csv";
+	util::open_outfile(out, filename);
+	out << "Type;Count" << endl;
+	for (iter = data.othermal_validation_flow_count.begin(); iter != data.othermal_validation_flow_count.end(); iter++){
+		out << (*iter).first << ";" << (*iter).second << endl;
+	}
+	out.close();
+
 }
 
 int main(int argc, char **argv) {
@@ -811,8 +1074,7 @@ int main(int argc, char **argv) {
 	} else {
 		date_time = files[0].substr(pos - 15, 13); // Extract date/time as YYYYMMDD.hhmm
 	}
-	CPersist data(date_time, verbose, verbose2, test, rules_filename,
-			classes_filename);
+	CPersist data(date_time, verbose, verbose2, test, rules_filename);
 
 	// 2. Execute command
 	// ******************
@@ -902,7 +1164,9 @@ int main(int argc, char **argv) {
 				}
 			}
 
-			write_pcap(data);
+			//write_pcap(data);
+			flow_validation(data,verbose);
+
 
 			clear_lists(data);
 		}
@@ -913,211 +1177,4 @@ int main(int argc, char **argv) {
 		//write_aff_stats(data);
 		get_flow_count(data);
 	}
-}
-
-uint8_t get_tcp_flags(tcphdr const &tcp_hdr) {
-	return *(((uint8_t *) &(tcp_hdr.ack_seq)) + 5);
-}
-
-int get_icmp_type(const packet p) {
-	return p.ipPayload.icmpHeader.type;
-}
-
-int get_icmp_code(const packet p) {
-	return p.ipPayload.icmpHeader.code;
-}
-
-/**
- * Checks if the flag sequence from a given packet sequence is valid
- *
- * @param packets
- * @return TRUE if valid sequence, else FALSE
- */
-bool valid_flag_sequence_check(vector<packet> packets) {
-
-	int counter = 0;
-	uint8_t flag_sequence[5] = { 0x00, 0x00, 0x00, 0x00, 0x00 };
-	uint8_t tcp_flags;
-
-	//Fill flag sequence with 5 first packets from flow
-	for (vector<packet>::iterator it = packets.begin();
-			it != packets.end() && counter < 5; ++it) {
-		tcp_flags = get_tcp_flags((*it).ipPayload.tcpHeader);
-
-		flag_sequence[counter] = tcp_flags;
-		counter++;
-	}
-
-	//Check if flag sequence is valid. One single SYN is considered a SYN-Scan and therefore an invalid flag sequence.
-	if (flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02
-			&& flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02
-			&& flag_sequence[4] == 0x02)
-		return true; // 5 syn flags
-	if (flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02
-			&& flag_sequence[2] == 0x02 && flag_sequence[3] == 0x02
-			&& flag_sequence[4] == 0x00)
-		return true; // 4 syn flags
-	if (flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02
-			&& flag_sequence[2] == 0x02 && flag_sequence[3] == 0x00
-			&& flag_sequence[4] == 0x00)
-		return true; // 3 syn flags
-	if (flag_sequence[0] == 0x02 && flag_sequence[1] == 0x02
-			&& flag_sequence[2] == 0x00 && flag_sequence[3] == 0x00
-			&& flag_sequence[4] == 0x00)
-		return true; // 2 syn flags
-
-	return false;
-}
-
-void flow_validation(CPersist & data, bool verbose) {
-	int rule_no = 4; // Scan 5
-
-	for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[rule_no]->begin();
-			it != data.flows_by_rule[rule_no]->end(); ++it) {
-
-		if ((*it).second.get_flow().prot == IPPROTO_TCP) {
-			if (get_tcp_flags((*it).second.get_packets().begin()->ipPayload.tcpHeader)== 0x02 && (*it).second.get_packets().size() == 1) { //SYN Scan
-
-				data.scan5_aff_flow_count["TP :SYN Scan"]++;
-
-				if (verbose) {
-					cout << "True Positive: Flow assigned to Rule " << rule_no
-							<< " and is SYN Scan" << endl;
-				}
-			} else {
-
-				data.scan5_aff_flow_count["Unknown"]++;
-			}
-		} else if (get_tcp_flags(
-				(*it).second.get_packets().begin()->ipPayload.tcpHeader)
-				== 0x29) { //X-Mas Tree Scan (URG+PSH+FIN)
-
-			data.scan5_aff_flow_count["TP: X-Mas Tree Scan"]++;
-
-			if (verbose) {
-				cout << "True Positive: Flow assigned to Rule " << rule_no
-						<< " and is X-Mas Tree Scan" << endl;
-			}
-		} else if (get_tcp_flags(
-				(*it).second.get_packets().begin()->ipPayload.tcpHeader)
-				== 0x01) { //FIN Scan
-
-			data.scan5_aff_flow_count["TP: Fin Scan"]++;
-
-			if (verbose) {
-				cout << "True Positive: Flow assigned to Rule " << rule_no
-						<< " and is FIN Scan" << endl;
-			}
-		} else if (get_tcp_flags(
-				(*it).second.get_packets().begin()->ipPayload.tcpHeader)
-				== 0x00) { //Null Scan
-
-			data.scan5_aff_flow_count["TP: Null Scan"]++;
-
-			if (verbose) {
-				cout << "True Positive: Flow assigned to Rule " << rule_no
-						<< " and is Null Scan" << endl;
-			}
-		}
-	}
-}
-
-//Backscatter
-for (int rule_no = 8; rule_no < 11; rule_no++) {
-	for(CFlowHashMultiMap6::iterator it = data.flows_by_rule[rule_no]->begin(); it != data.flows_by_rule[rule_no]->end(); ++it) {
-		if((*it).second.get_flow().prot == IPPROTO_ICMP) {
-			for(vector<packet>::iterator it2 = (*it).second.get_flow().get_packets().begin(); it2 != (*it).second.get_flow().get_packets().end(); ++it2)
-			if(get_icmp_type((*(*it).second.begin())) == 8 || get_icmp_type(*it2) == 13 ||get_icmp_type(*it2) == 15 || get_icmp_type(*it2) == 17 || get_icmp_type(*it2) == 35 || get_icmp_type(*it2)) == 37) {
-				data.backsc_aff_flow_count["FP: ICMP Request"]++;
-			} else {
-				data.backsc_aff_flow_count["Unknown"]++;
-			}
-		} else if((*it).second.get_flow().prot == IPPROTO_TCP) {
-			bool synpkt;
-			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
-				if(get_tcp_flags((*it2).ipPayload.tcpHeader)==0x02) synpkt = true;
-			}
-			if(synpkt) {
-				data.backsc_aff_flow_count["FP: SYN Packet"]++;
-			} else {
-				data.backsc_aff_flow_count["Unknown"]++;
-			}
-		} else if((*it).second.get_flow().prot == IPPROTO_UDP) {
-			bool empty_packet = false;
-			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
-				if (((*it2).packetsize == (*it2).actualsize) { // UDP Packet has no payload
-					empty_packet = true;
-				}
-			}
-			if(empty_packet) {
-				data.scan5_aff_flow_count["FP: Empty UDP Packet"]++;
-			} else {
-				data.scan5_aff_flow_count["Unknown"]++;
-			}
-		}
-	}
-}
-
-//rule15
-for(packetHashMap7::iterator it = data.hashedPacketlist[14]->begin(); it != data.hashedPacketlist[14]->end(); ++it) {
-	bool var_eq_0 = true; //Variation of packet size over entire flow
-	uint32_t prev_packet_size = (*(*it).second.begin()).ipPayload.packetsize;
-	for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
-		if((*it2).ipPayload.packetsize != prev_packet_size) {
-			var_eq_0 = false;
-		}
-	}
-	if(var_eq_0) {
-		data.sbenign_aff_flow_count["FP: Packet size var == 0"]++;
-	}
-	if((*(*it).second.begin()).protocol == IPPROTO_TCP) {
-		for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
-			if(!valid_flag_sequence_check((*it).first, data, 14)) {
-				data.sbenign_aff_flow_count["FP: Invalid flag seq"]++;
-			} else {
-				data.sbenign_aff_flow_count["Unknown"]++;
-			}
-		}
-	}
-}
-
-//Other Malign
-for(int rule_no = 5; rule_no < 8; rule_no++) {
-	for(packetHashMap7::iterator it = data.hashedPacketlist[rule_no]->begin(); it != data.hashedPacketlist[rule_no]->end(); ++it) {
-		if((*(*it).second.begin()).protocol == IPPROTO_TCP) {
-			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
-				if(!valid_flag_sequence_check((*it).first, data, 14)) {
-					data.sbenign_aff_flow_count["TP: Invalid flag seq"]++;
-				} else {
-					data.sbenign_aff_flow_count["Unknown"]++;
-				}
-			}
-		} else if((*(*it).second.begin()).protocol == IPPROTO_UDP) {
-			bool empty_packet = false;
-			for(vector<packet>::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
-				if (((*it2).ipPayload.actualsize == (*it2).ipPayload.packetsize)) { // UDP Packet has no payload
-					empty_packet = true;
-				}
-			}
-			if(empty_packet) {
-				data.scan5_aff_flow_count["TP: Empty UDP Packet"]++;
-			} else {
-				data.scan5_aff_flow_count["Unknown"]++;
-			}
-		}
-
-		/*bool snortalert_found = false;
-		 for(vector<string>::iterator it2 = data.snortalerts.begin(); it2 != data.snortalerts.end(); ++it2) {
-		 if((*(*it).second.begin()).ipPayload.timestamp == util::snort_date_time_to_epoch((*it2).substr(0,(*it2).find_first_of(".")+6))) {
-		 snortalert_found = true;
-		 }
-		 }
-		 if(!snortalert_found) {
-		 data.othermal_aff_flow_count["No Snort Alert"]++;
-		 } else {
-		 data.othermal_aff_flow_count["Unknown"]++;
-		 }*/
-
-	}
-}
 }

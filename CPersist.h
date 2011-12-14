@@ -68,17 +68,14 @@ public:
 	map<string, int> tcp_false_positives;
 	map<string, int> tcp_false_negatives;
 
-	map<string, int> scan5_aff_flow_count;
-	map<string, int> othermal_aff_flow_count;
-	map<string, int> backsc_aff_flow_count;
-	map<string, int> sbenign_aff_flow_count;
+	map<string, int> scan5_validation_flow_count;
+	map<string, int> othermal_validation_flow_count;
+	map<string, int> backsc_validation_flow_count;
+	map<string, int> sbenign_validation_flow_count;
 
 
 
 	vector<CFlowHashMultiMap6*> flows_by_rule;
-
-	vector<vector<packet> *> rules_packetlist;
-	vector<packet> packetlist;
 
 	CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		string & rules_filename);
