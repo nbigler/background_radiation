@@ -18,8 +18,8 @@ struct ipPayload {
 		struct icmphdr icmpHeader;
 	};
 
-	uint32_t  payloadsize;
-	const unsigned char* payload;
+	//uint32_t  payloadsize;
+	//const unsigned char* payload;
 };
 
 

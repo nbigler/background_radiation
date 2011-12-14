@@ -33,7 +33,6 @@ public:
 	bool test;
 	bool verbose;
 	bool verbose2;
-	bool use_outflows;
 
 	C_Category::C_Category_set c;
 	C_Category::C_Category_rc_signs rc;	///< For per-rule sign accounting
@@ -72,7 +71,7 @@ public:
 	vector<packet> packetlist;
 
 	CPersist(string & date_time, bool verbose, bool verbose2, bool test,
-		string & rules_filename, string & classes_filename, bool use_outflows);
+		string & rules_filename, string & classes_filename);
 
 	~CPersist();
 };

@@ -9,12 +9,11 @@
 #include "libs/utils.h"
 
 CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
-		string & rules_filename, string & classes_filename, bool use_outflows)
+		string & rules_filename, string & classes_filename)
 {
 	this->verbose = verbose;
 	this->verbose2 = verbose2;
 	this->test = test;
-	this->use_outflows = use_outflows;
 	/*flows = packets = NULL;
 	bytes = NULL;*/
 	date = date_time.substr(0,8);

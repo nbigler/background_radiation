@@ -1,12 +1,25 @@
-/*
- * main.cpp
- *
- *	Compile with:
- *	g++ category.cpp CPersist.cpp pcap_writer.cpp libs/flowlist.cpp libs/HashMap.cpp libs/lookup3.cpp libs/utils.cpp -lpcap++ -lboost_iostreams -o pcap_writer -Wno-deprecated -O3
- *
- *  Created on: Oct 1, 2011
- *      Author: Nicolas Bigler
- */
+/**
+  *	\file pcap_writer.cpp
+  *	\brief Classify pcap files based on the signes of the appropriate flow data.
+  *	As input flow data files stored in "struct cflow" format (*.gz) and associated
+  *	sign data files (*.sig.gz) and pcap data files stored in tcpdump format (*.pcap.gz)
+  *	are read. The pcap packets are matched with the appropriate flow and written to a new
+  *	pcap file that corresponds to the associated rule.
+  *
+  *	Compile with:
+  *	g++ sign_eval.cpp category.cpp libs/flowlist.cpp libs/utils.cpp libs/HashMap.cpp libs/lookup3.cpp -o sign_eval -lboost_iostreams -lboost_filesystem -O2 -Wno-deprecated
+  *
+  *
+  * 	Copyright (c) 2011, Eduard Glatz, Nicolas Bigler, Michael Fisler
+  *
+  * 	Author: Eduard Glatz  (eglatz@tik.ee.ethz.ch)
+  * 			Nicolas Bigler (nbigler@hsr.ch)
+  * 			Michael Fisler (mfisler@hsr.ch)
+  *
+  *	Distributed under the Gnu Public License version 2 or the modified
+  *	BSD license.
+  */
+
 #include <cstring>
 #include <string>
 #include <iomanip>
@@ -70,7 +83,7 @@ typedef HashKeyIPv4_6T FlowHashKey6;
   *
   *
   *	\param	fl			Flowlist
-  *	\param	fl_ref	List of sign sets aligned with fl
+  *	\param	fl_ref		List of sign sets aligned with fl
   *	\param	data		Persistent statistics variables needed for overall statistics.
   *	\param	inum		Number of currenr interval
   */
@@ -181,7 +194,12 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data, int inum)
 	cout << "Longest Flow is " << duration << " ms and ends at " << data.last_flow << endl;
 }
 
-
+/**
+  *	Checks the status of the sign file
+  *	If the file is not accessible the program exits with status 1.
+  *
+  *	\param	sign_filename	Path of the sign (*.sig.gz) file
+  */
 void check_file_status(string & sign_filename)
 {
     struct stat fileStatus;
@@ -197,22 +215,21 @@ void check_file_status(string & sign_filename)
     }
 }
 
-void select_flow_direction(bool & use_outflows, string & sign_filename, string basename)
-{
-    if(!use_outflows){
-        sign_filename = basename + ".sig.gz";
-    }else{
-        sign_filename = basename + "_O.sig.gz";
-    }
-}
-
-uint32_t *read_per_flow_sign_sets(string & filename, bool & use_outflows, int flow_count)
+/**
+  *	Reads a total of 'flow_count' flows from 'filename'.gz
+  *	and save them to the list 'fl_ref.
+  *
+  *	\param	filename		Filename of the struct cflow file (*.gz)
+  *	\param	flow_count		number of flows to read
+  *	\return fl_ref			uint32_t Pointer to the flowlist
+  */
+uint32_t *read_per_flow_sign_sets(string & filename, int flow_count)
 {
     // 2. Get per-flow sign sets
     // *************************
     string basename = filename.substr(0, filename.find(".gz"));
     string sign_filename;
-    select_flow_direction(use_outflows, sign_filename, basename);
+    sign_filename = basename + ".sig.gz";
     check_file_status(sign_filename);
     // Read per-flow sign sets to memory, i.e., array "flpush_back(p);_ref".
     uint32_t *fl_ref = new uint32_t[flow_count];
@@ -238,14 +255,13 @@ uint32_t *read_per_flow_sign_sets(string & filename, bool & use_outflows, int fl
 /**
   *	Process flow and sign data from one time interval.
   *
-  *	\param filename	  Name of flow data inoput file (name of sign file is derived from this name)
+  *	\param filename	  Name of flow data input file (name of sign file is derived from this name)
   *	\param data         Cross-interval data (e.g. counters and output streams)
   *	\param inum         Interval number (first interval must have inum=0)
-  *	\param use_outflows TRUE when outflows should be classified instead of inflows
   *
   *	\return TRUE if processing successful, FALSE otherwise
   */
-bool process_interval(string & filename, CPersist & data, int inum, bool use_outflows)
+bool process_interval(string & filename, CPersist & data, int inum)
 {
 	CFlowlist * fl = new CFlowlist(filename);
 	fl->read_flows();
@@ -253,7 +269,7 @@ bool process_interval(string & filename, CPersist & data, int inum, bool use_out
 	if (data.verbose) cout << endl << flow_count << " flows read from file " << filename << endl;
 
 
-    uint32_t *fl_ref = read_per_flow_sign_sets(filename, use_outflows, flow_count);
+    uint32_t *fl_ref = read_per_flow_sign_sets(filename, flow_count);
 
 	process_rules(fl, fl_ref, data, inum);
 
@@ -262,6 +278,12 @@ bool process_interval(string & filename, CPersist & data, int inum, bool use_out
 	return true;
 }
 
+/**
+  *	Print the usage information on the screen.
+  *
+  *	\param progname		Name of the program
+  *	\param outfs        Stream to write the usage informations to
+  */
 void usage(char * progname, ostream & outfs)
 {
 	outfs << "\nEvaluates signs assigned to one-way flows. One or more file names \n";
@@ -285,7 +307,14 @@ void usage(char * progname, ostream & outfs)
 	outfs << endl;
 }
 
-
+/**
+  *	Checks if a file with 'filename' exists
+  *	Returns true if file exists, otherwise returns false.
+  *
+  *	\param filename	  Name of file to check
+  *
+  *	\return TRUE if file exists, FALSE otherwise
+  */
 bool file_exists(string filename)
 {
     if (FILE * file = fopen(filename.c_str(), "r"))
@@ -296,6 +325,13 @@ bool file_exists(string filename)
     return false;
 }
 
+
+/**
+  *	Writes all packets in the rules_packetlist vector to
+  *	the associated rule pcap file.
+  *
+  *	\param data	  CPersist object containing all data
+  */
 void write_pcap(CPersist & data){
 
 	struct pcapFileHeader {
@@ -397,6 +433,13 @@ void write_pcap(CPersist & data){
 	}
 }
 
+/**
+  *	Matches a packet 'p' with the appropriate flow.
+  *	Returns true if file exists, otherwise returns false.
+  *
+  *	\param packet	Packet to match with the flows.
+  *	\param data		CPersist object containing all data.
+  */
 void find_match(packet &p, CPersist & data){
 
 	uint8_t in = inflow;
@@ -431,10 +474,18 @@ void find_match(packet &p, CPersist & data){
 	}
 }
 
+/**
+  *	Reads all packets from the pcap file 'pcap_filename'.
+  *	If the packet is in the range of current cflow list
+  *	the packet is matched with the currently loaded cflows.
+  *
+  *	\param pcap_filename	Filename of the pcap file to process
+  *	\param data				CPersist object containing all data.
+  *	\param cflow_start		start time of the current cflow list.
+  */
 void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 {
     struct packet packet;
-    memset((void*)(&packet), 0, sizeof (packet));
 
     // Open file for packet reading
     int pcount = 0; // Packet counter
@@ -449,7 +500,6 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 		// Loop through pcap file by reading packet-by-packet.
 		Packet p;
 		while (pco.ok()) {
-
 			memset(&packet, 0, sizeof(packet));
 
 			// Get next packet from file
@@ -482,17 +532,13 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 				struct udphdr * udp_hdr = NULL;
 				struct icmphdr * icmp_hdr = NULL;
 
-
-				//uint32_t netmask;
-				//inet_pton(AF_INET, "152.103.0.0", &netmask);
 				// Show transport layer protocol
 				packet.init(ip_hdr->saddr, ip_hdr->daddr, ip_hdr->protocol);
-				//packet.tos_flags = ip_hdr->tos;
 				packet.ethHeader = *ether_hdr;
 				packet.ipHeader = *ip_hdr;
-				if (sizeof(struct iphdr) < (packet.ipHeader.ihl*4)) {
-					//util::print_packet(packet);
-					//packet.ipOptions = (struct ipOptions *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+1);
+
+				if ((sizeof(struct iphdr) < (packet.ipHeader.ihl*4)) && data.verbose) {
+					util::print_packet(packet);
 				}
 				switch (ip_hdr->protocol) {
 				case IPPROTO_TCP:
@@ -528,18 +574,12 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 				}
 
 
-
-				packet.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
-				packet.ipHeader.ihl = 0x45; // 20 Bytes
-				//packet.packetsize = p.get_capture_length();
+				packet.timestamp = p.get_seconds()*1000000 + p.get_miliseconds(); //get_miliseconds returns microseconds and not milliseconds
+				packet.ipHeader.ihl = 0x45; // Set the ipV4 Header size to 20 Bytes. IP Options are ignored.
 				packet.actualsize = p.get_length();
 
-				/*static char local[16];
-				static char remote[16];
-				util::ipV4AddressToString(packet.localIP, local, sizeof local);
-				util::ipV4AddressToString(packet.remoteIP, remote,sizeof remote);
-				cout << "Packet: " << local << ":" << packet.localPort << ";\t" << remote << ":" << packet.remotePort << ";" << static_cast<int>(packet.protocol)<< endl;*/
-
+				// Only match packets if they are within the flow window (start of flow window to end of last packet in flowlist)
+				// for performance reasons.
 				if ((cflow_start <= (packet.timestamp / 1000000)) && (data.last_flow >= (packet.timestamp / 1000000))){
 					find_match(packet, data);
 				}
@@ -555,6 +595,13 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 	}
 }
 
+/**
+  *	Get the number of flows and packets for each rule. Save them
+  *	to the file 'flowcount.csv' and print the total number
+  *	of flows to standard output.
+  *
+  *	\param data		CPersist object containing all data.
+  */
 void get_flow_count(CPersist &data){
 	ofstream out;
 	string statfile_flowcount = "flowcount.csv";
@@ -586,6 +633,11 @@ void get_flow_count(CPersist &data){
 	cout << "Total Flows: " << totalflows << endl;
 }
 
+/**
+  *	Removes all complete flows in flows_by_rule and the rules_packetlist stored in CPersist data object.
+  *
+  *	\param data		CPersist object containing all data.
+  */
 void clear_lists(CPersist & data){
 	cout << "List clearing..." << endl;
 	for (int i=0; i <= data.c.get_rule_count(); i++) {
@@ -654,13 +706,12 @@ int main(int argc, char **argv) {
 	bool test = false;
 	bool verbose = false;
 	bool verbose2 = false;
-	bool use_outflows = false;
 	bool analysis = false;
 
 	string date("");
 
 	int i;
-	while ((i = getopt(argc, argv, "f:r:c:p:taOhd:vV")) != -1) {
+	while ((i = getopt(argc, argv, "f:r:c:p:tahd:vV")) != -1) {
 		switch (i) {
 			case 'f':
 				list_filename = optarg;
@@ -680,10 +731,6 @@ int main(int argc, char **argv) {
 			case 't':
 				test = true;
 				verbose = true;
-				break;
-			case 'O':
-				use_outflows = true;
-				cout << "\n### INFO: classifying outflows instead of inflows\n\n";
 				break;
 			case 'h':
 				usage(argv[0], cout);
@@ -742,7 +789,7 @@ int main(int argc, char **argv) {
 	} else {
 		date_time = files[0].substr(pos-15, 13);	// Extract date/time as YYYYMMDD.hhmm
 	}
-	CPersist data(date_time, verbose, verbose2, test, rules_filename, classes_filename, use_outflows);
+	CPersist data(date_time, verbose, verbose2, test, rules_filename, classes_filename);
 
 	// 2. Execute command
 	// ******************
@@ -766,7 +813,7 @@ int main(int argc, char **argv) {
 	if (files.size() > 1) { cout << "Processing file:\n"; }
 	for (size_t i = 0; i< files.size(); i++) {
 		if (files.size() > 1) { cout << files[i] << endl;}
-		process_interval(files[i], data, i, use_outflows);
+		process_interval(files[i], data, i);
 		if (!analysis){
 			pos = files[i].find(".gz");
 			if (pos == string::npos) {
