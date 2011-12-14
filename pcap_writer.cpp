@@ -1,6 +1,9 @@
 /*
  * main.cpp
  *
+ *	Compile with:
+ *	g++ category.cpp CPersist.cpp pcap_writer.cpp libs/flowlist.cpp libs/HashMap.cpp libs/lookup3.cpp libs/utils.cpp -lpcap++ -lboost_iostreams -o pcap_writer -Wno-deprecated -O3
+ *
  *  Created on: Oct 1, 2011
  *      Author: Nicolas Bigler
  */
@@ -387,9 +390,8 @@ void write_pcap(CPersist & data){
 				default:
 					//fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.payload), (*iter).ipPayload.payloadsize);
 					break;
-			}
 			//	}
-			//}
+			}
 		}
 		fileout.close();
 	}
@@ -488,16 +490,17 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 				//packet.tos_flags = ip_hdr->tos;
 				packet.ethHeader = *ether_hdr;
 				packet.ipHeader = *ip_hdr;
-				/*if (sizeof(struct iphdr) < (packet.ipHeader.ihl*4)) {
-					packet.ipOptions = (struct ipOptions *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+1);
-				}*/
+				if (sizeof(struct iphdr) < (packet.ipHeader.ihl*4)) {
+					//util::print_packet(packet);
+					//packet.ipOptions = (struct ipOptions *)(pdata+sizeof(struct ethhdr)+sizeof(struct iphdr)+1);
+				}
 				switch (ip_hdr->protocol) {
 				case IPPROTO_TCP:
 					tcp_hdr = (struct tcphdr *)(pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
 					packet.srcPort = ntohs(tcp_hdr->source);
 					packet.dstPort = ntohs(tcp_hdr->dest);
 					packet.ipPayload.tcpHeader = *tcp_hdr;
-					packet.packetsize = (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct tcphdr));
+					packet.packetsize = (sizeof(struct ethhdr)+(sizeof(struct iphdr))+sizeof(struct tcphdr));
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+packet.ipPayload.tcpHeader.doff*4);
 					//packet.ipPayload.payload = pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4+packet.ipPayload.tcpHeader.doff*4;
 					break;
@@ -506,14 +509,14 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 					packet.srcPort = ntohs(udp_hdr->source);
 					packet.dstPort = ntohs(udp_hdr->dest);
 					packet.ipPayload.udpHeader = *udp_hdr;
-					packet.packetsize = (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct udphdr));
+					packet.packetsize = (sizeof(struct ethhdr)+(sizeof(struct iphdr))+sizeof(struct udphdr));
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct udphdr));
 					//packet.ipPayload.payload = (pdata+sizeof(struct ethhdr)+sizeof(struct udphdr));
 					break;
 				case IPPROTO_ICMP:
 					icmp_hdr = (struct icmphdr *)(pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
 					packet.ipPayload.icmpHeader = *icmp_hdr;
-					packet.packetsize = (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct icmphdr));
+					packet.packetsize = (sizeof(struct ethhdr)+(sizeof(struct iphdr))+sizeof(struct icmphdr));
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct icmphdr));
 					//packet.ipPayload.payload = (pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct icmphdr));
 					break;
@@ -527,6 +530,7 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 
 
 				packet.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
+				packet.ipHeader.ihl = 0x45; // 20 Bytes
 				//packet.packetsize = p.get_capture_length();
 				packet.actualsize = p.get_length();
 
@@ -756,7 +760,7 @@ int main(int argc, char **argv) {
 	}
 
 	for(int i=0;i<=data.c.get_rule_count();++i) {
-		data.flows_by_rule.push_back(new CFlowHashMultiMap6());	
+		data.flows_by_rule.push_back(new CFlowHashMultiMap6());
 	}
 
 	if (files.size() > 1) { cout << "Processing file:\n"; }
