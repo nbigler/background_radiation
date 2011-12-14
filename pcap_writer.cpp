@@ -825,8 +825,7 @@ int main(int argc, char **argv) {
 	} else {
 		date_time = files[0].substr(pos - 15, 13); // Extract date/time as YYYYMMDD.hhmm
 	}
-	CPersist data(date_time, verbose, verbose2, test, rules_filename,
-			classes_filename);
+	CPersist data(date_time, verbose, verbose2, test, rules_filename);
 
 	// 2. Execute command
 	// ******************

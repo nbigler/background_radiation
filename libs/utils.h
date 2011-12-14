@@ -5,9 +5,11 @@
   *	\file utils.h
   *	\brief Include file for utility functions.
   *
-  * 	Copyright (c) 2010, Eduard Glatz 
+  * 	Copyright (c) 2011, Eduard Glatz, Nicolas Bigler, Michael Fisler
   *
-  * 	Author: Eduard Glatz  (eglatz@tik.ee.ethz.ch) 
+  * 	Author: Eduard Glatz  (eglatz@tik.ee.ethz.ch)
+  * 			Nicolas Bigler (nbigler@hsr.ch)
+  * 			Michael Fisler (mfisler@hsr.ch)
   */
 
 #include <fstream>

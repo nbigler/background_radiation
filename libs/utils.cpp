@@ -272,8 +272,8 @@ void seconds2date_ISO8601(uint32_t seconds, string & s)
   *	Number is formatted by groups of three digits separated by single quotes.
   *	Note: this function is not reentrant (due to local static variable)  
   *
-  *	\param 	x to be formatted
-  *	\param 	fieldsize Minimum field size to use.
+  *	\param 	x 				to be formatted
+  *	\param 	min_fieldsize	Minimum field size to use.
   */
 string pformat(int x, int min_fieldsize)
 {
@@ -347,8 +347,8 @@ string pformat(int x, int min_fieldsize)
   *	Number is formatted by groups of three digits separated by single quotes.
   *	Note: this function is not reentrant (due to local static variable)  
   *
-  *	\param 	x to be formatted
-  *	\param 	fieldsize Minimum field size to use.
+  *	\param 	x 				to be formatted
+  *	\param 	min_fieldsize 	Minimum field size to use.
   */
 string pformat(long x, int min_fieldsize)
 {
@@ -454,6 +454,7 @@ string & flowtype2string(flow_type_t flowtype)
   *
   *	\param filename	Name of input text file containing one file name per line
   *	\param files		Returns names of all files found in input file
+  *	\return int	0 if successful, -1 otherwise
   */
 int getSamples(string filename, vector<string> & files)
 {
@@ -522,6 +523,11 @@ int getSamples(string filename, vector<string> & files)
 	return 0;
 }
 
+/**
+ * Prints basic informations of the flow to the standard output.
+ * Format: "Flow: localIP:localPort;	remoteIP:remotePort;	#Packets"
+ * @param flow
+ */
 void print_flow(const cflow & flow) {
     static char local[16];
     static char remote[16];
@@ -530,44 +536,18 @@ void print_flow(const cflow & flow) {
     cout << "Flow: " << local << ":" << flow.localPort << ";\t" << remote << ":" << flow.remotePort << ";" << static_cast<int>(flow.dPkts) << endl;
 }
 
+/**
+ * Prints basic informations of the packet to the standard output.
+ * Format: "Packet: localIP:localPort;	remoteIP:remotePort;	Protocol"
+ * @param pck
+ */
 void print_packet(const packet & pck) {
 	static char local[16];
 	static char remote[16];
 	ipV4AddressToString(pck.srcIP, local, sizeof local);
 	ipV4AddressToString(pck.dstIP, remote, sizeof remote);
-	cout << "Packet: " << local << ":" << pck.srcPort << ";\t" << remote << ":" << pck.dstPort << ";" << static_cast<int>(pck.protocol) << endl;
+	cout << "Packet: " << local << ":" << pck.srcPort << ";\t" << remote << ":" << pck.dstPort << ";\t" << static_cast<int>(pck.protocol) << endl;
 }
-
-int count_occurrence_of_char(const char c, const string s) {
-	int count = 0;
-	for(unsigned int i=0; i < s.size(); i++) {
-		if(s.at(i) == c) ++count;
-	}
-	return count;
-}
-
-using namespace boost::posix_time;
-
-/*uint64_t snort_date_time_to_epoch(string snort_date_time) {
-	//Format of the Snort Date-Time String: 10/18-17:16:04.231133 (10-18-2011; 17h16m04.231133s)
-	if(count_occurrence_of_char('/', snort_date_time) < 1) return 0.0;
-	if(count_occurrence_of_char('/', snort_date_time) >= 1 && count_occurrence_of_char('/', snort_date_time) <=2) {
-		if(count_occurrence_of_char('/', snort_date_time) == 1) {
-			snort_date_time.insert(0, "2011-"); //Assume Year is 2011 if not present
-		}
-		for(string::iterator it = snort_date_time.begin(); it != snort_date_time.end(); ++it) {
-			if(*it == '/') snort_date_time.replace(it, it+1, "-");
-		}
-	}
-	ptime t = time_from_string(snort_date_time);
-	ptime start = time_from_string("1979-01-01 00:00:00.0");
-	time_duration dur = t - start;
-	time_t epoch = dur.total_microseconds();
-
-	return static_cast<uint64_t>(epoch);
-}*/
-
-
 
 } // Namespace util
 

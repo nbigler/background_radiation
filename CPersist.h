@@ -1,9 +1,16 @@
-/*
- * CPersist.h
- *
- *  Created on: Oct 11, 2011
- *      Author: nbigler
- */
+/**
+  *	\file CPersist.cpp
+  *
+  *	\brief Implements the CPersist class that keeps data persistent over all processing intervals.
+  *
+  *
+  * 	Copyright (c) 2010, Eduard Glatz
+  *
+  * 	Author: Eduard Glatz  (eglatz@tik.ee.ethz.ch)
+  *
+  *	Distributed under the Gnu Public License version 2 or the modified
+  *	BSD license.
+  */
 
 #ifndef CPERSIST_H_
 #define CPERSIST_H_
@@ -27,7 +34,10 @@ using namespace std;
 
 typedef hash_multimap<HashKeyIPv4_6T, Flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMultiMap6;
 
-
+/**
+  *	\class	CPersist
+  *	Keeps data persistent over all processing intervals.
+  */
 class CPersist {
 public:
 	bool test;
@@ -71,7 +81,7 @@ public:
 	vector<packet> packetlist;
 
 	CPersist(string & date_time, bool verbose, bool verbose2, bool test,
-		string & rules_filename, string & classes_filename);
+		string & rules_filename);
 
 	~CPersist();
 };
