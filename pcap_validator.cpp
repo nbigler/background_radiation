@@ -431,8 +431,8 @@ void find_match(CPersist & data) {
 			cflow fl = (*iter_q).second.get_flow();
 			if ((fl.startMs - 1 < plIter->timestamp / 1000)
 					&& (plIter->timestamp / 1000 < (fl.startMs + fl.durationMs + 1))) {
-				if ((*iter).second.flow_incomplete()) {
-					(*iter).second.add((*plIter));
+				if ((*iter_q).second.flow_incomplete()) {
+					(*iter_q).second.add((*plIter));
 				}
 			}
 		}
@@ -666,8 +666,10 @@ bool valid_flag_sequence_check(vector<packet> packets) {
 
 
 void flow_validation(CPersist & data, bool verbose, int rule_no) {
-	switch (rule_no) {
-		case 4:
+	switch (rule_no+1) {
+
+		case 5:
+			//rule5
 			for (CFlowHashMultiMap6::iterator it = data.flowHashMap->begin();
 					it != data.flowHashMap->end(); ++it) {
 
@@ -676,88 +678,88 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 							(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 							== 0x02 && (*it).second.get_packets().size() == 1) { //SYN Scan
 
-						data.scan5_validation_flow_count["TP :SYN Scan"]++;
+						data.scan5_validation_flow_count["TP: SYN Scan"]++;
 
 						if (verbose) {
 							cout << "True Positive: Flow assigned to Rule " << rule_no
 									<< " and is SYN Scan" << endl;
 						}
-					} else {
 
-						data.scan5_validation_flow_count["Unknown"]++;
-					}
-				} else if (get_tcp_flags(
+					} else if (get_tcp_flags(
 						(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 						== 0x29) { //X-Mas Tree Scan (URG+PSH+FIN)
 
-					data.scan5_validation_flow_count["TP: X-Mas Tree Scan"]++;
+						data.scan5_validation_flow_count["TP: X-Mas Tree Scan"]++;
 
-					if (verbose) {
-						cout << "True Positive: Flow assigned to Rule " << rule_no
+						if (verbose) {
+							cout << "True Positive: Flow assigned to Rule " << rule_no
 								<< " and is X-Mas Tree Scan" << endl;
-					}
-				} else if (get_tcp_flags(
+						}
+					} else if (get_tcp_flags(
 						(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 						== 0x01) { //FIN Scan
 
-					data.scan5_validation_flow_count["TP: Fin Scan"]++;
+						data.scan5_validation_flow_count["TP: Fin Scan"]++;
 
-					if (verbose) {
-						cout << "True Positive: Flow assigned to Rule " << rule_no
+						if (verbose) {
+							cout << "True Positive: Flow assigned to Rule " << rule_no
 								<< " and is FIN Scan" << endl;
-					}
-				} else if (get_tcp_flags(
+						}
+					} else if (get_tcp_flags(
 						(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 						== 0x00) { //Null Scan
 
-					data.scan5_validation_flow_count["TP: Null Scan"]++;
+						data.scan5_validation_flow_count["TP: Null Scan"]++;
 
-					if (verbose) {
-						cout << "True Positive: Flow assigned to Rule " << rule_no
+						if (verbose) {
+							cout << "True Positive: Flow assigned to Rule " << rule_no
 								<< " and is Null Scan" << endl;
+						}
+					} else {
+						data.scan5_validation_flow_count["Unknown"]++;					
 					}
+				} else {
+					data.scan5_validation_flow_count["Unknown"]++;				
 				}
 			}
 			break;
-		case 8:
 		case 9:
 		case 10:
+		case 11:
 			for (CFlowHashMultiMap6::iterator it =
 					data.flowHashMap->begin();
 					it != data.flowHashMap->end(); ++it) {
 				if ((*it).second.get_flow().prot == IPPROTO_ICMP) {
-					for (vector<packet>::const_iterator it2 =
-							(*it).second.get_packets().begin();
-							it2 != (*it).second.get_packets().end(); ++it2) {
-						if (get_icmp_type(*it2) == 8 || get_icmp_type(*it2) == 13
-								|| get_icmp_type(*it2) == 15
-								|| get_icmp_type(*it2) == 17
-								|| get_icmp_type(*it2) == 35
-								|| get_icmp_type(*it2) == 37) {
-							data.backsc_validation_flow_count["FP: ICMP Request"]++;
-						} else {
-							data.backsc_validation_flow_count["Unknown"]++;
+					bool icmp_req = false;
+					int count = 0;
+					for (int i = 0; i< (*it).second.get_packets().size(); i++){
+						packet p = (*it).second.get_packets()[i];
+						if (get_icmp_type(p) == 8 || get_icmp_type(p) == 13 || get_icmp_type(p) == 15 || get_icmp_type(p) == 17	|| get_icmp_type(p) == 35 || get_icmp_type(p) == 37) {
+							icmp_req = true;
 						}
 					}
-				} else if ((*it).second.get_flow().prot == IPPROTO_TCP) {
-					bool synpkt;
-					for (vector<packet>::const_iterator it2 =
-							(*it).second.get_packets().begin();
-							it2 != (*it).second.get_packets().end(); it2++) {
-						if (get_tcp_flags((*it2).ipPayload.tcpHeader) == 0x02)
-							synpkt = true;
+					if(icmp_req) {						
+						data.backsc_validation_flow_count["FP: ICMP Request"]++;
+					} else {
+						data.backsc_validation_flow_count["Unknown"]++;
 					}
-					if (synpkt) {
+				} else if ((*it).second.get_flow().prot == IPPROTO_TCP) {
+					bool syn_pkt;
+					for (int i = 0; i< (*it).second.get_packets().size(); i++){
+						packet p = (*it).second.get_packets()[i];
+						if (get_tcp_flags(p.ipPayload.tcpHeader) == 0x02)
+							syn_pkt = true;
+					}
+					if (syn_pkt) {
 						data.backsc_validation_flow_count["FP: SYN Packet"]++;
 					} else {
 						data.backsc_validation_flow_count["Unknown"]++;
 					}
 				} else if ((*it).second.get_flow().prot == IPPROTO_UDP) {
 					bool empty_packet = false;
-					for (vector<packet>::const_iterator it2 =
-							(*it).second.get_packets().begin();
-							it2 != (*it).second.get_packets().end(); it2++) {
-						if ((*it2).packetsize == (*it2).actualsize) { // UDP Packet has no payload
+					for (int i = 0; i< (*it).second.get_packets().size(); i++){
+						packet p = (*it).second.get_packets()[i];
+						if (p.packetsize == p.actualsize) { // UDP Packet has no payload
 							empty_packet = true;
 						}
 					}
@@ -766,73 +768,72 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 					} else {
 						data.backsc_validation_flow_count["Unknown"]++;
 					}
+				} else {
+					data.backsc_validation_flow_count["Unknown"]++;
 				}
 			}
 			break;
-		case 14:
-			//rule15
+		case 15:
+			//Benign3
 
 			for (CFlowHashMultiMap6::iterator it = data.flowHashMap->begin();
 					it != data.flowHashMap->end(); ++it) {
-				bool var_eq_0 = true; //Variation of packet size over entire flow
-				uint32_t prev_packet_size =
-						(*(*it).second.get_packets().begin()).packetsize;
-				for (vector<packet>::const_iterator it2 = (*it).second.get_packets().begin();
-						it2 != (*it).second.get_packets().end(); it2++) {
-					if ((*it2).packetsize != prev_packet_size) {
-						var_eq_0 = false;
-					}
-				}
-				if (var_eq_0) {
-					data.sbenign_validation_flow_count["FP: Packet size var == 0"]++;
-				}
-				if ((*(*it).second.get_packets().begin()).protocol == IPPROTO_TCP) {
-					for (vector<packet>::const_iterator it2 =
-							(*it).second.get_packets().begin();
-							it2 != (*it).second.get_packets().end(); it2++) {
-						if (!valid_flag_sequence_check((*it).second.get_packets())) {
-							data.sbenign_validation_flow_count["FP: Invalid flag seq"]++;
-						} else {
-							data.sbenign_validation_flow_count["Unknown"]++;
+				if ((*it).second.get_flow().prot == IPPROTO_UDP) {
+					bool var_eq_0 = true; //Variation of packet size over entire flow
+					uint32_t prev_packet_size =
+						((*it).second.get_packets().begin())->packetsize;
+					for (int i = 0; i< (*it).second.get_packets().size(); i++){
+						packet p = (*it).second.get_packets()[i];
+						if (p.packetsize != prev_packet_size) {
+							var_eq_0 = false;
 						}
 					}
+					if (var_eq_0) {
+						data.sbenign_validation_flow_count["FP: Packet size var == 0"]++;
+					} else {
+						data.sbenign_validation_flow_count["Unknown"]++;
+					}
+				} else if ((*it).second.get_flow().prot == IPPROTO_TCP) {
+					if (!valid_flag_sequence_check((*it).second.get_packets())) {
+						data.sbenign_validation_flow_count["FP: Invalid flag seq"]++;
+					} else {
+						data.sbenign_validation_flow_count["Unknown"]++;
+					}
+				} else {
+					data.sbenign_validation_flow_count["Unknown"]++;
 				}
 			}
 			break;
-		case 5:
 		case 6:
 		case 7:
+		case 8:
 
 			//Other Malign
 			for (CFlowHashMultiMap6::iterator it =
 					data.flowHashMap->begin();
 					it != data.flowHashMap->end(); ++it) {
-				if ((*(*it).second.get_packets().begin()).protocol == IPPROTO_TCP) {
-					for (vector<packet>::const_iterator it2 =
-							(*it).second.get_packets().begin();
-							it2 != (*it).second.get_packets().end(); it2++) {
-						if (!valid_flag_sequence_check(
-								(*it).second.get_packets())) {
-							data.sbenign_validation_flow_count["TP: Invalid flag seq"]++;
-						} else {
-							data.sbenign_validation_flow_count["Unknown"]++;
-						}
+				if ((*it).second.get_flow().prot == IPPROTO_TCP) {
+					if (!valid_flag_sequence_check(
+							(*it).second.get_packets())) {
+						data.othermal_validation_flow_count["TP: Invalid flag seq"]++;
+					} else {
+						data.othermal_validation_flow_count["Unknown"]++;
 					}
-				} else if ((*(*it).second.get_packets().begin()).protocol
-						== IPPROTO_UDP) {
+				} else if ((*it).second.get_flow().prot == IPPROTO_UDP) {
 					bool empty_packet = false;
-					for (vector<packet>::const_iterator it2 =
-							(*it).second.get_packets().begin();
-							it2 != (*it).second.get_packets().end(); it2++) {
-						if (((*it2).actualsize == (*it2).packetsize)) { // UDP Packet has no payload
+					for (int i = 0; i< (*it).second.get_packets().size(); i++){
+						packet p = (*it).second.get_packets()[i];
+						if ((p.actualsize == p.packetsize)) { // UDP Packet has no payload
 							empty_packet = true;
 						}
 					}
 					if (empty_packet) {
-						data.sbenign_validation_flow_count["TP: Empty UDP Packet"]++;
+						data.othermal_validation_flow_count["TP: Empty UDP Packet"]++;
 					} else {
-						data.sbenign_validation_flow_count["Unknown"]++;
+						data.othermal_validation_flow_count["Unknown"]++;
 					}
+				} else {
+					data.othermal_validation_flow_count["Unknown"]++;
 				}
 			}
 			break;
@@ -873,6 +874,7 @@ void write_validation_stats(CPersist & data){
 	out.close();
 
 }
+
 
 int main(int argc, char **argv) {
 
@@ -1006,15 +1008,17 @@ int main(int argc, char **argv) {
 		}
 		string rulename = pcap_files[i].substr(pcap_files[i].find_last_of("_")+1,pcap_files[i].find_last_of(".")-pcap_files[i].find_last_of("_")-1);
 		cout << "Rulename: " << rulename << endl;
+		cout << "Rulenumber: " << data.c.get_rule_number(rulename) << endl;
+
 		for (size_t j = 0; j < files.size(); j++) {
 			if (files.size() > 1) {
 				cout << files[j] << endl;
 			}
 			process_interval(files[j], data, j, rulename);
 			find_match(data);
+			flow_validation(data,verbose, data.c.get_rule_number(rulename));
+			data.flowHashMap->clear();
 		}
-		flow_validation(data,verbose, data.c.get_rule_number(rulename));
-		data.flowHashMap->clear();
 		data.packets.clear();
 	}
 	write_validation_stats(data);
