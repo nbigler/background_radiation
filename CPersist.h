@@ -29,9 +29,6 @@
 
 using namespace std;
 
-//typedef hash_map<HashKeyIPv4, uint32_t , HashFunction<HashKeyIPv4>,HashFunction<HashKeyIPv4> > HashMap;
-//typedef hash_map<HashKeyIPv4_6T, Flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
-
 typedef hash_multimap<HashKeyIPv4_6T, Flow, HashFunction<HashKeyIPv4_6T>, HashFunction<HashKeyIPv4_6T> > CFlowHashMultiMap6;
 
 /**
@@ -47,31 +44,15 @@ public:
 	C_Category::C_Category_set c;
 	C_Category::C_Category_rc_signs rc;	///< For per-rule sign accounting
 
-	/*uint32_t * flows;			///< Flow count per rule (rule number is index)
-	uint32_t * packets;		///< Packet count per rule (rule number is index)
-	uint64_t * bytes;			///< Byte count per rule (rule number is index)*/
 	string date;
 
-	time_t last_flow;
-	static const int TYPE_COUNT = 255;
-	static const int CODE_COUNT = 255;
-	static const int PORT_COUNT = 65536;
-
-	long itc[TYPE_COUNT][CODE_COUNT];
-
-	long portlist_local[PORT_COUNT];
-	long portlist_remote[PORT_COUNT];
-
-	map<string, int> icmp_false_positives;
-
-
-	map<string, int> tcp_false_positives;
-	map<string, int> tcp_false_negatives;
-
-	map<string, int> scan5_validation_flow_count;
+	map<string, int> scan_validation_flow_count;
 	map<string, int> othermal_validation_flow_count;
 	map<string, int> backsc_validation_flow_count;
+	map<string, int> unreach_validation_flow_count;
+	map<string, int> p2p_validation_flow_count;
 	map<string, int> sbenign_validation_flow_count;
+	map<string, int> other_validation_flow_count;
 
 
 
