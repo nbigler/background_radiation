@@ -45,6 +45,7 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/copy.hpp>
+#include <boost/lexical_cast.hpp>
 #include <fstream>
 
 // Util
@@ -105,7 +106,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data,
 	// Loop over all sign sets (i.e. all flows)
 	int i = 0;
 	struct cflow * pflow = fl->get_first_flow();
-	data.last_flow = 0;
+//	data.last_flow = 0;
 	uint32_t duration = 0;
 	while (pflow != NULL) {
 		totalflows++;
@@ -121,9 +122,9 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data,
 				pflow->remotePort = 0;
 			}
 
-			if (data.last_flow < (pflow->startMs + pflow->durationMs)) {
-				data.last_flow = (pflow->startMs + pflow->durationMs);
-			}
+//			if (data.last_flow < (pflow->startMs + pflow->durationMs)) {
+//				data.last_flow = (pflow->startMs + pflow->durationMs);
+//			}
 			if (duration < pflow->durationMs) {
 				duration = pflow->durationMs;
 			}
@@ -147,9 +148,9 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data,
 		pflow = fl->get_next_flow();
 		i++;
 	}
-	if (data.verbose)
-		cout << "Longest Flow is " << duration << " ms and ends at "
-				<< data.last_flow << endl;
+	//if (data.verbose)
+	//	cout << "Longest Flow is " << duration << " ms and ends at "
+//				<< data.last_flow << endl;
 }
 
 /**
@@ -451,7 +452,7 @@ void process_pcap(string pcap_filename, CPersist & data) {
 	struct packet packet;
 
 	// Open file for packet reading
-	int pcount = 0; // Packet counter
+	long pcount = 0; // Packet counter
 	try {
 		PcapOffline pco(pcap_filename);
 		string filename = pco.get_filename();
@@ -662,14 +663,80 @@ bool valid_flag_sequence_check(vector<packet> packets) {
 	return false;
 }
 
+void write_validation_stats(CPersist & data, string filename, int rule_no){
+	ofstream out;
 
+	string fname = filename;
+	fname += boost::lexical_cast<string>(rule_no);
+	fname += ".csv";
+	util::open_outfile(out, fname);
+	out << "Type;Count" << endl;
+	map<string, int>::iterator iter;
+	switch(rule_no){
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+			for (iter = data.scan_validation_flow_count.begin(); iter != data.scan_validation_flow_count.end(); iter++){
+				out << (*iter).first << ";" << (*iter).second << endl;
+			}
+			break;
+		case 5:
+		case 6:
+		case 7:
+			for (iter = data.othermal_validation_flow_count.begin(); iter != data.othermal_validation_flow_count.end(); iter++){
+					out << (*iter).first << ";" << (*iter).second << endl;
+			}
+			break;
+		case 8:
+		case 9:
+		case 10:
+			for (iter = data.backsc_validation_flow_count.begin(); iter != data.backsc_validation_flow_count.end(); iter++){
+					out << (*iter).first << ";" << (*iter).second << endl;
+			}
+			break;
+		case 11: //Unreachable
+			break;
+		case 12: //P2P
+			break;
+		case 13:
+		case 14:
+		case 15:
+			for (iter = data.sbenign_validation_flow_count.begin(); iter != data.sbenign_validation_flow_count.end(); iter++){
+					out << (*iter).first << ";" << (*iter).second << endl;
+			}
+			break;
+		case 16: //Bogon
+			break;
+		case -1: //Other
+			for (iter = data.other_validation_flow_count.begin(); iter != data.other_validation_flow_count.end(); iter++){
+					out << (*iter).first << ";" << (*iter).second << endl;
+			}
+			break;
 
+	}
+	out.close();
+}
+
+void clear_validation_stats(CPersist & data){
+	data.scan_validation_flow_count.clear();
+	data.othermal_validation_flow_count.clear();
+	data.backsc_validation_flow_count.clear();
+	data.unreach_validation_flow_count.clear();
+	data.p2p_validation_flow_count.clear();
+	data.sbenign_validation_flow_count.clear();
+	data.other_validation_flow_count.clear();
+}
 
 void flow_validation(CPersist & data, bool verbose, int rule_no) {
-	switch (rule_no+1) {
-
-		case 5:
-			//rule5
+	switch (rule_no) {
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+			//Scan
 			for (CFlowHashMultiMap6::iterator it = data.flowHashMap->begin();
 					it != data.flowHashMap->end(); ++it) {
 
@@ -678,7 +745,7 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 							(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 							== 0x02 && (*it).second.get_packets().size() == 1) { //SYN Scan
 
-						data.scan5_validation_flow_count["TP: SYN Scan"]++;
+						data.scan_validation_flow_count["TP: SYN Scan"]++;
 
 						if (verbose) {
 							cout << "True Positive: Flow assigned to Rule " << rule_no
@@ -686,53 +753,54 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 						}
 
 					} else if (get_tcp_flags(
-						(*it).second.get_packets().begin()->ipPayload.tcpHeader)
+							(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 						== 0x29) { //X-Mas Tree Scan (URG+PSH+FIN)
 
-						data.scan5_validation_flow_count["TP: X-Mas Tree Scan"]++;
+						data.scan_validation_flow_count["TP: X-Mas Tree Scan"]++;
 
 						if (verbose) {
 							cout << "True Positive: Flow assigned to Rule " << rule_no
 								<< " and is X-Mas Tree Scan" << endl;
 						}
 					} else if (get_tcp_flags(
-						(*it).second.get_packets().begin()->ipPayload.tcpHeader)
+							(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 						== 0x01) { //FIN Scan
 
-						data.scan5_validation_flow_count["TP: Fin Scan"]++;
+						data.scan_validation_flow_count["TP: Fin Scan"]++;
 
 						if (verbose) {
 							cout << "True Positive: Flow assigned to Rule " << rule_no
 								<< " and is FIN Scan" << endl;
 						}
 					} else if (get_tcp_flags(
-						(*it).second.get_packets().begin()->ipPayload.tcpHeader)
+							(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 						== 0x00) { //Null Scan
 
-						data.scan5_validation_flow_count["TP: Null Scan"]++;
+						data.scan_validation_flow_count["TP: Null Scan"]++;
 
 						if (verbose) {
 							cout << "True Positive: Flow assigned to Rule " << rule_no
 								<< " and is Null Scan" << endl;
 						}
 					} else {
-						data.scan5_validation_flow_count["Unknown"]++;					
+						data.scan_validation_flow_count["Unknown"]++;
 					}
 				} else {
-					data.scan5_validation_flow_count["Unknown"]++;				
+					data.scan_validation_flow_count["Unknown"]++;
 				}
 			}
+			write_validation_stats(data, "validation_flow_count_scan", rule_no);
+			clear_validation_stats(data);
 			break;
+		case 8:
 		case 9:
 		case 10:
-		case 11:
 			for (CFlowHashMultiMap6::iterator it =
 					data.flowHashMap->begin();
 					it != data.flowHashMap->end(); ++it) {
 				if ((*it).second.get_flow().prot == IPPROTO_ICMP) {
 					bool icmp_req = false;
-					int count = 0;
-					for (int i = 0; i< (*it).second.get_packets().size(); i++){
+					for (unsigned int i = 0; i< (*it).second.get_packets().size(); i++){
 						packet p = (*it).second.get_packets()[i];
 						if (get_icmp_type(p) == 8 || get_icmp_type(p) == 13 || get_icmp_type(p) == 15 || get_icmp_type(p) == 17	|| get_icmp_type(p) == 35 || get_icmp_type(p) == 37) {
 							icmp_req = true;
@@ -745,7 +813,7 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 					}
 				} else if ((*it).second.get_flow().prot == IPPROTO_TCP) {
 					bool syn_pkt;
-					for (int i = 0; i< (*it).second.get_packets().size(); i++){
+					for (unsigned int i = 0; i< (*it).second.get_packets().size(); i++){
 						packet p = (*it).second.get_packets()[i];
 						if (get_tcp_flags(p.ipPayload.tcpHeader) == 0x02)
 							syn_pkt = true;
@@ -757,7 +825,7 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 					}
 				} else if ((*it).second.get_flow().prot == IPPROTO_UDP) {
 					bool empty_packet = false;
-					for (int i = 0; i< (*it).second.get_packets().size(); i++){
+					for (unsigned int i = 0; i< (*it).second.get_packets().size(); i++){
 						packet p = (*it).second.get_packets()[i];
 						if (p.packetsize == p.actualsize) { // UDP Packet has no payload
 							empty_packet = true;
@@ -772,17 +840,21 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 					data.backsc_validation_flow_count["Unknown"]++;
 				}
 			}
+			write_validation_stats(data, "validation_flow_count_backsc", rule_no);
+			clear_validation_stats(data);
 			break;
+		case 13:
+		case 14:
 		case 15:
-			//Benign3
+			//Benign
 
 			for (CFlowHashMultiMap6::iterator it = data.flowHashMap->begin();
 					it != data.flowHashMap->end(); ++it) {
-				if ((*it).second.get_flow().prot == IPPROTO_UDP) {
+				/*if ((*it).second.get_flow().prot == IPPROTO_UDP) {
 					bool var_eq_0 = true; //Variation of packet size over entire flow
 					uint32_t prev_packet_size =
 						((*it).second.get_packets().begin())->packetsize;
-					for (int i = 0; i< (*it).second.get_packets().size(); i++){
+					for (unsigned int i = 0; i< (*it).second.get_packets().size(); i++){
 						packet p = (*it).second.get_packets()[i];
 						if (p.packetsize != prev_packet_size) {
 							var_eq_0 = false;
@@ -793,7 +865,7 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 					} else {
 						data.sbenign_validation_flow_count["Unknown"]++;
 					}
-				} else if ((*it).second.get_flow().prot == IPPROTO_TCP) {
+				} else*/ if ((*it).second.get_flow().prot == IPPROTO_TCP) {
 					if (!valid_flag_sequence_check((*it).second.get_packets())) {
 						data.sbenign_validation_flow_count["FP: Invalid flag seq"]++;
 					} else {
@@ -803,11 +875,12 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 					data.sbenign_validation_flow_count["Unknown"]++;
 				}
 			}
+			write_validation_stats(data, "validation_flow_count_sbenign", rule_no);
+			clear_validation_stats(data);
 			break;
+		case 5:
 		case 6:
 		case 7:
-		case 8:
-
 			//Other Malign
 			for (CFlowHashMultiMap6::iterator it =
 					data.flowHashMap->begin();
@@ -821,7 +894,7 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 					}
 				} else if ((*it).second.get_flow().prot == IPPROTO_UDP) {
 					bool empty_packet = false;
-					for (int i = 0; i< (*it).second.get_packets().size(); i++){
+					for (unsigned int i = 0; i < (*it).second.get_packets().size(); i++){
 						packet p = (*it).second.get_packets()[i];
 						if ((p.actualsize == p.packetsize)) { // UDP Packet has no payload
 							empty_packet = true;
@@ -836,43 +909,10 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 					data.othermal_validation_flow_count["Unknown"]++;
 				}
 			}
+			write_validation_stats(data, "validation_flow_count_othermal", rule_no);
+			clear_validation_stats(data);
 			break;
 	}
-}
-
-void write_validation_stats(CPersist & data){
-	ofstream out;
-
-	string filename = "scan5_validation_stats.csv";
-	util::open_outfile(out, filename);
-	out << "Type;Count" << endl;
-	map<string, int>::iterator iter;
-	for (iter = data.scan5_validation_flow_count.begin(); iter != data.scan5_validation_flow_count.end(); iter++){
-		out << (*iter).first << ";" << (*iter).second << endl;
-	}
-	out.close();
-	filename = "sbenign_validation_stats.csv";
-	util::open_outfile(out, filename);
-	out << "Type;Count" << endl;
-	for (iter = data.sbenign_validation_flow_count.begin(); iter != data.sbenign_validation_flow_count.end(); iter++){
-		out << (*iter).first << ";" << (*iter).second << endl;
-	}
-	out.close();
-	filename = "backsc_validation_stats.csv";
-	util::open_outfile(out, filename);
-	out << "Type;Count" << endl;
-	for (iter = data.backsc_validation_flow_count.begin(); iter != data.backsc_validation_flow_count.end(); iter++){
-		out << (*iter).first << ";" << (*iter).second << endl;
-	}
-	out.close();
-	filename = "othermal_validation_stats.csv";
-	util::open_outfile(out, filename);
-	out << "Type;Count" << endl;
-	for (iter = data.othermal_validation_flow_count.begin(); iter != data.othermal_validation_flow_count.end(); iter++){
-		out << (*iter).first << ";" << (*iter).second << endl;
-	}
-	out.close();
-
 }
 
 
@@ -895,7 +935,6 @@ int main(int argc, char **argv) {
 	bool test = false;
 	bool verbose = false;
 	bool verbose2 = false;
-	bool analysis = false;
 
 	string date("");
 
@@ -913,9 +952,6 @@ int main(int argc, char **argv) {
 			break;
 		case 'p':
 			pcap_filelist = optarg;
-			break;
-		case 'a':
-			analysis = true;
 			break;
 		case 't':
 			test = true;
@@ -1021,5 +1057,5 @@ int main(int argc, char **argv) {
 		}
 		data.packets.clear();
 	}
-	write_validation_stats(data);
+	cout << "Finished writing stats" << endl;
 }
