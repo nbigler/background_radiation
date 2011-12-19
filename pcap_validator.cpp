@@ -261,13 +261,7 @@ void usage(char * progname, ostream & outfs) {
 	outfs
 			<< "-r <filename>  Create sign statistics by rules stored in <filename> (default: none)\n";
 	outfs
-			<< "-c <filename>  Create sign statistics by classes stored in <filename> (default: none)\n";
-	outfs
 			<< "-p <filename>  pcap file of the flow data corresponding to the flows in *.gz files\n";
-	outfs << "-t             Run sanity checks only.\n";
-	outfs << "-O             Classify ouflows instead of inflows.\n";
-	outfs
-			<< "-d <date>      Date of form YYYYMMDD to be used in file naming (default: extracted from file name).\n";
 	outfs << "-h             Show help info.\n";
 	outfs << "-v             Show additional informative messages.\n";
 
