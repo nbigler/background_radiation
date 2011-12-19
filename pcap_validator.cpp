@@ -107,7 +107,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data,
 	int i = 0;
 	struct cflow * pflow = fl->get_first_flow();
 //	data.last_flow = 0;
-	uint32_t duration = 0;
+//	uint32_t duration = 0;
 	while (pflow != NULL) {
 		totalflows++;
 		if (fl_ref[i] != 0) { // Ignore empty sign sets
@@ -125,9 +125,9 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data,
 //			if (data.last_flow < (pflow->startMs + pflow->durationMs)) {
 //				data.last_flow = (pflow->startMs + pflow->durationMs);
 //			}
-			if (duration < pflow->durationMs) {
-				duration = pflow->durationMs;
-			}
+	//		if (duration < pflow->durationMs) {
+	//			duration = pflow->durationMs;
+	//		}
 			// Check signs against all rules and increment counters for matching ones
 
 
@@ -425,6 +425,7 @@ void find_match(CPersist & data) {
 					&& (plIter->timestamp / 1000 < (fl.startMs + fl.durationMs + 1))) {
 				if ((*iter).second.flow_incomplete()) {
 					(*iter).second.add((*plIter));
+					data.matched_packets.push_back(*plIter);
 				}
 			}
 		} else if (iter_q != data.flowHashMap->end()) {
@@ -434,8 +435,14 @@ void find_match(CPersist & data) {
 					&& (plIter->timestamp / 1000 < (fl.startMs + fl.durationMs + 1))) {
 				if ((*iter_q).second.flow_incomplete()) {
 					(*iter_q).second.add((*plIter));
+					data.matched_packets.push_back(*plIter);
 				}
 			}
+		} else { 
+		//	cout << "Could not match packet to flow: ";
+ 		//	util::print_packet(*plIter);
+		//	cout << endl;
+		
 		}
 	}
 }
@@ -458,6 +465,12 @@ void process_pcap(string pcap_filename, CPersist & data) {
 		string filename = pco.get_filename();
 
 		DataLink dl = pco.get_datalink();
+		
+		int no_of_tcp = 0;
+		int no_of_udp = 0;
+		int no_of_icmp = 0;
+		int no_of_other = 0;
+		int no_of_packets = 0;
 
 		// Process saved packets
 		// *********************
@@ -522,6 +535,7 @@ void process_pcap(string pcap_filename, CPersist & data) {
 							+ (sizeof(struct iphdr)) + sizeof(struct tcphdr));
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+packet.ipPayload.tcpHeader.doff*4);
 					//packet.ipPayload.payload = pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4+packet.ipPayload.tcpHeader.doff*4;
+					no_of_tcp++;
 					break;
 				case IPPROTO_UDP:
 					udp_hdr = (struct udphdr *) (pdata + sizeof(struct ethhdr)
@@ -533,6 +547,7 @@ void process_pcap(string pcap_filename, CPersist & data) {
 							+ (sizeof(struct iphdr)) + sizeof(struct udphdr));
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct udphdr));
 					//packet.ipPayload.payload = (pdata+sizeof(struct ethhdr)+sizeof(struct udphdr));
+					no_of_udp++;
 					break;
 				case IPPROTO_ICMP:
 					icmp_hdr = (struct icmphdr *) (pdata + sizeof(struct ethhdr)
@@ -542,23 +557,32 @@ void process_pcap(string pcap_filename, CPersist & data) {
 							+ (sizeof(struct iphdr)) + sizeof(struct icmphdr));
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct icmphdr));
 					//packet.ipPayload.payload = (pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4+sizeof(struct icmphdr));
+					no_of_icmp++;
 					break;
 				default:
 					packet.packetsize = (sizeof(struct ethhdr)
 							+ packet.ipHeader.ihl * 4);
 					//packet.ipPayload.payloadsize = p.get_capture_length() - (sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
 					//packet.ipPayload.payload = (pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
+					no_of_other++;
 					break;
 				}
-
+				no_of_packets++;
 				packet.timestamp = p.get_seconds() * 1000000
 						+ p.get_miliseconds(); //get_miliseconds returns microseconds and not milliseconds
 				packet.ipHeader.ihl = 0x45; // Set the ipV4 Header size to 20 Bytes. IP Options are ignored.
 				packet.actualsize = p.get_length();
-
+				
 				data.packets.push_back(packet);
 			}
 		}
+		cout << "Pcap processing finished: " << endl;
+		cout << "TCP packets: " << no_of_tcp << endl;
+		cout << "UDP packets: " << no_of_udp << endl;
+		cout << "ICMP packets: " << no_of_icmp << endl;
+		cout << "Other packets: " << no_of_other << endl;
+		cout << "Size of packets vector: " << data.packets.size() << endl;
+		cout << "Number of packets processed: " << no_of_packets << endl;
 
 	} catch (PcapError & pcerror) {
 
@@ -609,7 +633,7 @@ void get_flow_count(CPersist &data) {
 }
 
 
-uint8_t get_tcp_flags(tcphdr const &tcp_hdr) {
+uint8_t get_tcp_flags(tcphdr const& tcp_hdr) {
 	return *(((uint8_t *) &(tcp_hdr.ack_seq)) + 5);
 }
 
@@ -627,14 +651,14 @@ int get_icmp_code(const packet p) {
  * @param packets
  * @return TRUE if valid sequence, else FALSE
  */
-bool valid_flag_sequence_check(vector<packet> packets) {
+bool valid_flag_sequence_check(const vector<packet> packets) {
 
 	int counter = 0;
 	uint8_t flag_sequence[5] = { 0x00, 0x00, 0x00, 0x00, 0x00 };
 	uint8_t tcp_flags;
 
 	//Fill flag sequence with 5 first packets from flow
-	for (vector<packet>::iterator it = packets.begin();
+	for (vector<packet>::const_iterator it = packets.begin();
 			it != packets.end() && counter < 5; ++it) {
 		tcp_flags = get_tcp_flags((*it).ipPayload.tcpHeader);
 
@@ -663,7 +687,7 @@ bool valid_flag_sequence_check(vector<packet> packets) {
 	return false;
 }
 
-void write_validation_stats(CPersist & data, string filename, int rule_no){
+void write_validation_stats(const CPersist& data, const string filename, const int rule_no){
 	ofstream out;
 
 	string fname = filename;
@@ -671,7 +695,7 @@ void write_validation_stats(CPersist & data, string filename, int rule_no){
 	fname += ".csv";
 	util::open_outfile(out, fname);
 	out << "Type;Count" << endl;
-	map<string, int>::iterator iter;
+	map<string, int>::const_iterator iter;
 	switch(rule_no){
 		case 0:
 		case 1:
@@ -729,28 +753,33 @@ void clear_validation_stats(CPersist & data){
 	data.other_validation_flow_count.clear();
 }
 
-void flow_validation(CPersist & data, bool verbose, int rule_no) {
+void flow_validation(CPersist& data, const bool verbose, const int rule_no) {
+	int syn_count = 0;
 	switch (rule_no) {
 		case 0:
 		case 1:
 		case 2:
 		case 3:
 		case 4:
+			
 			//Scan
 			for (CFlowHashMultiMap6::iterator it = data.flowHashMap->begin();
 					it != data.flowHashMap->end(); ++it) {
-
+				
 				if ((*it).second.get_flow().prot == IPPROTO_TCP) {
+					
+					if(syn_count>63) cout << "Critical point"; util::print_packet(*((*it).second.get_packets().begin())); cout << endl;
+					if((*it).second.get_packets().size() == 0) cout << "WTF?" << endl;
 					if (get_tcp_flags(
 							(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 							== 0x02 && (*it).second.get_packets().size() == 1) { //SYN Scan
-
+syn_count++;
 						data.scan_validation_flow_count["TP: SYN Scan"]++;
 
-						if (verbose) {
+					//	if (verbose) {
 							cout << "True Positive: Flow assigned to Rule " << rule_no
 									<< " and is SYN Scan" << endl;
-						}
+					//	}
 
 					} else if (get_tcp_flags(
 							(*it).second.get_packets().begin()->ipPayload.tcpHeader)
@@ -758,30 +787,30 @@ void flow_validation(CPersist & data, bool verbose, int rule_no) {
 
 						data.scan_validation_flow_count["TP: X-Mas Tree Scan"]++;
 
-						if (verbose) {
+					//	if (verbose) {
 							cout << "True Positive: Flow assigned to Rule " << rule_no
 								<< " and is X-Mas Tree Scan" << endl;
-						}
+					//	}
 					} else if (get_tcp_flags(
 							(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 						== 0x01) { //FIN Scan
 
 						data.scan_validation_flow_count["TP: Fin Scan"]++;
 
-						if (verbose) {
+					//	if (verbose) {
 							cout << "True Positive: Flow assigned to Rule " << rule_no
 								<< " and is FIN Scan" << endl;
-						}
+					//	}
 					} else if (get_tcp_flags(
 							(*it).second.get_packets().begin()->ipPayload.tcpHeader)
 						== 0x00) { //Null Scan
 
 						data.scan_validation_flow_count["TP: Null Scan"]++;
 
-						if (verbose) {
+					//	if (verbose) {
 							cout << "True Positive: Flow assigned to Rule " << rule_no
 								<< " and is Null Scan" << endl;
-						}
+					//	}
 					} else {
 						data.scan_validation_flow_count["Unknown"]++;
 					}
@@ -939,7 +968,7 @@ int main(int argc, char **argv) {
 	string date("");
 
 	int i;
-	while ((i = getopt(argc, argv, "f:r:c:p:tahd:vV")) != -1) {
+	while ((i = getopt(argc, argv, "f:r:p:h:vV")) != -1) {
 		switch (i) {
 		case 'f':
 			list_filename = optarg;
@@ -947,15 +976,8 @@ int main(int argc, char **argv) {
 		case 'r':
 			rules_filename = optarg;
 			break;
-		case 'c':
-			classes_filename = optarg;
-			break;
 		case 'p':
 			pcap_filelist = optarg;
-			break;
-		case 't':
-			test = true;
-			verbose = true;
 			break;
 		case 'h':
 			usage(argv[0], cout);
@@ -1039,23 +1061,26 @@ int main(int argc, char **argv) {
 			cout << pcap_files[i] << endl;
 		}
 		process_pcap(pcap_files[i], data);
+		cout << "Packet list contains " << data.packets.size() << " packets";
 		if (files.size() > 1) {
 			cout << "Processing file:\n";
 		}
 		string rulename = pcap_files[i].substr(pcap_files[i].find_last_of("_")+1,pcap_files[i].find_last_of(".")-pcap_files[i].find_last_of("_")-1);
 		cout << "Rulename: " << rulename << endl;
-		cout << "Rulenumber: " << data.c.get_rule_number(rulename) << endl;
-
+		cout << "Rulenumber: " << data.c.get_rule_number(rulename) << endl;		
 		for (size_t j = 0; j < files.size(); j++) {
 			if (files.size() > 1) {
 				cout << files[j] << endl;
 			}
 			process_interval(files[j], data, j, rulename);
 			find_match(data);
-			flow_validation(data,verbose, data.c.get_rule_number(rulename));
-			data.flowHashMap->clear();
 		}
+		flow_validation(data,verbose, data.c.get_rule_number(rulename));
+		cout << data.matched_packets.size() << "packets have been matched." << endl;
+		cout << "Flows: " << data.flowHashMap->size() << endl;
 		data.packets.clear();
+		data.flowHashMap->clear();
+		data.matched_packets.clear();
 	}
 	cout << "Finished writing stats" << endl;
 }
