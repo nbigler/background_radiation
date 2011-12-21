@@ -4,9 +4,11 @@
   *	\brief Implements the CPersist class that keeps data persistent over all processing intervals.
   *
   *
-  * 	Copyright (c) 2010, Eduard Glatz
+  * 	Copyright (c) 2010, Eduard Glatz, Nicolas Bigler, Michael Fisler
   *
-  * 	Author: Eduard Glatz  (eglatz@tik.ee.ethz.ch)
+  * 	Authors: Eduard Glatz  (eglatz@tik.ee.ethz.ch)
+  * 			 Nicolas Bigler (nbigler@hsr.ch)
+  * 			 Michael Fisler (mfisler@hsr.ch)
   *
   *	Distributed under the Gnu Public License version 2 or the modified
   *	BSD license.
@@ -59,9 +61,9 @@ public:
 	CFlowHashMultiMap6* flowHashMap;
 
 	vector<packet> packets;
+	vector<packet> matched_packets;
 
-	CPersist(string & date_time, bool verbose, bool verbose2, bool test,
-		string & rules_filename);
+	CPersist(string & date_time, bool verbose, bool verbose2, string & rules_filename);
 
 	~CPersist();
 };

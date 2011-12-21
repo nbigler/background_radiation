@@ -32,9 +32,6 @@ struct ipPayload {
 		struct udphdr udpHeader;	///< udp header struct
 		struct icmphdr icmpHeader;  ///< icmp header struct
 	};
-
-	//uint32_t  payloadsize;
-	//const unsigned char* payload;
 };
 
 /**

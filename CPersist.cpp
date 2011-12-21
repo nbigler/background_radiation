@@ -4,9 +4,11 @@
   *	\brief Implements the CPersist class that keeps data persistent over all processing intervals.
   *
   *
-  * 	Copyright (c) 2010, Eduard Glatz
+  * 	Copyright (c) 2010, Eduard Glatz, Nicolas Bigler, Michael Fisler
   *
-  * 	Author: Eduard Glatz  (eglatz@tik.ee.ethz.ch)
+  * 	Authors: Eduard Glatz  (eglatz@tik.ee.ethz.ch)
+  * 			 Nicolas Bigler (nbigler@hsr.ch)
+  * 			 Michael Fisler (mfisler@hsr.ch)
   *
   *	Distributed under the Gnu Public License version 2 or the modified
   *	BSD license.
@@ -21,11 +23,9 @@
   *	\param	date_time	      Date/time string using format YYYYMMDD.hhmm
   *	\param	verbose		      Create informative messages
   *	\param	verbose2		      Create more informative messages
-  *	\param	test			      When TRRUE then show basic statistics and performa a sanitiy check
   *	\param	rules_filename		Name of file containing rules
   */
-CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
-		string & rules_filename)
+CPersist::CPersist(string & date_time, bool verbose, bool verbose2,	string & rules_filename)
 {
 	this->verbose = verbose;
 	this->verbose2 = verbose2;
@@ -47,20 +47,12 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2, bool test,
 		if (verbose) cout << "Loaded " << rule_count << " rules.\n";
 		rc.init(c.get_enum_count(), rule_count);
 
-		/*flows   = new uint32_t[rule_count];
-		packets = new uint32_t[rule_count];
-		bytes   = new uint64_t[rule_count];*/
 	}
 }
-
-
 
 /**
   * 	Destructor
   */
 CPersist::~CPersist()
 {
-	/*delete[] flows;
-	delete[] packets;
-	delete[] bytes;*/
 }

@@ -2,9 +2,11 @@
   *	\file utils.cpp
   *	\brief Utility functions.
   *
-  * 	Copyright (c) 2010, Eduard Glatz 
+  * 	Copyright (c) 2010, Eduard Glatz, Nicolas Bigler, Michael Fisler
   *
-  * 	Author: Eduard Glatz  (eglatz@tik.ee.ethz.ch) 
+  * 	Authors: Eduard Glatz  (eglatz@tik.ee.ethz.ch)
+  * 			 Nicolas Bigler (nbigler@hsr.ch)
+  * 			 Michael Fisler (mfisler@hsr.ch)
   */
 
 #include <netinet/in.h>
