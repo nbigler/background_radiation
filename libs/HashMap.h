@@ -1,5 +1,5 @@
 /** 
- * \file HashMap2.h
+ * \file HashMap.h
  * \brief Header file that defines keys and hashfunction for use with the SGI hash_map
  * 
  * Copyright (c) 2008, Bernhard Tellenbach 
@@ -480,7 +480,7 @@ class HashKeyIPv4_7T {
 	 * The 7-tuple
 	 */
 	public:
-	char key [22];
+	char key [15];
 	/**
 	 * Constructor.
 	 * \param srcIP source IP address
@@ -491,7 +491,7 @@ class HashKeyIPv4_7T {
 	 * \param tos TOS field (Type Of Service)
 	 * \param dir Direction field
 	 */
-	HashKeyIPv4_7T(uint32_t * srcIP,uint32_t * dstIP, uint16_t * srcPort,uint16_t * dstPort, uint8_t * protocol, uint8_t * dir, uint64_t * ts);
+	HashKeyIPv4_7T(uint32_t * srcIP,uint32_t * dstIP, uint16_t * srcPort,uint16_t * dstPort, uint8_t * protocol, uint8_t * tos, uint8_t * dir);
 	~HashKeyIPv4_7T();
 	size_t size() const;
     HashKeyIPv4_7T(const HashKeyIPv4_7T &b);

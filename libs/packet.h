@@ -1,6 +1,17 @@
 #ifndef PACKET_H_
 #define PACKET_H_
-
+/**
+  *	\file packet.h
+  *	\brief Compact form of network packets
+  *
+  * 	Copyright (c) 2011, Nicolas Bigler, Michael Fisler
+  *
+  * 	Author: Nicolas Bigler (nbigler@hsr.ch)
+  * 			Michael Fisler (mfisler@hsr.ch)
+  *
+  *	Distributed under the Gnu Public License version 2 or the modified
+  *	BSD license.
+  */
 
 #include <stdint.h>
 #include <vector>
@@ -11,18 +22,20 @@
 #include <netinet/ip_icmp.h>
 #include "global.h"
 
+/**
+ * struct that containts the tcp, udp or icmp header
+ */
 struct ipPayload {
 	union {
 		struct tcphdr tcpHeader;
 		struct udphdr udpHeader;
 		struct icmphdr icmpHeader;
 	};
-
-	//uint32_t  payloadsize;
-	//const unsigned char* payload;
 };
 
-
+/**
+ * struct that containts information about a packet
+ */
 struct packet {
 	struct ethhdr ethHeader;
 	struct iphdr ipHeader;
@@ -41,6 +54,12 @@ struct packet {
 
 	struct ipPayload ipPayload; ///< IP-payload of each packet in flow
 
+	/**
+		 * Initializes the struct
+		 * @param srcIP		Source IP of the packet
+		 * @param dstIP		Destination IP of the packet
+		 * @param protocol	IPv4 Protocol type of the packet
+		 */
 	void init(uint32_t srcIP, uint32_t dstIP, uint8_t protocol) {
 		this->srcIP = srcIP;
 		this->dstIP = dstIP;

@@ -1,34 +1,57 @@
 #ifndef FLOW_H_
 #define FLOW_H_
+/**
+  *	\file Flow.h
+  *
+  *	\brief Implements a number of categories through an enum type and provides a counting
+  *	facility for any combination of the categories. This is useful when an entity is
+  *	assigned to more than one category at a time and, thus, intersections between the
+  *	different category sets have to be tracked.
+  *
+  *
+  * 	Copyright (c) 2010, Nicolas Bigler, Michael Fisler
+  *
+  * 	Authors: Nicolas Bigler (nbigler@hsr.ch)
+  * 			 Michael Fisler (mfisler@hsr.ch)
+  *
+  *	Distributed under the Gnu Public License version 2 or the modified
+  *	BSD license.
+  */
 
 #include <vector>
 #include "libs/packet.h"
 #include "libs/utils.h"
 
+/**
+  *	\class	Flow
+  *	Contains a flow and the number of packets already matched
+  */
 class Flow {
 	private:
 		cflow flow;
-		//std::vector<packet> packets;
-		int packetcount;
+		int mached_packet_count;
 		Flow();
 	public:
 		Flow(cflow &fl) {
 			flow = fl;
-			packetcount = 0;
+			mached_packet_count = 0;
 		}
 
+		/**
+		 * Checks if the flow is incomplete
+		 * @return TRUE if flow is incomplete, FALSE otherwise
+		 */
 		bool flow_incomplete() {
-			return (packetcount < static_cast<int>(flow.dPkts));
+			return (mached_packet_count < static_cast<int>(flow.dPkts));
 		}
-
-		bool add(const packet & pck) {
+		/**
+		 * If the flow is not complete, it increases the mached_packet_count.
+		 * @return	TRUE if flow is incomplete, FALSE otherwise
+		 */
+		bool can_increase_packet_count() {
 			if(flow_incomplete()){
-				++packetcount;
+				++mached_packet_count;
 				return true;
-				//packets.push_back(pck);
-			}else{
-				//std::cerr << "Number of packets must not exceed number of packets in flow" << std::endl;
-				//util::print_packet(pck);
 			}
 			return false;
 		}
@@ -36,12 +59,6 @@ class Flow {
 		cflow get_flow() {
 			return flow;
 		}
-
-		/*const vector<packet> get_packets() {
-			return packets;
-		}*/
-
 };
-
 
 #endif /* FLOW_H_ */
