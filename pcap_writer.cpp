@@ -19,7 +19,7 @@
  *	Distributed under the Gnu Public License version 2 or the modified
  *	BSD license.
  */
- 
+
 #include <cstring>
 #include <string>
 #include <iomanip>
@@ -38,7 +38,6 @@
 #include <netinet/udp.h>		// UDP header
 #include <netinet/ip_icmp.h>	// ICMP header
 #include <netinet/in.h>			// IP protocol types
-
 // Boost includes
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/zlib.hpp>
@@ -47,7 +46,6 @@
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <fstream>
-
 
 // Util
 #include "libs/HashMap.h"
@@ -73,18 +71,17 @@ using namespace pcappp;
 typedef HashKeyIPv4_6T FlowHashKey6;
 
 /**
-  *	Classifies flows by applying rules and rule-to-class assocciations to actual
-  *	sign sets of given flows. For each rule/class a flow matches the assigned
-  *	counter is incremented. After all flows have been processed overall count
-  *	values are written as new lines to statistics CSV files.
-  *
-  *
-  *	\param	fl			Flowlist
-  *	\param	fl_ref	List of sign sets aligned with fl
-  *	\param	data		Persistent statistics variables needed for overall statistics.
-  */
-void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data)
-{
+ *	Classifies flows by applying rules and rule-to-class assocciations to actual
+ *	sign sets of given flows. For each rule/class a flow matches the assigned
+ *	counter is incremented. After all flows have been processed overall count
+ *	values are written as new lines to statistics CSV files.
+ *
+ *
+ *	\param	fl			Flowlist
+ *	\param	fl_ref	List of sign sets aligned with fl
+ *	\param	data		Persistent statistics variables needed for overall statistics.
+ */
+void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data) {
 	// 1. Initialize
 	// *************
 	int rule_count = data.c.get_rule_count();
@@ -106,10 +103,10 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data)
 	// Check every flow against all rules and rule-to-class associations
 
 	// Maintain a counter per rule
-	int * flow_per_rule_counter	= new int[rule_count];
-	for (int j=0; j <= rule_count; j++) {
+	int * flow_per_rule_counter = new int[rule_count];
+	for (int j = 0; j <= rule_count; j++) {
 		flow_per_rule_counter[j] = 0;
-		if(data.flows_by_rule[j] == NULL) {
+		if (data.flows_by_rule[j] == NULL) {
 			data.flows_by_rule[j] = new CFlowHashMultiMap6();
 		}
 		data.rules_packetlist.push_back(new vector<packet>());
@@ -126,32 +123,36 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data)
 			sflows++;
 			total_flows++;
 			total_packets += pflow->dPkts;
-			total_bytes   += pflow->dOctets;
+			total_bytes += pflow->dOctets;
 			util::swap_endians(*pflow);
 
-			if (pflow->prot == IPPROTO_ICMP){
+			if (pflow->prot == IPPROTO_ICMP) {
 				pflow->localPort = 0;
 				pflow->remotePort = 0;
 			}
 
-			if (data.last_flow < (pflow->startMs + pflow->durationMs)){
+			if (data.last_flow < (pflow->startMs + pflow->durationMs)) {
 				data.last_flow = (pflow->startMs + pflow->durationMs);
 			}
-			if (duration < pflow->durationMs){
+			if (duration < pflow->durationMs) {
 				duration = pflow->durationMs;
 			}
 			// Check signs against all rules and increment counters for matching ones
 			bool found = false;
 
-			for (int j=0; j<rule_count; j++) { // j is rule index
+			for (int j = 0; j < rule_count; j++) { // j is rule index
 				if (data.c.rule_match(j, fl_ref[i])) {
 					flow_per_rule_counter[j]++;
 					// Update sign set of current rule
 					data.rc.increment(j, fl_ref[i]);
 
-					FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
+					FlowHashKey6 flowkey(&(pflow->localIP), &(pflow->remoteIP),
+							&(pflow->localPort), &(pflow->remotePort),
+							&(pflow->prot), &(pflow->flowtype));
 
-					(*data.flows_by_rule[j]).insert(CFlowHashMultiMap6::value_type (flowkey, Flow(*pflow)));
+					(*data.flows_by_rule[j]).insert(
+							CFlowHashMultiMap6::value_type(flowkey,
+									Flow(*pflow)));
 					found = true;
 				}
 			}
@@ -160,16 +161,20 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data)
 				// Update sign set of current rule
 				data.rc.increment(rule_count, fl_ref[i]);
 
-				FlowHashKey6 flowkey(&(pflow->localIP),&(pflow->remoteIP),&(pflow->localPort),&(pflow->remotePort),&(pflow->prot),&(pflow->flowtype));
-				(*data.flows_by_rule[rule_count]).insert(CFlowHashMultiMap6::value_type (flowkey, Flow(*pflow)));
+				FlowHashKey6 flowkey(&(pflow->localIP), &(pflow->remoteIP),
+						&(pflow->localPort), &(pflow->remotePort),
+						&(pflow->prot), &(pflow->flowtype));
+				(*data.flows_by_rule[rule_count]).insert(
+						CFlowHashMultiMap6::value_type(flowkey, Flow(*pflow)));
 			}
-		}else {
+		} else {
 			usflows++;
 		}
 		pflow = fl->get_next_flow();
 		i++;
 	}
-	cout << "Longest Flow is " << duration << " ms and ends at " << data.last_flow << endl;
+	cout << "Longest Flow is " << duration << " ms and ends at "
+			<< data.last_flow << endl;
 }
 
 /**
@@ -178,19 +183,19 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data)
  *
  *	\param	sign_filename	Path of the sign (*.sig.gz) file
  */
-void check_file_status(string & sign_filename)
-{
-    struct stat fileStatus;
-    int iretStat = stat(sign_filename.c_str(), &fileStatus);
-    if(iretStat == -1){
-        cerr << "\nERROR: " << sign_filename << " does not exist or is not accessible.\n";
-        perror("stat()");
-        cerr << "Check file name.\n\n";
-        char buf[256];
-        getcwd(buf, 256);
-        cout << "Current working directory is: " << buf << endl;
-        exit(1);
-    }
+void check_file_status(string & sign_filename) {
+	struct stat fileStatus;
+	int iretStat = stat(sign_filename.c_str(), &fileStatus);
+	if (iretStat == -1) {
+		cerr << "\nERROR: " << sign_filename
+				<< " does not exist or is not accessible.\n";
+		perror("stat()");
+		cerr << "Check file name.\n\n";
+		char buf[256];
+		getcwd(buf, 256);
+		cout << "Current working directory is: " << buf << endl;
+		exit(1);
+	}
 }
 
 /**
@@ -201,55 +206,55 @@ void check_file_status(string & sign_filename)
  *	\param	flow_count		number of flows to read
  *	\return fl_ref			uint32_t Pointer to the flowlist
  */
-uint32_t *read_per_flow_sign_sets(string & filename, int flow_count)
-{
-    // 2. Get per-flow sign sets
-    // *************************
-    string basename = filename.substr(0, filename.find(".gz"));
-    string sign_filename;
-    sign_filename = basename + ".sig.gz";
-    check_file_status(sign_filename);
-    // Read per-flow sign sets to memory, i.e., array "flpush_back(p);_ref".
-    uint32_t *fl_ref = new uint32_t[flow_count];
-    // Open up a stream chain
-    boost::iostreams::filtering_istream in;
-    // Add stream compressor
-    in.push(boost::iostreams::gzip_decompressor());
-    // Open input file and link it to stream chain
-    boost::iostreams::file_source infs(sign_filename);
-    if(!infs.is_open()){
-        cerr << "ERROR: could not open file source \"" << sign_filename << "\".\n";
-        exit(1);
-    }
-    in.push(infs);
+uint32_t *read_per_flow_sign_sets(string & filename, int flow_count) {
+	// 2. Get per-flow sign sets
+	// *************************
+	string basename = filename.substr(0, filename.find(".gz"));
+	string sign_filename;
+	sign_filename = basename + ".sig.gz";
+	check_file_status(sign_filename);
+	// Read per-flow sign sets to memory, i.e., array "flpush_back(p);_ref".
+	uint32_t *fl_ref = new uint32_t[flow_count];
+	// Open up a stream chain
+	boost::iostreams::filtering_istream in;
+	// Add stream compressor
+	in.push(boost::iostreams::gzip_decompressor());
+	// Open input file and link it to stream chain
+	boost::iostreams::file_source infs(sign_filename);
+	if (!infs.is_open()) {
+		cerr << "ERROR: could not open file source \"" << sign_filename
+				<< "\".\n";
+		exit(1);
+	}
+	in.push(infs);
 
-    // Now get all sign sets
-    in.read((char*)(((fl_ref))), flow_count * sizeof (uint32_t));
+	// Now get all sign sets
+	in.read((char*) (((fl_ref))), flow_count * sizeof(uint32_t));
 
-    // Close current input file (and stream compressor)
-    in.pop();
-    return fl_ref;
+	// Close current input file (and stream compressor)
+	in.pop();
+	return fl_ref;
 }
 
 /**
-  *	Process flow and sign data from one time interval.
-  *
-  *	\param filename	  Name of flow data inoput file (name of sign file is derived from this name)
-  *	\param data         Cross-interval data (e.g. counters and output streams)
-  *	\param inum         Interval number (first interval must have inum=0)
-  *	\param use_outflows TRUE when outflows should be classified instead of inflows
-  *
-  *	\return TRUE if processing successful, FALSE otherwise
-  */
-bool process_interval(string & filename, CPersist & data)
-{
+ *	Process flow and sign data from one time interval.
+ *
+ *	\param filename	  Name of flow data inoput file (name of sign file is derived from this name)
+ *	\param data         Cross-interval data (e.g. counters and output streams)
+ *	\param inum         Interval number (first interval must have inum=0)
+ *	\param use_outflows TRUE when outflows should be classified instead of inflows
+ *
+ *	\return TRUE if processing successful, FALSE otherwise
+ */
+bool process_interval(string & filename, CPersist & data) {
 	CFlowlist * fl = new CFlowlist(filename);
 	fl->read_flows();
 	int flow_count = fl->get_flow_count();
-	if (data.verbose) cout << endl << flow_count << " flows read from file " << filename << endl;
+	if (data.verbose)
+		cout << endl << flow_count << " flows read from file " << filename
+				<< endl;
 
-
-    uint32_t *fl_ref = read_per_flow_sign_sets(filename, flow_count);
+	uint32_t *fl_ref = read_per_flow_sign_sets(filename, flow_count);
 
 	process_rules(fl, fl_ref, data);
 
@@ -264,8 +269,7 @@ bool process_interval(string & filename, CPersist & data)
  *	\param progname		Name of the program
  *	\param outfs        Stream to write the usage informations to
  */
-void usage(char * progname, ostream & outfs)
-{
+void usage(char * progname, ostream & outfs) {
 	outfs << "\nEvaluates signs assigned to one-way flows. One or more file names \n";
 	outfs << "of flow data files are expected. To specify more than one input file name\n";
 	outfs << "use option -f and a file containing a list of file names.\n";
@@ -293,14 +297,12 @@ void usage(char * progname, ostream & outfs)
  *
  *	\return TRUE if file exists, FALSE otherwise
  */
-bool file_exists(string filename)
-{
-    if (FILE * file = fopen(filename.c_str(), "r"))
-    {
-        fclose(file);
-        return true;
-    }
-    return false;
+bool file_exists(string filename) {
+	if (FILE * file = fopen(filename.c_str(), "r")) {
+		fclose(file);
+		return true;
+	}
+	return false;
 }
 
 /**
@@ -309,50 +311,52 @@ bool file_exists(string filename)
  *
  *	\param data	  CPersist object containing all data
  */
-void write_pcap(CPersist & data){
+void write_pcap(CPersist & data) {
 
 	struct pcapFileHeader {
-	    uint32_t magic_number;   /* magic number */
-	    uint16_t version_major;  /* major version number */
-	    uint16_t version_minor;  /* minor version number */
-	    int16_t  thiszone;       /* GMT to local correction */
-	    uint32_t sigfigs;        /* accuracy of timestamps */
-	    uint32_t snaplen;        /* max length of captured packets, in octets */
-	    uint32_t network;        /* data link type */
+		uint32_t magic_number; /* magic number */
+		uint16_t version_major; /* major version number */
+		uint16_t version_minor; /* minor version number */
+		int16_t thiszone; /* GMT to local correction */
+		uint32_t sigfigs; /* accuracy of timestamps */
+		uint32_t snaplen; /* max length of captured packets, in octets */
+		uint32_t network; /* data link type */
 
-	    pcapFileHeader (uint32_t magic, uint16_t major, uint16_t minor,
-	    		int16_t zone, uint32_t ts_acc, uint32_t max_packlen, uint32_t dl_type){
-	    	magic_number = magic;
-	    	version_major = major;
-	    	version_minor = minor;
-	    	thiszone = zone;
-	    	sigfigs = ts_acc;
-	    	snaplen = max_packlen;
-	    	network = dl_type;
-	    }
-	    pcapFileHeader(){
-	    	magic_number = 0xa1b2c3d4;
+		pcapFileHeader(uint32_t magic, uint16_t major, uint16_t minor,
+				int16_t zone, uint32_t ts_acc, uint32_t max_packlen,
+				uint32_t dl_type) {
+			magic_number = magic;
+			version_major = major;
+			version_minor = minor;
+			thiszone = zone;
+			sigfigs = ts_acc;
+			snaplen = max_packlen;
+			network = dl_type;
+		}
+		pcapFileHeader() {
+			magic_number = 0xa1b2c3d4;
 			version_major = 2;
 			version_minor = 4;
 			thiszone = 0;
 			sigfigs = 0;
 			snaplen = 65535;
 			network = 1;
-	    }
+		}
 	};
 
 	struct pcapPacketHeader {
-	    uint32_t ts_sec;         /* timestamp seconds */
-	    uint32_t ts_usec;        /* timestamp microseconds */
-	    uint32_t incl_len;       /* number of octets of packet saved in file */
-	    uint32_t orig_len;       /* actual length of packet */
+		uint32_t ts_sec; /* timestamp seconds */
+		uint32_t ts_usec; /* timestamp microseconds */
+		uint32_t incl_len; /* number of octets of packet saved in file */
+		uint32_t orig_len; /* actual length of packet */
 
-	    void init (uint64_t timestamp, uint32_t packetsize, uint32_t actualsize) {
-	    	ts_sec = timestamp/1000000;
-	    	ts_usec = timestamp%1000000;
-	    	incl_len = packetsize;
-	    	orig_len = actualsize;
-	    }
+		void init(uint64_t timestamp, uint32_t packetsize,
+				uint32_t actualsize) {
+			ts_sec = timestamp / 1000000;
+			ts_usec = timestamp % 1000000;
+			incl_len = packetsize;
+			orig_len = actualsize;
+		}
 	};
 
 	pcapFileHeader fileHeader;
@@ -362,39 +366,50 @@ void write_pcap(CPersist & data){
 	string rulename;
 	string filename;
 
-	for (int i = 0; i<= data.c.get_rule_count(); i++){
-		if (i == data.c.get_rule_count()){
+	for (int i = 0; i <= data.c.get_rule_count(); i++) {
+		if (i == data.c.get_rule_count()) {
 			rulename = "Other";
 		} else {
 			data.c.get_rule_name(i, rulename);
 		}
 		filename = "rule_" + rulename + ".pcap";
 
-		if (!file_exists(filename)){
+		if (!file_exists(filename)) {
 			fileout.open(filename.c_str(), ios::trunc | ios::binary);
 			fileout.write(reinterpret_cast<const char*>(&fileHeader),
-							  sizeof fileHeader);
-		}else{
+					sizeof fileHeader);
+		} else {
 			fileout.open(filename.c_str(), ios::app | ios::binary);
 		}
 		vector<packet>::iterator iter;
-		for (iter = data.rules_packetlist[i]->begin(); iter != data.rules_packetlist[i]->end(); iter++){
-			packetHeader.init((*iter).timestamp, (*iter).packetsize, (*iter).actualsize);
-			fileout.write(reinterpret_cast<const char*>(&packetHeader), sizeof packetHeader);
-			fileout.write(reinterpret_cast<const char*>(&(*iter).ethHeader), sizeof(struct ethhdr));
-			fileout.write(reinterpret_cast<const char*>(&(*iter).ipHeader), sizeof(struct iphdr));
+		for (iter = data.rules_packetlist[i]->begin();
+				iter != data.rules_packetlist[i]->end(); iter++) {
+			packetHeader.init((*iter).timestamp, (*iter).packetsize,
+					(*iter).actualsize);
+			fileout.write(reinterpret_cast<const char*>(&packetHeader),
+					sizeof packetHeader);
+			fileout.write(reinterpret_cast<const char*>(&(*iter).ethHeader),
+					sizeof(struct ethhdr));
+			fileout.write(reinterpret_cast<const char*>(&(*iter).ipHeader),
+					sizeof(struct iphdr));
 			switch ((*iter).protocol) {
-				case IPPROTO_TCP:
-					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.tcpHeader), sizeof(struct tcphdr));
-					break;
-				case IPPROTO_UDP:
-					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.udpHeader), sizeof(struct udphdr));
-					break;
-				case IPPROTO_ICMP:
-					fileout.write(reinterpret_cast<const char*>(&(*iter).ipPayload.icmpHeader), sizeof(struct icmphdr));
-					break;
-				default:
-					break;
+			case IPPROTO_TCP:
+				fileout.write(
+						reinterpret_cast<const char*>(&(*iter).ipPayload.tcpHeader),
+						sizeof(struct tcphdr));
+				break;
+			case IPPROTO_UDP:
+				fileout.write(
+						reinterpret_cast<const char*>(&(*iter).ipPayload.udpHeader),
+						sizeof(struct udphdr));
+				break;
+			case IPPROTO_ICMP:
+				fileout.write(
+						reinterpret_cast<const char*>(&(*iter).ipPayload.icmpHeader),
+						sizeof(struct icmphdr));
+				break;
+			default:
+				break;
 			}
 		}
 		fileout.close();
@@ -408,33 +423,36 @@ void write_pcap(CPersist & data){
  *	\param packet	Packet to match with the flows.
  *	\param data		CPersist object containing all data.
  */
-void find_match(packet &p, CPersist & data){
+void find_match(packet &p, CPersist & data) {
 
 	uint8_t in = inflow;
 	uint8_t q_in = q_infl;
 
-	FlowHashKey6 mykey(&(p.dstIP), &(p.srcIP), &(p.dstPort),
-					&(p.srcPort), &(p.protocol), &(in));
-	FlowHashKey6 mykey_q(&(p.dstIP), &(p.srcIP), &(p.dstPort),
-					&(p.srcPort), &(p.protocol), &(q_in));
+	FlowHashKey6 mykey(&(p.dstIP), &(p.srcIP), &(p.dstPort), &(p.srcPort),
+			&(p.protocol), &(in));
+	FlowHashKey6 mykey_q(&(p.dstIP), &(p.srcIP), &(p.dstPort), &(p.srcPort),
+			&(p.protocol), &(q_in));
 
-	for (int i = 0; i <= data.c.get_rule_count(); i++){
+	for (int i = 0; i <= data.c.get_rule_count(); i++) {
 		CFlowHashMultiMap6::iterator iter = data.flows_by_rule[i]->find(mykey);
-		CFlowHashMultiMap6::iterator iter_q = data.flows_by_rule[i]->find(mykey_q);
+		CFlowHashMultiMap6::iterator iter_q = data.flows_by_rule[i]->find(
+				mykey_q);
 
-		if (iter != data.flows_by_rule[i]->end()){
+		if (iter != data.flows_by_rule[i]->end()) {
 
 			cflow fl = (*iter).second.get_flow();
-			if ((fl.startMs-1 < p.timestamp/1000) && (p.timestamp/1000 < (fl.startMs + fl.durationMs + 1))){
-				if ((*iter).second.can_increase_packet_count()){
+			if ((fl.startMs - 1 < p.timestamp / 1000)
+					&& (p.timestamp / 1000 < (fl.startMs + fl.durationMs + 1))) {
+				if ((*iter).second.can_increase_packet_count()) {
 					(*data.rules_packetlist[i]).push_back(p);
 				}
 			}
-		} else if(iter_q != data.flows_by_rule[i]->end()){
+		} else if (iter_q != data.flows_by_rule[i]->end()) {
 
 			cflow fl = (*iter_q).second.get_flow();
-			if ((fl.startMs-1 < p.timestamp/1000) && (p.timestamp/1000 < (fl.startMs + fl.durationMs + 1))){
-				if ((*iter_q).second.can_increase_packet_count()){
+			if ((fl.startMs - 1 < p.timestamp / 1000)
+					&& (p.timestamp / 1000 < (fl.startMs + fl.durationMs + 1))) {
+				if ((*iter_q).second.can_increase_packet_count()) {
 					(*data.rules_packetlist[i]).push_back(p);
 				}
 			}
@@ -451,14 +469,13 @@ void find_match(packet &p, CPersist & data){
  *	\param data				CPersist object containing all data.
  *	\param cflow_start		start time of the current cflow list.
  */
-void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
-{
-    struct packet packet;
-    memset((void*)(&packet), 0, sizeof (packet));
+void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start) {
+	struct packet packet;
+	memset((void*) (&packet), 0, sizeof(packet));
 
-    // Open file for packet reading
-    int pcount = 0; // Packet counter
-    try {
+	// Open file for packet reading
+	int pcount = 0; // Packet counter
+	try {
 		PcapOffline pco(pcap_filename);
 		string filename = pco.get_filename();
 
@@ -473,29 +490,35 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 			memset(&packet, 0, sizeof(packet));
 
 			// Get next packet from file
-			if (!pco.next(p)) break;	// Quit if no more packets avaliable
+			if (!pco.next(p))
+				break; // Quit if no more packets avaliable
 			pcount++;
 
 			// Get packet length from header, but limit it to capture length
-			Packet::Length len = (p.get_length() > p.get_capture_length()) ? p.get_length() : p.get_capture_length();
+			Packet::Length len =
+					(p.get_length() > p.get_capture_length()) ?
+							p.get_length() : p.get_capture_length();
 
 			if (len < sizeof(struct ethhdr)) { // Is packet too small?
-				cerr << "Found malformed packet.\n"; continue;
+				cerr << "Found malformed packet.\n";
+				continue;
 			}
 
 			Packet::Data const * pdata = p.get_data();
 
-			struct ethhdr * ether_hdr = (struct ethhdr *)pdata;
+			struct ethhdr * ether_hdr = (struct ethhdr *) pdata;
 
 			// Display packet header data if data link protocol is ethernet
-			if (ntohs(ether_hdr->h_proto) == ETH_P_IP) {	// Check if IPv4 packet
+			if (ntohs(ether_hdr->h_proto) == ETH_P_IP) { // Check if IPv4 packet
 
 				// Process IPv4 packet
 				// *******************
-				if (len < (sizeof(struct ethhdr)+sizeof(struct iphdr)  )) { // Is packet too small?
-					cerr << "Found malformed packet.\n"; continue;
+				if (len < (sizeof(struct ethhdr) + sizeof(struct iphdr))) { // Is packet too small?
+					cerr << "Found malformed packet.\n";
+					continue;
 				}
-				struct iphdr * ip_hdr = (struct iphdr *)(pdata+sizeof(struct ethhdr));
+				struct iphdr * ip_hdr = (struct iphdr *) (pdata
+						+ sizeof(struct ethhdr));
 
 				struct tcphdr * tcp_hdr = NULL;
 				struct udphdr * udp_hdr = NULL;
@@ -509,34 +532,43 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
 
 				switch (ip_hdr->protocol) {
 				case IPPROTO_TCP:
-					tcp_hdr = (struct tcphdr *)(pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
+					tcp_hdr = (struct tcphdr *) (pdata + sizeof(struct ethhdr)
+							+ packet.ipHeader.ihl * 4);
 					packet.srcPort = ntohs(tcp_hdr->source);
 					packet.dstPort = ntohs(tcp_hdr->dest);
 					packet.ipPayload.tcpHeader = *tcp_hdr;
-					packet.packetsize = (sizeof(struct ethhdr)+(sizeof(struct iphdr))+sizeof(struct tcphdr));
+					packet.packetsize = (sizeof(struct ethhdr)
+							+ (sizeof(struct iphdr)) + sizeof(struct tcphdr));
 					break;
 				case IPPROTO_UDP:
-					udp_hdr = (struct udphdr *)(pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
+					udp_hdr = (struct udphdr *) (pdata + sizeof(struct ethhdr)
+							+ packet.ipHeader.ihl * 4);
 					packet.srcPort = ntohs(udp_hdr->source);
 					packet.dstPort = ntohs(udp_hdr->dest);
 					packet.ipPayload.udpHeader = *udp_hdr;
-					packet.packetsize = (sizeof(struct ethhdr)+(sizeof(struct iphdr))+sizeof(struct udphdr));
+					packet.packetsize = (sizeof(struct ethhdr)
+							+ (sizeof(struct iphdr)) + sizeof(struct udphdr));
 					break;
 				case IPPROTO_ICMP:
-					icmp_hdr = (struct icmphdr *)(pdata+sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
+					icmp_hdr = (struct icmphdr *) (pdata + sizeof(struct ethhdr)
+							+ packet.ipHeader.ihl * 4);
 					packet.ipPayload.icmpHeader = *icmp_hdr;
-					packet.packetsize = (sizeof(struct ethhdr)+(sizeof(struct iphdr))+sizeof(struct icmphdr));
+					packet.packetsize = (sizeof(struct ethhdr)
+							+ (sizeof(struct iphdr)) + sizeof(struct icmphdr));
 					break;
 				default:
-					packet.packetsize = (sizeof(struct ethhdr)+packet.ipHeader.ihl*4);
+					packet.packetsize = (sizeof(struct ethhdr)
+							+ packet.ipHeader.ihl * 4);
 					break;
 				}
 
-				packet.timestamp = p.get_seconds()*1000000 + p.get_miliseconds();
+				packet.timestamp = p.get_seconds() * 1000000
+						+ p.get_miliseconds();
 				packet.ipHeader.ihl = 0x45; // 20 Bytes
 				packet.actualsize = p.get_length();
 
-				if ((cflow_start <= (packet.timestamp / 1000000)) && (data.last_flow >= (packet.timestamp / 1000000))){
+				if ((cflow_start <= (packet.timestamp / 1000000))
+						&& (data.last_flow >= (packet.timestamp / 1000000))) {
 					find_match(packet, data);
 				}
 			}
@@ -558,18 +590,19 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start)
  *
  *	\param data		CPersist object containing all data.
  */
-void get_flow_count(CPersist &data){
+void get_flow_count(CPersist &data) {
 	ofstream out;
 	string statfile_flowcount = "flowcount.csv";
 	util::open_outfile(out, statfile_flowcount);
 	out << "Rule;Flow-Count;Packet-Count" << endl;
 	long total_rflows = 0;
 	long total_rpackets = 0;
-	for (int i=0; i <= data.c.get_rule_count(); i++){
+	for (int i = 0; i <= data.c.get_rule_count(); i++) {
 		int flowcount = 0;
 		int packetcount = 0;
 		cout << "Rule: " << i << endl;
-		for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end(); it++){
+		for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin();
+				it != data.flows_by_rule[i]->end(); it++) {
 			++flowcount;
 			cflow fl = (*it).second.get_flow();
 			packetcount += fl.dPkts;
@@ -596,34 +629,41 @@ void get_flow_count(CPersist &data){
  *
  *	\param data		CPersist object containing all data.
  */
-void clear_lists(CPersist & data){
-	if (data.verbose2) cout << "List clearing..." << endl;
-	for (int i=0; i <= data.c.get_rule_count(); i++) {
-		if (data.verbose2){
-			cout << "Rule " << i << " contains " << distance(data.flows_by_rule[i]->begin(), data.flows_by_rule[i]->end() )  << " flows" << endl;
+void clear_lists(CPersist & data) {
+	if (data.verbose2)
+		cout << "List clearing..." << endl;
+	for (int i = 0; i <= data.c.get_rule_count(); i++) {
+		if (data.verbose2) {
+			cout
+					<< "Rule "
+					<< i
+					<< " contains "
+					<< distance(data.flows_by_rule[i]->begin(),
+							data.flows_by_rule[i]->end()) << " flows" << endl;
 		}
 		int count = 0;
 		int deleted = 0;
 		vector<CFlowHashMultiMap6::iterator> iterators;
-		for(CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin(); it != data.flows_by_rule[i]->end(); it++) {
-			if(!(*it).second.flow_incomplete()) {
+		for (CFlowHashMultiMap6::iterator it = data.flows_by_rule[i]->begin();
+				it != data.flows_by_rule[i]->end(); it++) {
+			if (!(*it).second.flow_incomplete()) {
 				iterators.push_back(it);
 				++deleted;
-			}else{
+			} else {
 				util::print_flow((*it).second.get_flow());
 			}
 			++count;
 		}
-		for (size_t j = 0; j < iterators.size(); j++){
+		for (size_t j = 0; j < iterators.size(); j++) {
 			data.flows_by_rule[i]->erase(iterators[j]);
 		}
 
-		if (data.verbose2){
+		if (data.verbose2) {
 			cout << "Done traversing " << count << " flows" << endl;
 			cout << "Flows deleted: " << deleted << endl;
 		}
-		if(data.flows_by_rule[i]->empty()) {
-			if (data.verbose2){
+		if (data.flows_by_rule[i]->empty()) {
+			if (data.verbose2) {
 				cout << "Rule " << i << " is empty!" << endl;
 			}
 			delete data.flows_by_rule[i];
@@ -637,13 +677,13 @@ void clear_lists(CPersist & data){
 	data.rules_packetlist.clear();
 }
 
-
 int main(int argc, char **argv) {
 
 	const char * Date = __DATE__;
 	const char * time = __TIME__;
 
-	cout << "Evaluation of One-Way Flows V 0.1 (c) E. Glatz, N. Bigler, M. Fisler (build: ";
+	cout
+			<< "Evaluation of One-Way Flows V 0.1 (c) E. Glatz, N. Bigler, M. Fisler (build: ";
 	cout << Date << " " << time << ")\n\n";
 
 	// 1. Parse command line
@@ -662,39 +702,39 @@ int main(int argc, char **argv) {
 	int i;
 	while ((i = getopt(argc, argv, "f:r:p:ah:vV")) != -1) {
 		switch (i) {
-			case 'f':
-				list_filename = optarg;
-				break;
-			case 'r':
-				rules_filename = optarg;
-				break;
-			case 'p':
-				pcap_filelist = optarg;
-				break;
-			case 'a':
-				analysis = true;
-				break;
-			case 'h':
-				usage(argv[0], cout);
-				exit(0);
-				break;
-			case 'v':
-				verbose = true;
-				break;
-			case 'V':
-				verbose2 = true;
-				break;
-			default:
-				cerr << "\n\nERROR: Unknown option: " << argv[optind] << endl;
-				usage(argv[0], cerr);
-				exit(1);
+		case 'f':
+			list_filename = optarg;
+			break;
+		case 'r':
+			rules_filename = optarg;
+			break;
+		case 'p':
+			pcap_filelist = optarg;
+			break;
+		case 'a':
+			analysis = true;
+			break;
+		case 'h':
+			usage(argv[0], cout);
+			exit(0);
+			break;
+		case 'v':
+			verbose = true;
+			break;
+		case 'V':
+			verbose2 = true;
+			break;
+		default:
+			cerr << "\n\nERROR: Unknown option: " << argv[optind] << endl;
+			usage(argv[0], cerr);
+			exit(1);
 		}
 	}
 
 	vector<string> files;
 
 	if (list_filename.size() > 0) {
-		if (util::getSamples(list_filename, files)!=0) {
+		if (util::getSamples(list_filename, files) != 0) {
 			cerr << "\ERROR: could not read files in " + list_filename << endl;
 			exit(1);
 		}
@@ -714,14 +754,15 @@ int main(int argc, char **argv) {
 	// Extract date and time of first interval flow data file
 	size_t pos = files[0].find(".gz");
 	if (pos == string::npos) {
-		cerr << "ERROR: input file name " << files[0] << " does not end in .gz as it should.\n\n";
+		cerr << "ERROR: input file name " << files[0]
+				<< " does not end in .gz as it should.\n\n";
 		exit(1);
 	}
 	string date_time;
-	if (date.size()>0) {
+	if (date.size() > 0) {
 		date_time = date + ".0000";
 	} else {
-		date_time = files[0].substr(pos-15, 13);	// Extract date/time as YYYYMMDD.hhmm
+		date_time = files[0].substr(pos - 15, 13); // Extract date/time as YYYYMMDD.hhmm
 	}
 	CPersist data(date_time, verbose, verbose2, rules_filename);
 
@@ -731,65 +772,79 @@ int main(int argc, char **argv) {
 	vector<string> pcap_files;
 
 	if (pcap_filelist.size() > 0) {
-		if (util::getSamples(pcap_filelist, pcap_files)!=0) {
+		if (util::getSamples(pcap_filelist, pcap_files) != 0) {
 			cerr << "ERROR: could not read files in " + list_filename << endl;
 			exit(1);
 		}
-	}else{
+	} else {
 		cerr << "ERROR: no pcap file_list provided" << endl;
 		usage(argv[0], cerr);
 	}
 
-	for(int i=0;i<=data.c.get_rule_count();++i) {
+	for (int i = 0; i <= data.c.get_rule_count(); ++i) {
 		data.flows_by_rule.push_back(new CFlowHashMultiMap6());
 	}
 
-	if (files.size() > 1) { cout << "Processing file:\n"; }
-	for (size_t i = 0; i< files.size(); i++) {
-		if (files.size() > 1) { cout << files[i] << endl;}
+	if (files.size() > 1) {
+		cout << "Processing file:\n";
+	}
+	for (size_t i = 0; i < files.size(); i++) {
+		if (files.size() > 1) {
+			cout << files[i] << endl;
+		}
 		process_interval(files[i], data);
-		if (!analysis){
+		if (!analysis) {
 			pos = files[i].find(".gz");
 			if (pos == string::npos) {
-				cerr << "ERROR: input file name " << files[0] << " does not end in .gz as it should.\n\n";
+				cerr << "ERROR: input file name " << files[0]
+						<< " does not end in .gz as it should.\n\n";
 				exit(1);
 			}
 			string date_time;
-			date_time = files[i].substr(pos-15, 13);
+			date_time = files[i].substr(pos - 15, 13);
 
-			struct tm tm = {};
+			struct tm tm = { };
 			time_t cts = 0;
-			if (strptime(date_time.c_str(),"%Y%m%d.%H%M",&tm) == NULL){
+			if (strptime(date_time.c_str(), "%Y%m%d.%H%M", &tm) == NULL) {
 				cerr << "Something went wrong" << endl;
 			}
 			tm.tm_hour++;
 			cts = mktime(&tm);
-			if(verbose2) {
+			if (verbose2) {
 				cout << "date_time: " << date_time << endl;
 				cout << "cts: " << cts << endl;
 			}
 
 			string pcap_filename;
 
-			if(verbose2) {
+			if (verbose2) {
 				cout << "Pcap Filename: " << pcap_filename << endl;
 			}
 
-			for (size_t j = 0; j< pcap_files.size(); j++) {
-				if (pcap_files.size() > 1) { cout << pcap_files[j] << endl; }
+			for (size_t j = 0; j < pcap_files.size(); j++) {
+				if (pcap_files.size() > 1) {
+					cout << pcap_files[j] << endl;
+				}
 				pos = pcap_files[j].find(".pcap.gz");
 				string pcap_ts;
-				pcap_ts = pcap_files[j].substr(pos-10,10);
+				pcap_ts = pcap_files[j].substr(pos - 10, 10);
 				time_t pts = atoi(pcap_ts.c_str());
-				if (verbose2) cout << "pts: " << pts << endl;
-				if (((pts <= cts) && (cts <= pts + 3600)) || ((cts <= pts) && (pts < data.last_flow/1000))){
+				if (verbose2)
+					cout << "pts: " << pts << endl;
+				if (((pts <= cts) && (cts <= pts + 3600))
+						|| ((cts <= pts) && (pts < data.last_flow / 1000))) {
 					cout << "if entered" << endl;
 					string old_pcap_file = pcap_filename;
-					pcap_filename = pcap_files[j].substr(0,pcap_files[j].find(".gz")).substr(pcap_files[j].find_last_of("/")+1);
-					if (!file_exists(pcap_filename)){
-						if (j>0) remove(old_pcap_file.c_str());
-						ifstream file(pcap_files[j].c_str(), ios_base::in | ios_base::binary);
-						boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+					pcap_filename = pcap_files[j].substr(0,
+							pcap_files[j].find(".gz")).substr(
+							pcap_files[j].find_last_of("/") + 1);
+					if (!file_exists(pcap_filename)) {
+						if (j > 0)
+							remove(old_pcap_file.c_str());
+						ifstream file(pcap_files[j].c_str(),
+								ios_base::in | ios_base::binary);
+						boost::iostreams::filtering_streambuf<
+								boost::iostreams::input> in;
 						ofstream out(pcap_filename.c_str());
 						in.push(boost::iostreams::gzip_decompressor());
 						in.push(file);
@@ -805,8 +860,8 @@ int main(int argc, char **argv) {
 			clear_lists(data);
 		}
 	}
-	if (analysis){
-			cout << "Counting flows and packets in the flowfiles." << endl;
-			get_flow_count(data);
+	if (analysis) {
+		cout << "Counting flows and packets in the flowfiles." << endl;
+		get_flow_count(data);
 	}
 }

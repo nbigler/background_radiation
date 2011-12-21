@@ -33,177 +33,177 @@
  * \section specific_hmap Examples
  * - <b>Example 1: </b>  Creation, use and deletion of a hash_map with entries of type 'unsigned long long' (basic number type) and HashKeyIPv4Addr keys.
  * \code 
-#include "HashMap.h"
-#include <iostream>
-#include <sys/types.h>
+ #include "HashMap.h"
+ #include <iostream>
+ #include <sys/types.h>
 
-#define NUM_ELEMENTS  10000000
+ #define NUM_ELEMENTS  10000000
 
-using namespace std;
+ using namespace std;
 
-typedef HashKeyIPv4_6T MyHashKey;
-typedef hash_map<HashKeyIPv4_6T, uint32_t , HashFunction<HashKeyIPv4_6T>,HashFunction<HashKeyIPv4_6T> > HashMap;
+ typedef HashKeyIPv4_6T MyHashKey;
+ typedef hash_map<HashKeyIPv4_6T, uint32_t , HashFunction<HashKeyIPv4_6T>,HashFunction<HashKeyIPv4_6T> > HashMap;
 
-int main() {
-	uint32_t dstAddr = 0;
-	uint16_t dstPort = 0;
-	uint16_t srcPort = 0;
-	uint8_t protocol = 0;
-	uint8_t tos = 0;
+ int main() {
+ uint32_t dstAddr = 0;
+ uint16_t dstPort = 0;
+ uint16_t srcPort = 0;
+ uint8_t protocol = 0;
+ uint8_t tos = 0;
 
-	try{
+ try{
 
-	//insert NUM_ELEMENTS. Key is 'counting' source address and other key fields set to zero
-	HashMap * myHashMap = new HashMap();
-	for (uint32_t i = 0; i< NUM_ELEMENTS;i++){
-		MyHashKey mykey(&i, &dstAddr, &srcPort, &dstPort, &protocol, &tos);
-		(*myHashMap)[mykey]=i;
-	}
+ //insert NUM_ELEMENTS. Key is 'counting' source address and other key fields set to zero
+ HashMap * myHashMap = new HashMap();
+ for (uint32_t i = 0; i< NUM_ELEMENTS;i++){
+ MyHashKey mykey(&i, &dstAddr, &srcPort, &dstPort, &protocol, &tos);
+ (*myHashMap)[mykey]=i;
+ }
 
-	//searching for elements (here, we search for all inserted elements!)	
-	HashMap::iterator iter;
-	uint32_t found = 0;
-	for (uint32_t i = 0; i < NUM_ELEMENTS; i++) {
-		MyHashKey mykey(&i, &dstAddr, &srcPort, &dstPort, &protocol, &tos);
-		iter = myHashMap->find(mykey);
-		if(iter!=myHashMap->end()){
-			//access and print the key:
-			//  cout << (iter->first).printkey() << "\n";
-			//access the element: 
-			//   cout << "Stored uint32_t value is:"<< (iter->second) << "\n";
-			found++;
-		}
-	}
-	if(found != NUM_ELEMENTS){
-		throw("ERROR: Not all inserted elements found! Aborting....\n");
-	}
+ //searching for elements (here, we search for all inserted elements!)	
+ HashMap::iterator iter;
+ uint32_t found = 0;
+ for (uint32_t i = 0; i < NUM_ELEMENTS; i++) {
+ MyHashKey mykey(&i, &dstAddr, &srcPort, &dstPort, &protocol, &tos);
+ iter = myHashMap->find(mykey);
+ if(iter!=myHashMap->end()){
+ //access and print the key:
+ //  cout << (iter->first).printkey() << "\n";
+ //access the element: 
+ //   cout << "Stored uint32_t value is:"<< (iter->second) << "\n";
+ found++;
+ }
+ }
+ if(found != NUM_ELEMENTS){
+ throw("ERROR: Not all inserted elements found! Aborting....\n");
+ }
 
-	//deleting elements while iterating over the hash table
-	//NOTE 1: Elements are of basic non-pointer type. The memory used is 
-	//        automatically freed when deleting the element.
-	//NOTE 2: Deletion of an hash table entry must NOT be done using
-	//        the iterator itself -> memory exception. You must advance the
-	//        iterator before deleting the entry!
-	
-	HashMap::iterator  iter_end = myHashMap->end();
-	HashMap::iterator  iter_tmp;
-	iter = myHashMap->begin();
-	uint32_t deleted = 0;
-	while(iter!=iter_end) {
-		iter_tmp = iter;
-		++iter;
-		myHashMap->erase(iter_tmp);		
-		deleted++;
-	}
-	if(deleted != NUM_ELEMENTS){
-		cout << deleted << "\n";
-		throw("ERROR: Not all inserted elements could be deleted! Aborting....\n");
-	} else {
-		cout << "Example SUCCESSFULLY completed!\n";
-	} 
-	delete myHashMap;
-	}catch (char const * e){
-		cout<< "Caught Exception: " << e << "\n";
-	}
+ //deleting elements while iterating over the hash table
+ //NOTE 1: Elements are of basic non-pointer type. The memory used is 
+ //        automatically freed when deleting the element.
+ //NOTE 2: Deletion of an hash table entry must NOT be done using
+ //        the iterator itself -> memory exception. You must advance the
+ //        iterator before deleting the entry!
+ 
+ HashMap::iterator  iter_end = myHashMap->end();
+ HashMap::iterator  iter_tmp;
+ iter = myHashMap->begin();
+ uint32_t deleted = 0;
+ while(iter!=iter_end) {
+ iter_tmp = iter;
+ ++iter;
+ myHashMap->erase(iter_tmp);		
+ deleted++;
+ }
+ if(deleted != NUM_ELEMENTS){
+ cout << deleted << "\n";
+ throw("ERROR: Not all inserted elements could be deleted! Aborting....\n");
+ } else {
+ cout << "Example SUCCESSFULLY completed!\n";
+ } 
+ delete myHashMap;
+ }catch (char const * e){
+ cout<< "Caught Exception: " << e << "\n";
+ }
 
-}
+ }
  * \endcode
  * 
  * - <b>Example 2: </b> Creation, use and deletion of a hash_map with entries of type 'MyObject *' (pointer type) and HashKeyIPv4_6T keys
  * \code 
-#include "HashMap.h"
-#include <iostream>
-#include <sys/types.h>
+ #include "HashMap.h"
+ #include <iostream>
+ #include <sys/types.h>
 
-#define NUM_ELEMENTS  10000000
+ #define NUM_ELEMENTS  10000000
 
-using namespace std;
+ using namespace std;
 
-class MyObject {
-	private:
-	uint32_t myIntfield;
-	public:
-	char info[16];
-	//constructor of myObject
-	MyObject(uint32_t myint){
-		myIntfield = myint;
-		for(int i=0; i<16; i++){
-			info[i]=0;
-		}
-	}
-	//destructor of myObject
-	~MyObject(){
-		
-	}	
-};
+ class MyObject {
+ private:
+ uint32_t myIntfield;
+ public:
+ char info[16];
+ //constructor of myObject
+ MyObject(uint32_t myint){
+ myIntfield = myint;
+ for(int i=0; i<16; i++){
+ info[i]=0;
+ }
+ }
+ //destructor of myObject
+ ~MyObject(){
+ 
+ }	
+ };
 
-typedef HashKeyIPv4_6T MyHashKey;
-typedef hash_map<HashKeyIPv4_6T, MyObject * , HashFunction<HashKeyIPv4_6T>,HashFunction<HashKeyIPv4_6T> > HashMap;
+ typedef HashKeyIPv4_6T MyHashKey;
+ typedef hash_map<HashKeyIPv4_6T, MyObject * , HashFunction<HashKeyIPv4_6T>,HashFunction<HashKeyIPv4_6T> > HashMap;
 
-int main() {
-	uint32_t dstAddr = 0;
-	uint16_t dstPort = 0;
-	uint16_t srcPort = 0;
-	uint8_t protocol = 0;
-	uint8_t tos = 0;
+ int main() {
+ uint32_t dstAddr = 0;
+ uint16_t dstPort = 0;
+ uint16_t srcPort = 0;
+ uint8_t protocol = 0;
+ uint8_t tos = 0;
 
-	try{
+ try{
 
-	//insert NUM_ELEMENTS. Key is 'counting' source address and other key fields set to zero
-	HashMap * myHashMap = new HashMap();
-	for (uint32_t i = 0; i< NUM_ELEMENTS;i++){
-		MyHashKey mykey(&i, &dstAddr, &srcPort, &dstPort, &protocol, &tos);
-		(*myHashMap)[mykey]=new MyObject(i);
-	}
+ //insert NUM_ELEMENTS. Key is 'counting' source address and other key fields set to zero
+ HashMap * myHashMap = new HashMap();
+ for (uint32_t i = 0; i< NUM_ELEMENTS;i++){
+ MyHashKey mykey(&i, &dstAddr, &srcPort, &dstPort, &protocol, &tos);
+ (*myHashMap)[mykey]=new MyObject(i);
+ }
 
-	//searching for elements (here, we search for all inserted elements!)	
-	HashMap::iterator iter;
-	uint32_t found = 0;
-	for (uint32_t i = 0; i < NUM_ELEMENTS; i++) {
-		MyHashKey mykey(&i, &dstAddr, &srcPort, &dstPort, &protocol, &tos);
-		iter = myHashMap->find(mykey);
-		if(iter!=myHashMap->end()){
-			//access and print the key:
-			//   cout << (iter->first).printkey() << "\n";
-			//access the element (e.g., print out field 'info'): 
-			//   cout << (iter->second)->info << "\n";
-			found++;
-		}
-	}
-	if(found != NUM_ELEMENTS){
-		throw("ERROR: Not all inserted elements found! Aborting....\n");
-	}
+ //searching for elements (here, we search for all inserted elements!)	
+ HashMap::iterator iter;
+ uint32_t found = 0;
+ for (uint32_t i = 0; i < NUM_ELEMENTS; i++) {
+ MyHashKey mykey(&i, &dstAddr, &srcPort, &dstPort, &protocol, &tos);
+ iter = myHashMap->find(mykey);
+ if(iter!=myHashMap->end()){
+ //access and print the key:
+ //   cout << (iter->first).printkey() << "\n";
+ //access the element (e.g., print out field 'info'): 
+ //   cout << (iter->second)->info << "\n";
+ found++;
+ }
+ }
+ if(found != NUM_ELEMENTS){
+ throw("ERROR: Not all inserted elements found! Aborting....\n");
+ }
 
-	//deleting elements while iterating over the hash table
-	//NOTE 1: Elements are of POINTER TYPE. The memory used is 
-	//        NOT automatically freed when deleting the element.
-	//NOTE 2: Deletion of an hash table entry must NOT be done using
-	//        the iterator itself -> memory exception. You must advance the
-	//        iterator before deleting the entry!
-	
-	HashMap::iterator  iter_end = myHashMap->end();
-	HashMap::iterator  iter_tmp;
-	iter = myHashMap->begin();
-	uint32_t deleted = 0;
-	while(iter!=iter_end) {
-		iter_tmp = iter;
-		++iter;
-		//we need to delete the element manualy (we allocated it with 'new'!
-		delete iter_tmp->second;
-		myHashMap->erase(iter_tmp);		
-		deleted++;
-	}
-	if(deleted != NUM_ELEMENTS){
-		cout << deleted << "\n";
-		throw("ERROR: Not all inserted elements could be deleted! Aborting....\n");
-	} else {
-		cout << "Example SUCCESSFULLY completed!\n";
-	} 
-	delete myHashMap;
-	}catch (char const * e){
-		cout<< "Caught Exception: " << e << "\n";
-	}
-}
+ //deleting elements while iterating over the hash table
+ //NOTE 1: Elements are of POINTER TYPE. The memory used is 
+ //        NOT automatically freed when deleting the element.
+ //NOTE 2: Deletion of an hash table entry must NOT be done using
+ //        the iterator itself -> memory exception. You must advance the
+ //        iterator before deleting the entry!
+ 
+ HashMap::iterator  iter_end = myHashMap->end();
+ HashMap::iterator  iter_tmp;
+ iter = myHashMap->begin();
+ uint32_t deleted = 0;
+ while(iter!=iter_end) {
+ iter_tmp = iter;
+ ++iter;
+ //we need to delete the element manualy (we allocated it with 'new'!
+ delete iter_tmp->second;
+ myHashMap->erase(iter_tmp);		
+ deleted++;
+ }
+ if(deleted != NUM_ELEMENTS){
+ cout << deleted << "\n";
+ throw("ERROR: Not all inserted elements could be deleted! Aborting....\n");
+ } else {
+ cout << "Example SUCCESSFULLY completed!\n";
+ } 
+ delete myHashMap;
+ }catch (char const * e){
+ cout<< "Caught Exception: " << e << "\n";
+ }
+ }
  * \endcode
  * Distributed under the Gnu Public License version 2 or the modified
  * BSD license (see file COPYING)
@@ -220,7 +220,6 @@ using namespace __gnu_cxx;
 #ifndef HASHMAP_H_
 #define HASHMAP_H_
 
-
 /* *************************************************************
  * Key type HashKeyGeneric: Arbitrary lengt key (slow)         *
  * *************************************************************/
@@ -230,11 +229,11 @@ using namespace __gnu_cxx;
  * none of the other hash key classes are suitable. 
  */
 class HashKeyGeneric {
-	public:
+public:
 	/**
 	 * the key.
 	 */
-	char * key; 
+	char * key;
 	/**
 	 * length of the key.
 	 */
@@ -249,11 +248,9 @@ class HashKeyGeneric {
 	~HashKeyGeneric();
 
 	size_t size() const;
-        HashKeyGeneric(const HashKeyGeneric &b);
+	HashKeyGeneric(const HashKeyGeneric &b);
 	std::string printkey() const;
 };
-
-
 
 /* *************************************************************
  * Key type HashKeyIPv4: IPv4 key                              *
@@ -263,12 +260,12 @@ class HashKeyGeneric {
  * Hash Key for IPv4 addresses. The length is fixed to 4 bytes.
  */
 class HashKeyIPv4 {
-	private:
+private:
 	/**
 	 * the IPv4 address.
 	 */
-	public:
-	char key[4]; 
+public:
+	char key[4];
 	/**
 	 * Constructor.
 	 * \param ip the IPv4 address
@@ -276,11 +273,9 @@ class HashKeyIPv4 {
 	HashKeyIPv4(uint32_t * ip);
 	~HashKeyIPv4();
 	size_t size() const;
-        HashKeyIPv4(const HashKeyIPv4 &b);
+	HashKeyIPv4(const HashKeyIPv4 &b);
 	std::string printkey() const;
 };
-
-
 
 /* *************************************************************
  * Key type HashKeyIPv4Pair: IPv4Pair key                      *
@@ -290,12 +285,12 @@ class HashKeyIPv4 {
  * Hash Key for IPv4 address pairs. The length is fixed to 8 bytes.
  */
 class HashKeyIPv4Pair {
-	private:
+private:
 	/**
 	 * the IPv4 address pair.
 	 */
-	public:
-	char key[8]; 
+public:
+	char key[8];
 	/**
 	 * Constructor.
 	 * \param ip the IPv4 address
@@ -303,11 +298,9 @@ class HashKeyIPv4Pair {
 	HashKeyIPv4Pair(uint32_t * ip1, uint32_t * ip2);
 	~HashKeyIPv4Pair();
 	size_t size() const;
-        HashKeyIPv4Pair(const HashKeyIPv4Pair &b);
+	HashKeyIPv4Pair(const HashKeyIPv4Pair &b);
 	std::string printkey() const;
 };
-
-
 
 /* *************************************************************
  * Key type HashKeyIPv6: IPv6 key                              *
@@ -317,12 +310,12 @@ class HashKeyIPv4Pair {
  * Hash Key for IPv6 addresses. The length is fixed to 16 bytes.
  */
 class HashKeyIPv6 {
-	private:
+private:
 	/**
 	 * the IPv6 address.
 	 */
-	public:
-    char key [16]; 
+public:
+	char key[16];
 	/**
 	 * Constructor.
 	 * \param ip the IPv6 address
@@ -330,11 +323,9 @@ class HashKeyIPv6 {
 	HashKeyIPv6(char * ip);
 	~HashKeyIPv6();
 	size_t size() const;
-        HashKeyIPv6(const HashKeyIPv6 &b);
+	HashKeyIPv6(const HashKeyIPv6 &b);
 	std::string printkey() const;
 };
-
-
 
 /* *************************************************************
  * Key type HashKeyIPv4_3T: IPv4 Three-Tuple key               *
@@ -345,12 +336,12 @@ class HashKeyIPv6 {
  * size of the key amounts to 7 bytes.
  */
 class HashKeyIPv4_3T {
-	private:
+private:
 	/**
 	 * The 3-tuple
 	 */
-	public:
-	char key [7]; 
+public:
+	char key[7];
 	/**
 	 * Constructor.
 	 * \param IP IP address
@@ -360,11 +351,9 @@ class HashKeyIPv4_3T {
 	HashKeyIPv4_3T(uint32_t * IP, uint8_t * protocol, uint16_t * port);
 	~HashKeyIPv4_3T();
 	size_t size() const;
-    HashKeyIPv4_3T(const HashKeyIPv4_3T &b);
+	HashKeyIPv4_3T(const HashKeyIPv4_3T &b);
 	std::string printkey() const;
 };
-
-
 
 /* *************************************************************
  * Key type HashKeyIPv4_4T: IPv4 Four-Tuple key                *
@@ -376,12 +365,12 @@ class HashKeyIPv4_3T {
  * The size of the key amounts to 10 bytes.
  */
 class HashKeyIPv4_4T {
-	private:
+private:
 	/**
 	 * The 4-tuple
 	 */
-	public:
-	char key [10]; 
+public:
+	char key[10];
 	/**
 	 * Constructor.
 	 * \param localIP   local IP address
@@ -389,15 +378,13 @@ class HashKeyIPv4_4T {
 	 * \param protocol  protocol number (e.g. 6=tcp, 17=UDP)
 	 * \param direction flow direction information
 	 */
-	HashKeyIPv4_4T(uint32_t * localIP, uint32_t * remoteIP, uint8_t * protocol, uint8_t * direction);
+	HashKeyIPv4_4T(uint32_t * localIP, uint32_t * remoteIP, uint8_t * protocol,
+			uint8_t * direction);
 	~HashKeyIPv4_4T();
 	size_t size() const;
-    HashKeyIPv4_4T(const HashKeyIPv4_4T &b);
+	HashKeyIPv4_4T(const HashKeyIPv4_4T &b);
 	std::string printkey() const;
 };
-
-
-
 
 /* *************************************************************
  * Key type HashKeyIPv4_5T: IPv4 Five-Tuple key                *
@@ -408,12 +395,12 @@ class HashKeyIPv4_4T {
  * size of the key amounts to 13 bytes.
  */
 class HashKeyIPv4_5T {
-	private:
+private:
 	/**
 	 * The 5-tuple
 	 */
-	public:
-	char key [13]; 
+public:
+	char key[13];
 	/**
 	 * Constructor.
 	 * \param srcIP source IP address
@@ -422,14 +409,13 @@ class HashKeyIPv4_5T {
 	 * \param dstPort destination port
 	 * \param protocol protocol number (e.g. 6=tcp, 17=UDP)
 	 */
-	HashKeyIPv4_5T(uint32_t * srcIP,uint32_t * dstIP, uint16_t * srcPort,uint16_t * dstPort, uint8_t * protocol);
+	HashKeyIPv4_5T(uint32_t * srcIP, uint32_t * dstIP, uint16_t * srcPort,
+			uint16_t * dstPort, uint8_t * protocol);
 	~HashKeyIPv4_5T();
 	size_t size() const;
-    HashKeyIPv4_5T(const HashKeyIPv4_5T &b);
+	HashKeyIPv4_5T(const HashKeyIPv4_5T &b);
 	std::string printkey() const;
 };
-
-
 
 /* *************************************************************
  * Key type HashKeyIPv4_6T: IPv4 Six-Tuple key                 *
@@ -442,12 +428,12 @@ class HashKeyIPv4_5T {
  * The size of the key amounts to 14 bytes.
  */
 class HashKeyIPv4_6T {
-	private:
+private:
 	/**
 	 * The 6-tuple
 	 */
-	public:
-	char key [14]; 
+public:
+	char key[14];
 	/**
 	 * Constructor.
 	 * \param srcIP source IP address
@@ -457,14 +443,13 @@ class HashKeyIPv4_6T {
 	 * \param protocol protocol number (e.g. 6=tcp, 17=UDP)
 	 * \param tos TOS field (Type Of Service)
 	 */
-	HashKeyIPv4_6T(uint32_t * srcIP,uint32_t * dstIP, uint16_t * srcPort,uint16_t * dstPort, uint8_t * protocol, uint8_t * tos);
+	HashKeyIPv4_6T(uint32_t * srcIP, uint32_t * dstIP, uint16_t * srcPort,
+			uint16_t * dstPort, uint8_t * protocol, uint8_t * tos);
 	~HashKeyIPv4_6T();
 	size_t size() const;
-    HashKeyIPv4_6T(const HashKeyIPv4_6T &b);
+	HashKeyIPv4_6T(const HashKeyIPv4_6T &b);
 	std::string printkey() const;
 };
-
-
 
 /* *************************************************************
  * Key type HashKeyIPv4_7T: IPv4 Seven-Tuple key               *
@@ -475,12 +460,12 @@ class HashKeyIPv4_6T {
  * size of the key amounts to 15 bytes.
  */
 class HashKeyIPv4_7T {
-	private:
+private:
 	/**
 	 * The 7-tuple
 	 */
-	public:
-	char key [15];
+public:
+	char key[15];
 	/**
 	 * Constructor.
 	 * \param srcIP source IP address
@@ -491,14 +476,14 @@ class HashKeyIPv4_7T {
 	 * \param tos TOS field (Type Of Service)
 	 * \param dir Direction field
 	 */
-	HashKeyIPv4_7T(uint32_t * srcIP,uint32_t * dstIP, uint16_t * srcPort,uint16_t * dstPort, uint8_t * protocol, uint8_t * tos, uint8_t * dir);
+	HashKeyIPv4_7T(uint32_t * srcIP, uint32_t * dstIP, uint16_t * srcPort,
+			uint16_t * dstPort, uint8_t * protocol, uint8_t * tos,
+			uint8_t * dir);
 	~HashKeyIPv4_7T();
 	size_t size() const;
-    HashKeyIPv4_7T(const HashKeyIPv4_7T &b);
+	HashKeyIPv4_7T(const HashKeyIPv4_7T &b);
 	std::string printkey() const;
 };
-
-
 
 /* *************************************************************
  * HashFunction and Equality Operator definition               *
@@ -507,12 +492,12 @@ class HashKeyIPv4_7T {
 /**
  * Holds the implementation of the equals and hash operator for the different HashKeys.
  */
-template <typename T> struct HashFunction {
+template<typename T> struct HashFunction {
 	/**
 	 * Hash function for HashKey class. The method hashlittle() is called on the key. See lookup3.h for details.
 	 */
 	size_t operator()(const T& key) const {
-		return hashlittle(key.key, key.size(),0);
+		return hashlittle(key.key, key.size(), 0);
 	}
 
 	/**
@@ -520,12 +505,14 @@ template <typename T> struct HashFunction {
 	 * are equal.
 	 */
 	bool operator()(const T& key1, const T& key2) const {
-		if(key1.size()!=key2.size()) return false;
-		for(unsigned int i = 0; i<key1.size(); i++){
-			if(key1.key[i]!=key2.key[i]) return false;
+		if (key1.size() != key2.size())
+			return false;
+		for (unsigned int i = 0; i < key1.size(); i++) {
+			if (key1.key[i] != key2.key[i])
+				return false;
 		}
 		return true;
 	}
-}; 
+};
 
 #endif
