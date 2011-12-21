@@ -270,12 +270,12 @@ bool process_interval(string & filename, CPersist & data) {
  *	\param outfs        Stream to write the usage informations to
  */
 void usage(char * progname, ostream & outfs) {
-	outfs << "\nEvaluates signs assigned to one-way flows. One or more file names \n";
-	outfs << "of flow data files are expected. To specify more than one input file name\n";
-	outfs << "use option -f and a file containing a list of file names.\n";
-	outfs << "Unless option -d is used an input file name *YYYYMMDD.hhmm.gz is expected.\n";
+	outfs << "\nEvaluates signs assigned to one-way flows. A list of file names \n";
+	outfs << "flow data and pcap data files are expected.\n";
+	outfs << "Use option -f and a file containing a list of flow file names.\n";
+	outfs << "and -p and a file containing a list of pcap file names.\n";
 
-	outfs << "Usage: " << progname << " [options] [pcap_file] [input_filename]\n\n";
+	outfs << "Usage: " << progname	<< " [options] -f [flow_list] -p [pcap_list] -r [rule_file]\n\n";
 
 	outfs << "Options:\n";
 	outfs << "-f <filename>  File containing list of input file names (default: [use input_filename]).\n";

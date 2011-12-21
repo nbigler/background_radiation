@@ -23,7 +23,6 @@
  *	\param	date_time	      Date/time string using format YYYYMMDD.hhmm
  *	\param	verbose		      Create informative messages
  *	\param	verbose2		      Create more informative messages
- *	\param	test			      When TRRUE then show basic statistics and performa a sanitiy check
  *	\param	rules_filename		Name of file containing rules
  */
 CPersist::CPersist(string & date_time, bool verbose, bool verbose2,
