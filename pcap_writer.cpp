@@ -564,7 +564,7 @@ void process_pcap(string pcap_filename, CPersist & data, time_t cflow_start) {
 
 				packet.timestamp = p.get_seconds() * 1000000
 						+ p.get_miliseconds();
-				packet.ipHeader.ihl = 0x45; // 20 Bytes
+				packet.ipHeader.ihl = 0x45; // Set the ipV4 Header size to 20 Bytes. IP Options are ignored.
 				packet.actualsize = p.get_length();
 
 				if ((cflow_start <= (packet.timestamp / 1000000))
