@@ -1,38 +1,38 @@
 /**
-  *	\file CPersist.cpp
-  *
-  *	\brief Implements the CPersist class that keeps data persistent over all processing intervals.
-  *
-  *
-  * 	Copyright (c) 2010, Eduard Glatz, Nicolas Bigler, Michael Fisler
-  *
-  * 	Authors: Eduard Glatz  (eglatz@tik.ee.ethz.ch)
-  * 			 Nicolas Bigler (nbigler@hsr.ch)
-  * 			 Michael Fisler (mfisler@hsr.ch)
-  *
-  *	Distributed under the Gnu Public License version 2 or the modified
-  *	BSD license.
-  */
+ *	\file CPersist.cpp
+ *
+ *	\brief Implements the CPersist class that keeps data persistent over all processing intervals.
+ *
+ *
+ * 	Copyright (c) 2010, Eduard Glatz, Nicolas Bigler, Michael Fisler
+ *
+ * 	Authors: Eduard Glatz  (eglatz@tik.ee.ethz.ch)
+ * 			 Nicolas Bigler (nbigler@hsr.ch)
+ * 			 Michael Fisler (mfisler@hsr.ch)
+ *
+ *	Distributed under the Gnu Public License version 2 or the modified
+ *	BSD license.
+ */
 
 #include "CPersist.h"
 #include "libs/utils.h"
 
 /**
-  *	Constructor
-  *
-  *	\param	date_time	      Date/time string using format YYYYMMDD.hhmm
-  *	\param	verbose		      Create informative messages
-  *	\param	verbose2		      Create more informative messages
-  *	\param	rules_filename		Name of file containing rules
-  */
-CPersist::CPersist(string & date_time, bool verbose, bool verbose2,	string & rules_filename)
-{
+ *	Constructor
+ *
+ *	\param	date_time	      Date/time string using format YYYYMMDD.hhmm
+ *	\param	verbose		      Create informative messages
+ *	\param	verbose2		      Create more informative messages
+ *	\param	rules_filename		Name of file containing rules
+ */
+CPersist::CPersist(string & date_time, bool verbose, bool verbose2,
+		string & rules_filename) {
 	this->verbose = verbose;
 	this->verbose2 = verbose2;
 	this->test = test;
 	/*flows = packets = NULL;
-	bytes = NULL;*/
-	date = date_time.substr(0,8);
+	 bytes = NULL;*/
+	date = date_time.substr(0, 8);
 
 	// Read rules files if any
 	// ***********************
@@ -44,15 +44,15 @@ CPersist::CPersist(string & date_time, bool verbose, bool verbose2,	string & rul
 			exit(1);
 		}
 		int rule_count = c.get_rule_count();
-		if (verbose) cout << "Loaded " << rule_count << " rules.\n";
+		if (verbose)
+			cout << "Loaded " << rule_count << " rules.\n";
 		rc.init(c.get_enum_count(), rule_count);
 
 	}
 }
 
 /**
-  * 	Destructor
-  */
-CPersist::~CPersist()
-{
+ * 	Destructor
+ */
+CPersist::~CPersist() {
 }
