@@ -31,8 +31,8 @@
 
 using namespace std;
 
-typedef hash_multimap<HashKeyIPv4_6T, Flow, HashFunction<HashKeyIPv4_6T>,
-		HashFunction<HashKeyIPv4_6T> > CFlowHashMultiMap6;
+typedef hash_map<HashKeyIPv4_6T, Flow, HashFunction<HashKeyIPv4_6T>,
+		HashFunction<HashKeyIPv4_6T> > CFlowHashMap6;
 
 /**
  *	\class	CPersist
@@ -57,7 +57,7 @@ public:
 	map<string, int> sbenign_validation_flow_count;
 	map<string, int> other_validation_flow_count;
 
-	CFlowHashMultiMap6* flowHashMap;
+	CFlowHashMap6* flowHashMap;
 
 	vector<packet> packets;
 	vector<packet> matched_packets;
