@@ -153,8 +153,8 @@ void CFlowlist::read_flows() {
 		// Show progress on console
 		if ((flow_count % 100000) == 0) {
 			nl_flag = true;
-			cout << ".";
-			cout.flush();
+			//cout << ".";
+			//cout.flush();
 		}
 
 		// Fetch next flow
@@ -164,7 +164,7 @@ void CFlowlist::read_flows() {
 
 	} // while(ok): processing of flow
 	if (nl_flag)
-		cout << endl;
+		//cout << endl;
 
 	// Close current input file (and stream compressor)
 	in.pop();

@@ -84,7 +84,7 @@ void process_rules(CFlowlist * fl, uint32_t * fl_ref, CPersist & data,
 	// *************
 	int rule_no = data.c.get_rule_number(rulename);
 
-	if (data.verbose) {
+	if (data.verbose2) {
 		cout << "\n*** Applying rules/class definitions to sign sets\n";
 	}
 
@@ -193,7 +193,7 @@ bool process_interval(string & filename, CPersist & data, string rulename) {
 	CFlowlist * fl = new CFlowlist(filename);
 	fl->read_flows();
 	int flow_count = fl->get_flow_count();
-	if (data.verbose)
+	if (data.verbose2)
 		cout << endl << flow_count << " flows read from file " << filename
 				<< endl;
 
@@ -887,7 +887,6 @@ void flow_validation(CPersist& data, const int rule_no) {
 		break;
 	case 11:
 		//Unreachable
-
 		break;
 	case 12:
 		//P2P
